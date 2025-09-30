@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Menu, ShoppingBag, Search, Heart, Home, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { getCurrentUser } from '@/lib/auth';
 
 interface Product {
@@ -26,14 +27,13 @@ export default function BesomMobileUI() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const router = useRouter();
-  
+
   useEffect(() => {
     // Get user info from localStorage (populated during login)
     const currentUser = getCurrentUser();
     if (currentUser) {
       setUser(currentUser);
     }
-    
     // Fetch products (middleware will handle auth)
     fetchProducts();
   }, [filter]);
@@ -43,7 +43,7 @@ export default function BesomMobileUI() {
       setFilteredProducts(products);
     } else {
       const lowercaseQuery = searchQuery.toLowerCase();
-      const filtered = products.filter(product => 
+      const filtered = products.filter(product =>
         product.name.toLowerCase().includes(lowercaseQuery) ||
         product.description.toLowerCase().includes(lowercaseQuery)
       );
@@ -58,9 +58,7 @@ export default function BesomMobileUI() {
         // Include credentials to send cookies with the request
         credentials: 'include'
       });
-      
       const data = await response.json();
-      
       if (data.success) {
         setProducts(data.products);
         setFilteredProducts(data.products);
@@ -74,7 +72,6 @@ export default function BesomMobileUI() {
 
   const addToCart = async (productId: string) => {
     setCartLoading(productId);
-    
     try {
       const response = await fetch('/api/cart', {
         method: 'POST',
@@ -84,9 +81,7 @@ export default function BesomMobileUI() {
         },
         body: JSON.stringify({ productId })
       });
-
       const data = await response.json();
-      
       if (data.success) {
         alert('Product added to cart!');
       } else {
@@ -127,7 +122,7 @@ export default function BesomMobileUI() {
       {isSearchOpen ? (
         <header className="bg-white px-4 py-3 flex items-center sticky top-0 z-50 shadow-sm">
           <div className="flex-1 flex items-center space-x-2">
-            <button 
+            <button
               onClick={() => {
                 setIsSearchOpen(false);
                 setSearchQuery('');
@@ -157,18 +152,17 @@ export default function BesomMobileUI() {
             </h1>
           </div>
           <div className="flex items-center space-x-4">
-            <button 
+            <button
               onClick={() => setIsSearchOpen(true)}
               className="text-gray-700"
             >
               <Search size={22} />
             </button>
-
-           <Link href={'/cart'}>
-           <button className="text-gray-700">
-              <ShoppingBag size={22} />
-            </button>
-           </Link> 
+            <Link href={'/cart'}>
+              <button className="text-gray-700 ">
+                <ShoppingBag size={22} className='mt-2'/>
+              </button>
+            </Link>
           </div>
         </header>
       )}
@@ -187,10 +181,14 @@ export default function BesomMobileUI() {
                 Explore More
               </button>
             </div>
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 w-32 h-40 bg-white/20 rounded-2xl backdrop-blur-sm">
-              <div className="absolute inset-2 bg-yellow-400 rounded-xl flex items-center justify-center text-4xl">
-                🥤
-              </div>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 w-32 h-40 rounded-2xl backdrop-blur-sm flex items-center justify-center">
+              <Image
+                src="/images/juice.png"
+                alt="Discount offer"
+                width={120}
+                height={120}
+                className="object-contain"
+              />
             </div>
           </div>
         )}
@@ -235,8 +233,8 @@ export default function BesomMobileUI() {
         {isSearchOpen && searchQuery && (
           <div className="mb-3">
             <h3 className="text-sm font-medium text-gray-500">
-              {filteredProducts.length === 0 
-                ? 'No results found' 
+              {filteredProducts.length === 0
+                ? 'No results found'
                 : `Found ${filteredProducts.length} result${filteredProducts.length === 1 ? '' : 's'}`}
             </h3>
           </div>
@@ -250,10 +248,9 @@ export default function BesomMobileUI() {
               className={`bg-gradient-to-br ${getCategoryColor(product.category)} rounded-3xl p-6 relative overflow-hidden shadow-lg`}
             >
               <div className="relative z-10">
-                <h3 className="text-white text-xl font-bold mb-1">
+                <h3 className="text-white text-xl font-bold mb-1 w-56">
                   {product.name}
                 </h3>
-              
                 <p className="text-white text-2xl font-bold mb-4">
                   ₹{product.price}
                 </p>
@@ -276,10 +273,14 @@ export default function BesomMobileUI() {
                   }
                 </button>
               </div>
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 w-32 h-40 bg-white/20 rounded-2xl backdrop-blur-sm">
-                <div className={`absolute inset-2 bg-gradient-to-br ${getCategoryColor(product.category)} rounded-xl flex items-center justify-center text-5xl opacity-80`}>
-                  {product.category === 'juices' ? '🍊' : '🥤'}
-                </div>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 w-32 h-40 rounded-2xl backdrop-blur-sm flex items-center justify-center">
+                <Image
+                  src="/images/juice.png"
+                  alt={product.name}
+                  width={120}
+                  height={120}
+                  className="object-contain"
+                />
               </div>
             </div>
           ))}
@@ -292,8 +293,8 @@ export default function BesomMobileUI() {
               No products found
             </h3>
             <p className="text-gray-500 text-sm">
-              {isSearchOpen 
-                ? 'Try different search terms' 
+              {isSearchOpen
+                ? 'Try different search terms'
                 : 'Try changing the filter or check back later'}
             </p>
           </div>
@@ -306,8 +307,8 @@ export default function BesomMobileUI() {
           <Home size={22} />
           <span className="text-xs mt-1">Home</span>
         </button>
-        <button 
-          onClick={() => setIsSearchOpen(true)} 
+        <button
+          onClick={() => setIsSearchOpen(true)}
           className="flex flex-col items-center text-gray-400"
         >
           <Search size={22} />

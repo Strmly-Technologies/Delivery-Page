@@ -90,7 +90,7 @@ export default function OrdersPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <Link href="/" className="text-3xl">🥤</Link>
+              <Link href="/dashboard" className="text-3xl">🥤</Link>
               <h1 className="text-2xl font-bold text-gray-800">Besom - Orders</h1>
             </div>
             <div className="flex items-center space-x-4">
@@ -132,7 +132,7 @@ export default function OrdersPage() {
               You haven't placed any orders. Start shopping for delicious juices and shakes!
             </p>
             <Link
-              href="/"
+              href="/dashboard"
               className="bg-orange-500 text-white px-6 py-3 rounded-lg hover:bg-orange-600 transition duration-200"
             >
               Start Shopping

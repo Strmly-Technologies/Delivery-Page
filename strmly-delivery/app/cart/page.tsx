@@ -114,7 +114,7 @@ export default function CartPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <Link href="/" className="text-3xl">🥤</Link>
+              <Link href="/dashboard" className="text-3xl">🥤</Link>
               <h1 className="text-2xl font-bold text-gray-800">Besom - Cart</h1>
             </div>
             <div className="flex items-center space-x-4">
@@ -165,14 +165,12 @@ export default function CartPage() {
                 >
                   <div className="relative w-20 h-20 bg-gray-200 rounded-lg overflow-hidden">
                     <Image
-                      src={item.product.image}
-                      alt={item.product.name}
-                      fill
-                      className="object-cover"
-                      onError={(e) => {
-                        e.currentTarget.src = '/placeholder-drink.jpg';
-                      }}
-                    />
+                                    src="/images/juice.png"
+                                    alt="Discount offer"
+                                    width={120}
+                                    height={120}
+                                    className="object-contain"
+                                  />
                   </div>
                   
                   <div className="flex-1">
@@ -212,16 +210,16 @@ export default function CartPage() {
                 
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Items ({getTotalItems()})</span>
-                    <span className="font-medium">₹{getTotalPrice()}</span>
+                    <span className=" text-black">Items ({getTotalItems()})</span>
+                    <span className=" text-black">₹{getTotalPrice()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Delivery</span>
-                    <span className="font-medium">Free</span>
+                    <span className="font-medium  text-black">Free</span>
                   </div>
                   <div className="border-t pt-3">
                     <div className="flex justify-between text-lg font-bold">
-                      <span>Total</span>
+                      <span className=' text-black'>Total</span>
                       <span className="text-orange-600">₹{getTotalPrice()}</span>
                     </div>
                   </div>

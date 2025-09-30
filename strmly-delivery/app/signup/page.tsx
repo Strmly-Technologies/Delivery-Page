@@ -283,7 +283,7 @@ export default function SignupPage() {
         
         {/* Back to home link */}
         <div className="text-center mt-6">
-          <Link href="/" className="inline-flex items-center text-white hover:underline text-sm">
+          <Link href="/dashboard" className="inline-flex items-center text-white hover:underline text-sm">
             <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>

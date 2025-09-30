@@ -290,7 +290,7 @@ export default function CheckoutPage() {
                     name="name"
                     value={customerDetails.name}
                     onChange={handleInputChange}
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                    className={`w-full px-4 py-2 border text-black rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                       errors.name ? 'border-red-500' : 'border-gray-300'
                     }`}
                     placeholder="Enter your full name"
@@ -308,7 +308,7 @@ export default function CheckoutPage() {
                     name="phone"
                     value={customerDetails.phone}
                     onChange={handleInputChange}
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                    className={`w-full px-4 py-2 border  text-black rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                       errors.phone ? 'border-red-500' : 'border-gray-300'
                     }`}
                     placeholder="Enter 10-digit phone number"
@@ -326,7 +326,7 @@ export default function CheckoutPage() {
                     value={customerDetails.address}
                     onChange={handleInputChange}
                     rows={3}
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                    className={`w-full px-4 py-2 border  text-black rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                       errors.address ? 'border-red-500' : 'border-gray-300'
                     }`}
                     placeholder="Enter your complete delivery address"
