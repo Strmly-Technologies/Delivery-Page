@@ -2,9 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { loginUser } from "@/lib/auth";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -14,7 +15,22 @@ export default function LoginPage() {
 
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
+  const returnUrl = searchParams?.get('returnUrl') || '/dashboard';
+  
+  // Use auth hook with requireAuth set to false (we don't require auth on login page)
+  const { isAuthenticated } = useAuth({ 
+    redirectTo: '/dashboard',
+    requireAuth: false 
+  });
+
+  // If already authenticated, redirect to dashboard
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/dashboard');
+    }
+  }, [isAuthenticated, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,8 +64,8 @@ export default function LoginPage() {
       });
       setErrors({});
       
-      // Redirect to dashboard or home page
-      router.push('/dashboard');
+      // Redirect to returnUrl or dashboard
+      router.push(returnUrl);
       
     } catch (error) {
       console.error('Login error:', error);

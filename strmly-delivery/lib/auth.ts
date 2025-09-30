@@ -1,6 +1,7 @@
 export interface User {
   id: string;
-  fullName: string;
+  fullName?: string;
+  username: string;
   email: string;
   createdAt: Date;
 }
@@ -35,7 +36,7 @@ export async function signupUser(userData: {
     throw new Error(data.error || 'Signup failed');
   }
 
-  // Store token in localStorage
+  // Store token and user data in localStorage
   if (typeof window !== 'undefined') {
     localStorage.setItem('authToken', data.token);
     localStorage.setItem('user', JSON.stringify(data.user));
@@ -62,7 +63,7 @@ export async function loginUser(credentials: {
     throw new Error(data.error || 'Login failed');
   }
 
-  // Store token in localStorage
+  // Store token and user data in localStorage
   if (typeof window !== 'undefined') {
     localStorage.setItem('authToken', data.token);
     localStorage.setItem('user', JSON.stringify(data.user));
@@ -75,6 +76,8 @@ export function logout(): void {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('authToken');
     localStorage.removeItem('user');
+    // Redirect to login page
+    window.location.href = '/login';
   }
 }
 
@@ -91,4 +94,21 @@ export function getAuthToken(): string | null {
     return localStorage.getItem('authToken');
   }
   return null;
+}
+
+// New function to verify token validity
+export async function verifyToken(token: string): Promise<boolean> {
+  try {
+    const response = await fetch('/api/auth/verify', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    return response.ok;
+  } catch (error) {
+    console.error('Token verification error:', error);
+    return false;
+  }
 }

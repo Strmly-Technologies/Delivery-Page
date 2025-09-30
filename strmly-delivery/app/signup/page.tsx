@@ -2,9 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signupUser } from "@/lib/auth";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
@@ -17,6 +18,19 @@ export default function SignupPage() {
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Use auth hook with requireAuth set to false
+  const { isAuthenticated } = useAuth({ 
+    redirectTo: '/dashboard',
+    requireAuth: false 
+  });
+
+  // If already authenticated, redirect to dashboard
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/dashboard');
+    }
+  }, [isAuthenticated, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

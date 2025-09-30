@@ -4,8 +4,9 @@ export interface Product extends Document{
     name: string,
     description: string,
     price: number,
-    category: string,
+    category: 'juices' | 'shakes',
     stock: number,
+    image: string,
     createdAt: Date,
     updatedAt: Date
 }
@@ -27,11 +28,16 @@ const productSchema: Schema= new Schema({
     category:{
         type: String,
         required: true,
+        enum: ['juices', 'shakes']
     },
     stock:{
         type: Number,
         required: true,
         default: 0,
+    },
+    image:{
+        type: String,
+        required: true,
     },
     createdAt:{
         type: Date,
@@ -43,7 +49,7 @@ const productSchema: Schema= new Schema({
     }
 })
 
-productSchema.on('save', function(this: Product, next) {
+productSchema.pre('save', function(this: Product, next) {
     this.updatedAt = new Date();
     next();
 })
