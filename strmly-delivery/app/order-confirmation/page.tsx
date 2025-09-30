@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { getAuthToken } from '@/lib/auth';
-import { useAuth } from '@/hooks/useAuth';
+
 
 interface Order {
   _id: string;
@@ -32,21 +31,17 @@ export default function OrderConfirmationPage() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId');
 
-  // Use auth hook to protect this page
-  const { isAuthenticated, isLoading } = useAuth();
-
   useEffect(() => {
-    // Only fetch order if authenticated and have an orderId
-    if (isAuthenticated && orderId) {
-      fetchOrder();
-    } else if (isAuthenticated && !orderId) {
+    if (!orderId) {
       router.push('/orders');
+      return;
     }
-  }, [isAuthenticated, orderId, router]);
+    fetchOrder();
+  }, [orderId]);
 
   const fetchOrder = async () => {
     try {
-      const token = getAuthToken();
+      const token = window.cookieStore.get('authToken').then((cookie) => cookie?.value);
       const response = await fetch(`/api/orders/${orderId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -68,7 +63,7 @@ export default function OrderConfirmationPage() {
   };
 
   // Show loading while checking authentication
-  if (isLoading || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -214,7 +209,7 @@ export default function OrderConfirmationPage() {
             View All Orders
           </Link>
           <Link
-            href="/"
+            href="/dashboard"
             className="flex-1 border border-gray-300 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-50 transition duration-200 text-center font-semibold"
           >
             Continue Shopping

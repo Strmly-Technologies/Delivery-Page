@@ -4,22 +4,15 @@ import dbConnect from '@/lib/dbConnect';
 import OrderModel from '@/model/Order';
 import UserModel from '@/model/User';
 import ProductModel from '@/model/Product';
+import { verifyAuth } from '@/lib/serverAuth';
 
-async function getUserFromToken(request: NextRequest) {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw new Error('No token provided');
-  }
-  
-  const token = authHeader.substring(7);
-  const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
-  return decoded.userId;
-}
+
 
 export async function GET(request: NextRequest) {
   try {
     await dbConnect();
-    const userId = await getUserFromToken(request);
+     const decodedToken = await verifyAuth(request);
+     const userId = decodedToken.userId;
     
     const orders = await OrderModel.find({ user: userId })
       .populate('products.product')
@@ -42,8 +35,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
-    const userId = await getUserFromToken(request);
-    const { productIds, quantities, customerDetails } = await request.json();
+    const decodedToken = await verifyAuth(request);
+    const userId = decodedToken.userId;
+    const { productIds, quantities, customerDetails, paymentMethod } = await request.json();
     
     // Validation
     if (!productIds || !quantities || !customerDetails) {
@@ -62,57 +56,43 @@ export async function POST(request: NextRequest) {
     
     // Get products and calculate total
     const products = await ProductModel.find({ _id: { $in: productIds } });
+    console.log('Products fetched for order:', products);
     let totalAmount = 0;
     const orderProducts = [];
     
     for (let i = 0; i < productIds.length; i++) {
       const product = products.find(p => p._id.toString() === productIds[i]);
-      if (!product) {
-        return NextResponse.json(
-          { error: `Product not found: ${productIds[i]}` },
-          { status: 404 }
-        );
+      if (product) {
+        totalAmount += product.price * quantities[i];
+        orderProducts.push({
+          product: product._id,
+          quantity: quantities[i],
+          price: product.price
+        });
       }
-      
-      const quantity = quantities[i];
-      const price = product.price;
-      totalAmount += price * quantity;
-      
-      orderProducts.push({
-        product: productIds[i],
-        quantity,
-        price
-      });
     }
     
     // Create order
-    const order = new OrderModel({
+    const order = await OrderModel.create({
       user: userId,
       products: orderProducts,
       totalAmount,
-      customerDetails
+      customerDetails,
+      paymentMethod: paymentMethod || 'COD',
+      paymentStatus: paymentMethod === 'online' ? 'pending' : 'not_applicable',
+      status: 'pending'
     });
-    
-    await order.save();
-    
-    // Clear user's cart
-    const user = await UserModel.findById(userId);
-    if (user) {
-      user.cart = [];
-      await user.save();
-    }
     
     return NextResponse.json({
       success: true,
-      message: 'Order placed successfully',
       orderId: order._id,
       totalAmount
-    }, { status: 201 });
+    });
     
-  } catch (error) {
-    console.error('Create order error:', error);
+  } catch (error:any) {
+    console.error('Error creating order:', error);
     return NextResponse.json(
-      { error: 'Failed to create order' },
+      { error: 'Failed to create order', details: error.message },
       { status: 500 }
     );
   }

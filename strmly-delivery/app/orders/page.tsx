@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { getAuthToken } from '@/lib/auth';
-import { useAuth } from '@/hooks/useAuth';
+
 
 interface Order {
   _id: string;
@@ -24,19 +23,16 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // Use auth hook to protect this page
-  const { isAuthenticated, isLoading } = useAuth();
-
   useEffect(() => {
-    // Only fetch orders if authenticated
-    if (isAuthenticated) {
-      fetchOrders();
-    }
-  }, [isAuthenticated]);
+    fetchOrders();
+  }, []);
+
+
+
 
   const fetchOrders = async () => {
     try {
-      const token = getAuthToken();
+      const token = window.cookieStore.get('authToken').then((cookie) => cookie?.value);
       const response = await fetch('/api/orders', {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -76,7 +72,7 @@ export default function OrdersPage() {
   };
 
   // Show loading while checking authentication
-  if (isLoading || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -119,7 +115,7 @@ export default function OrdersPage() {
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-3xl font-bold text-gray-900">Your Orders</h2>
           <Link
-            href="/"
+            href="/dashboard"
             className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition duration-200"
           >
             Continue Shopping

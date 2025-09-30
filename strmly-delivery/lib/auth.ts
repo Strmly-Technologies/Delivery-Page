@@ -16,6 +16,18 @@ export interface AuthError {
   error: string;
 }
 
+// Helper function to set cookies
+const setCookie = (name: string, value: string, days: number = 7) => {
+  const expires = new Date();
+  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
+};
+
+// Helper function to delete cookies
+const deleteCookie = (name: string) => {
+  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Lax`;
+};
+
 export async function signupUser(userData: {
   fullName: string;
   email: string;
@@ -36,11 +48,11 @@ export async function signupUser(userData: {
     throw new Error(data.error || 'Signup failed');
   }
 
-  // Store token and user data in localStorage
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('authToken', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
-  }
+  // Store token in a cookie (not localStorage)
+  setCookie('authToken', data.token);
+  
+  // Store user info in localStorage for convenience (non-sensitive info only)
+  localStorage.setItem('user', JSON.stringify(data.user));
 
   return data;
 }
@@ -63,22 +75,26 @@ export async function loginUser(credentials: {
     throw new Error(data.error || 'Login failed');
   }
 
-  // Store token and user data in localStorage
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('authToken', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
-  }
+  // Store token in a cookie (not localStorage)
+  setCookie('authToken', data.token);
+  
+  // Store user info in localStorage for convenience (non-sensitive info only)
+  localStorage.setItem('user', JSON.stringify(data.user));
 
   return data;
 }
 
 export function logout(): void {
+  // Clear cookie
+  deleteCookie('authToken');
+  
+  // Clear localStorage
   if (typeof window !== 'undefined') {
-    localStorage.removeItem('authToken');
     localStorage.removeItem('user');
-    // Redirect to login page
-    window.location.href = '/login';
   }
+  
+  // Redirect to login page
+  window.location.href = '/login';
 }
 
 export function getCurrentUser(): User | null {
@@ -89,11 +105,19 @@ export function getCurrentUser(): User | null {
   return null;
 }
 
-export function getAuthToken(): string | null {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('authToken');
+export function getAuthCookie(): string | null {
+  if (typeof document === 'undefined') {
+    return null;
   }
-  return null;
+  
+  const cookies = document.cookie.split(';');
+  const authCookie = cookies.find(cookie => cookie.trim().startsWith('authToken='));
+  
+  if (!authCookie) {
+    return null;
+  }
+  
+  return authCookie.trim().substring('authToken='.length);
 }
 
 // New function to verify token validity

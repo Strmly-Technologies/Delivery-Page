@@ -4,8 +4,6 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { getAuthToken } from '@/lib/auth';
-import { useAuth } from '@/hooks/useAuth';
 
 interface Product {
   _id: string;
@@ -29,18 +27,14 @@ export default function CartPage() {
   const router = useRouter();
 
   // Use auth hook to protect this page
-  const { isAuthenticated, isLoading } = useAuth();
-
   useEffect(() => {
-    // Only fetch cart if authenticated
-    if (isAuthenticated) {
-      fetchCart();
-    }
-  }, [isAuthenticated]);
+    fetchCart();
+  }, []);
+
 
   const fetchCart = async () => {
     try {
-      const token = getAuthToken();
+      const token = window.cookieStore.get('authToken').then((cookie) => cookie?.value);
       const response = await fetch('/api/cart', {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -71,7 +65,7 @@ export default function CartPage() {
   const removeFromCart = async (productId: string) => {
     setUpdating(productId);
     try {
-      const token = getAuthToken();
+      const token = window.cookieStore.get('authToken').then((cookie) => cookie?.value);
       const response = await fetch(`/api/cart?productId=${productId}`, {
         method: 'DELETE',
         headers: {
@@ -102,7 +96,7 @@ export default function CartPage() {
   };
 
   // Show loading while checking authentication
-  if (isLoading || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -130,12 +124,7 @@ export default function CartPage() {
               >
                 Orders
               </Link>
-              <Link
-                href="/login"
-                className="text-gray-700 hover:text-gray-900"
-              >
-                Account
-              </Link>
+             
             </div>
           </div>
         </div>
@@ -159,7 +148,7 @@ export default function CartPage() {
               Add some delicious juices and shakes to get started!
             </p>
             <Link
-              href="/"
+              href="/dashboard"
               className="bg-orange-500 text-white px-6 py-3 rounded-lg hover:bg-orange-600 transition duration-200"
             >
               Continue Shopping
@@ -246,7 +235,7 @@ export default function CartPage() {
                 </Link>
                 
                 <Link
-                  href="/"
+                  href="/dashboard"
                   className="w-full mt-3 border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition duration-200 text-center block"
                 >
                   Continue Shopping

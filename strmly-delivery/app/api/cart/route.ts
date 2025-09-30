@@ -1,24 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
 import dbConnect from '@/lib/dbConnect';
 import UserModel from '@/model/User';
 import ProductModel from '@/model/Product';
-
-async function getUserFromToken(request: NextRequest) {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw new Error('No token provided');
-  }
-  
-  const token = authHeader.substring(7);
-  const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
-  return decoded.userId;
-}
+import { verifyAuth } from '@/lib/serverAuth';
 
 export async function GET(request: NextRequest) {
   try {
     await dbConnect();
-    const userId = await getUserFromToken(request);
+    
+    // Verify authentication
+    const decodedToken = await verifyAuth(request);
+    const userId = decodedToken.userId;
     
     const user = await UserModel.findById(userId).populate({
       path: 'cart',
@@ -41,7 +33,7 @@ export async function GET(request: NextRequest) {
     console.error('Get cart error:', error);
     return NextResponse.json(
       { error: 'Failed to get cart' },
-      { status: 500 }
+      { status: 401 }
     );
   }
 }
@@ -49,7 +41,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
-    const userId = await getUserFromToken(request);
+    
+    // Verify authentication
+    const decodedToken = await verifyAuth(request);
+    const userId = decodedToken.userId;
+    
     const { productId } = await request.json();
     
     if (!productId) {
@@ -90,7 +86,7 @@ export async function POST(request: NextRequest) {
     console.error('Add to cart error:', error);
     return NextResponse.json(
       { error: 'Failed to add to cart' },
-      { status: 500 }
+      { status: 401 }
     );
   }
 }
@@ -98,7 +94,11 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     await dbConnect();
-    const userId = await getUserFromToken(request);
+    
+    // Verify authentication
+    const decodedToken = await verifyAuth(request);
+    const userId = decodedToken.userId;
+    
     const { searchParams } = new URL(request.url);
     const productId = searchParams.get('productId');
     
@@ -129,7 +129,7 @@ export async function DELETE(request: NextRequest) {
     console.error('Remove from cart error:', error);
     return NextResponse.json(
       { error: 'Failed to remove from cart' },
-      { status: 500 }
+      { status: 401 }
     );
   }
 }

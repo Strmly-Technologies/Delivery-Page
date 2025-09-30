@@ -1,11 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Menu, ShoppingBag, Search, Heart, Home, User, X } from 'lucide-react';
+import { Menu, ShoppingBag, Search, Heart, Home, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getAuthToken } from '@/lib/auth';
-import { useAuth } from '@/hooks/useAuth';
+import { getCurrentUser } from '@/lib/auth';
 
 interface Product {
   _id: string;
@@ -25,17 +24,19 @@ export default function BesomMobileUI() {
   const [cartLoading, setCartLoading] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const router = useRouter();
-
-  // Use our auth hook to protect this page
-  const { isAuthenticated, isLoading, user } = useAuth();
-
+  
   useEffect(() => {
-    // Only fetch products if authenticated
-    if (isAuthenticated) {
-      fetchProducts();
+    // Get user info from localStorage (populated during login)
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+      setUser(currentUser);
     }
-  }, [isAuthenticated, filter]);
+    
+    // Fetch products (middleware will handle auth)
+    fetchProducts();
+  }, [filter]);
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -53,7 +54,11 @@ export default function BesomMobileUI() {
   const fetchProducts = async () => {
     try {
       const url = filter === 'all' ? '/api/products' : `/api/products?category=${filter}`;
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        // Include credentials to send cookies with the request
+        credentials: 'include'
+      });
+      
       const data = await response.json();
       
       if (data.success) {
@@ -68,25 +73,20 @@ export default function BesomMobileUI() {
   };
 
   const addToCart = async (productId: string) => {
-    const token = getAuthToken();
-    if (!token) {
-      alert('Please login to add items to cart');
-      router.push('/login');
-      return;
-    }
-
     setCartLoading(productId);
+    
     try {
       const response = await fetch('/api/cart', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ productId })
       });
 
       const data = await response.json();
+      
       if (data.success) {
         alert('Product added to cart!');
       } else {
@@ -110,7 +110,7 @@ export default function BesomMobileUI() {
   };
 
   // Show loading while checking authentication
-  if (isLoading || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
