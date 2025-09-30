@@ -5,6 +5,23 @@ import UserModel from '@/model/User';
 
 export async function POST(request: NextRequest) {
   try {
+    // Validate environment variables
+    if (!process.env.MONGO_URI) {
+      console.error('MONGO_URI is not configured');
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
+    
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET is not configured');
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
+
     await dbConnect();
     const { email, password } = await request.json();
 
@@ -44,7 +61,7 @@ export async function POST(request: NextRequest) {
         email: user.email,
         username: user.username 
       },
-      process.env.JWT_SECRET || 'fallback-secret',
+      process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
