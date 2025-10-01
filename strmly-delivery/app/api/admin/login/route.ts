@@ -35,13 +35,21 @@ export async function POST(request: NextRequest) {
 
     // Find user by email
     const user = await UserModel.findOne({ 
-      email: email.toLowerCase() 
+      email: email.toLowerCase()
     }).select('+password'); // Explicitly select password field
 
     if (!user) {
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
+      );
+    }
+
+    // Check if user is an admin
+    if (user.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Access denied. Admin privileges required.' },
+        { status: 403 }
       );
     }
 
@@ -54,13 +62,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate JWT token
+    // Generate JWT token with role included
     const token = jwt.sign(
       { 
         userId: user._id.toString(), 
         email: user.email,
-        username: user.username ,
-        role:user.role
+        username: user.username,
+        role: user.role
       },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
@@ -73,9 +81,8 @@ export async function POST(request: NextRequest) {
         id: user._id.toString(),
         username: user.username,
         email: user.email,
-        fullName: user.username, // You may want to add a fullName field to your User model
-        createdAt: user.createdAt,
-        role:user.role
+        role: user.role,
+        createdAt: user.createdAt
       },
       token
     });

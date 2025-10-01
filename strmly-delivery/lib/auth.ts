@@ -4,6 +4,7 @@ export interface User {
   username: string;
   email: string;
   createdAt: Date;
+  role:string
 }
 
 export interface AuthResponse {
@@ -60,13 +61,19 @@ export async function signupUser(userData: {
 export async function loginUser(credentials: {
   email: string;
   password: string;
+  isAdmin?: boolean;
 }): Promise<AuthResponse> {
-  const response = await fetch('/api/auth/login', {
+  const endpoint = credentials.isAdmin ? '/api/admin/login' : '/api/auth/login';
+  
+  const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(credentials),
+    body: JSON.stringify({
+      email: credentials.email,
+      password: credentials.password
+    }),
   });
 
   const data = await response.json();
@@ -80,6 +87,9 @@ export async function loginUser(credentials: {
   
   // Store user info in localStorage for convenience (non-sensitive info only)
   localStorage.setItem('user', JSON.stringify(data.user));
+  
+  // Also store role for easy access
+  localStorage.setItem('userRole', data.user.role);
 
   return data;
 }
@@ -103,6 +113,11 @@ export function getCurrentUser(): User | null {
     return userStr ? JSON.parse(userStr) : null;
   }
   return null;
+}
+
+export function isUserAdmin(): boolean {
+  if (typeof window === 'undefined') return false;
+  return localStorage.getItem('userRole') === 'admin';
 }
 
 export function getAuthCookie(): string | null {

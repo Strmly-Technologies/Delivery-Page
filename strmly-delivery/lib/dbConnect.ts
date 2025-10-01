@@ -1,3 +1,4 @@
+import UserModel from '@/model/User';
 import mongoose from 'mongoose';
 
 type connectionObject = {
@@ -23,6 +24,8 @@ async function dbConnect(): Promise<void> {
         const db = await mongoose.connect(process.env.MONGO_URI);
         connection.isConnected = db.connections[0].readyState;
         console.log("Database connected successfully");
+        await UserModel.syncIndexes();
+        console.log("Indexes synced");
 
         // Handle connection events
         mongoose.connection.on('connected', () => {
