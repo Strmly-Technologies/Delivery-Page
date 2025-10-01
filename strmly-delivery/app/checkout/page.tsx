@@ -206,6 +206,18 @@ export default function CheckoutPage() {
               const verifyData = await verifyResponse.json();
               
               if (verifyData.success) {
+                try {
+                    await fetch('/api/cart/clear', {
+                      method: 'DELETE',
+                      headers: {
+                        'Authorization': `Bearer ${token}`
+                      }
+                    });
+                    console.log('Cart cleared successfully');
+                  } catch (error) {
+                    console.error('Error clearing cart:', error);
+                    // Continue with redirect even if cart clearing fails
+                  }
                 // Step 5: Payment verified, redirect to success page
                 router.push(`/order-confirmation?orderId=${orderData.orderId}`);
               } else {
@@ -239,10 +251,23 @@ export default function CheckoutPage() {
         razorpayWindow.open();
         
       } else {
-        // For COD, no payment needed, directly redirect
-        router.push(`/order-confirmation?orderId=${orderData.orderId}`);
-        setSubmitting(false);
+  // For COD, no payment needed, directly redirect
+  try {
+    await fetch('/api/cart/clear', {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
       }
+    });
+    console.log('Cart cleared successfully');
+  } catch (error) {
+    console.error('Error clearing cart:', error);
+    // Continue with redirect even if cart clearing fails
+  }
+  
+  router.push(`/order-confirmation?orderId=${orderData.orderId}`);
+  setSubmitting(false);
+}
       
     } catch (error) {
       console.error('Error during checkout:', error);
