@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense} from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -24,7 +24,7 @@ interface Order {
   }>;
 }
 
-export default function OrderConfirmationPage() {
+function OrderConfirm() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -233,3 +233,11 @@ export default function OrderConfirmationPage() {
   );
 }
 
+
+export default function OrderConfirmationPage() {
+  return (
+    <Suspense fallback={<div>Loading orders...</div>}>
+      <OrderConfirm />
+    </Suspense>
+  );
+}

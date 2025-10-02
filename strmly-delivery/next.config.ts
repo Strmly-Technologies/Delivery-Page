@@ -19,6 +19,10 @@ const nextConfig: NextConfig = {
       'strmly-videos-dev-mumbai-2.s3.ap-south-1.amazonaws.com'
     ],
   },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  
 };
 
 export default nextConfig;

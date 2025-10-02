@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { Suspense } from "react";
+
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { BarChart3, Package2, ShoppingCart, Settings, Search, Eye, RefreshCw, Phone, ChevronDown } from 'lucide-react';
@@ -30,7 +32,7 @@ interface Order {
   updatedAt: string;
 }
 
-export default function AdminOrders() {
+ function OrdersList() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
@@ -477,5 +479,13 @@ export default function AdminOrders() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AdminOrders() {
+  return (
+    <Suspense fallback={<div>Loading orders...</div>}>
+      <OrdersList />
+    </Suspense>
   );
 }
