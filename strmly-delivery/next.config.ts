@@ -14,6 +14,11 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+   images: {
+    domains: [
+      'strmly-videos-dev-mumbai-2.s3.ap-south-1.amazonaws.com'
+    ],
+  },
 };
 
 export default nextConfig;

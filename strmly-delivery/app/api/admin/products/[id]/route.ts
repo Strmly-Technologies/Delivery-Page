@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import dbConnect from '@/lib/dbConnect';
 import { verifyAuth } from '@/lib/serverAuth';
-import prisma from '@/lib/prismadb';
+import ProductModel from '@/model/Product';
 
 // Get a specific product
 export async function GET(
@@ -8,27 +9,34 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = params;
-
-    const product = await prisma.product.findUnique({
-      where: { id },
-      include: {
-        category: true
-      }
-    });
-
+    await dbConnect();
+    
+    // Verify authentication and admin role
+    const decodedToken = await verifyAuth(request);
+    if (decodedToken.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Unauthorized: Admin access required' },
+        { status: 403 }
+      );
+    }
+    
+    const product = await ProductModel.findById(params.id);
     if (!product) {
       return NextResponse.json(
         { error: 'Product not found' },
         { status: 404 }
       );
     }
-
-    return NextResponse.json({ product });
+    
+    return NextResponse.json({
+      success: true,
+      product
+    });
+    
   } catch (error) {
-    console.error('Error fetching product:', error);
+    console.error('Get product error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch product', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to fetch product' },
       { status: 500 }
     );
   }
@@ -40,6 +48,8 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    await dbConnect();
+    
     // Verify authentication and admin role
     const decodedToken = await verifyAuth(request);
     if (decodedToken.role !== 'admin') {
@@ -48,66 +58,48 @@ export async function PUT(
         { status: 403 }
       );
     }
-
-    const { id } = params;
-    const data = await request.json();
-    const { name, description, price, category, imageUrl, isAvailable } = data;
-
-    // Validate required fields
-    if (!name || !description || price === undefined || !category) {
+    
+    const { name, description, price, category, image, stock } = await request.json();
+    
+    // Basic validation
+    if (!name || !description || !price || !category || !image || stock === undefined) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'All fields are required' },
         { status: 400 }
       );
     }
     
-    // Check if the product exists
-    const existingProduct = await prisma.product.findUnique({
-      where: { id }
-    });
-
-    if (!existingProduct) {
+    // Find and update the product
+    const updatedProduct = await ProductModel.findByIdAndUpdate(
+      params.id,
+      {
+        name,
+        description,
+        price,
+        category,
+        image,
+        stock,
+        updatedAt: new Date()
+      },
+      { new: true, runValidators: true }
+    );
+    
+    if (!updatedProduct) {
       return NextResponse.json(
         { error: 'Product not found' },
         { status: 404 }
       );
     }
-
-    // Check if the category exists or create it
-    let categoryRecord = await prisma.category.findFirst({
-      where: { name: category }
-    });
-
-    if (!categoryRecord) {
-      categoryRecord = await prisma.category.create({
-        data: { name: category }
-      });
-    }
-
-    // Update the product
-    const updatedProduct = await prisma.product.update({
-      where: { id },
-      data: {
-        name,
-        description,
-        price,
-        imageUrl, // Update with the new image URL if provided
-        isAvailable,
-        categoryId: categoryRecord.id
-      },
-      include: {
-        category: true
-      }
-    });
-
+    
     return NextResponse.json({
       success: true,
       product: updatedProduct
     });
+    
   } catch (error) {
-    console.error('Error updating product:', error);
+    console.error('Update product error:', error);
     return NextResponse.json(
-      { error: 'Failed to update product', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to update product' },
       { status: 500 }
     );
   }
@@ -119,6 +111,8 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    await dbConnect();
+    
     // Verify authentication and admin role
     const decodedToken = await verifyAuth(request);
     if (decodedToken.role !== 'admin') {
@@ -127,34 +121,25 @@ export async function DELETE(
         { status: 403 }
       );
     }
-
-    const { id } = params;
-
-    // Check if the product exists
-    const existingProduct = await prisma.product.findUnique({
-      where: { id }
-    });
-
-    if (!existingProduct) {
+    
+    const deletedProduct = await ProductModel.findByIdAndDelete(params.id);
+    
+    if (!deletedProduct) {
       return NextResponse.json(
         { error: 'Product not found' },
         { status: 404 }
       );
     }
-
-    // Delete the product
-    await prisma.product.delete({
-      where: { id }
-    });
-
+    
     return NextResponse.json({
       success: true,
       message: 'Product deleted successfully'
     });
+    
   } catch (error) {
-    console.error('Error deleting product:', error);
+    console.error('Delete product error:', error);
     return NextResponse.json(
-      { error: 'Failed to delete product', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to delete product' },
       { status: 500 }
     );
   }
