@@ -109,7 +109,7 @@ export default function OrderConfirmationPage() {
           <div className="flex justify-between items-start mb-6">
             <div>
               <h2 className="text-xl font-semibold text-gray-900">Order Details</h2>
-              <p className="text-gray-600">Order #{order._id.slice(-8).toUpperCase()}</p>
+              <p className="text-gray-600">Order #{order._id.slice(-6).toUpperCase()}</p>
             </div>
             <div className="text-right">
               <div className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
