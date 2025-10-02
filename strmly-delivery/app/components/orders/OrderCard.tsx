@@ -1,7 +1,19 @@
 import React from 'react';
 
-const OrderCard = ({ order, isAdmin = false, onStatusChange }) => {
-  const handleStatusChange = async (newStatus) => {
+interface Order {
+  id: string;
+  status: string;
+  // Add other order properties as needed
+}
+
+interface OrderCardProps {
+  order: Order;
+  isAdmin?: boolean;
+  onStatusChange?: (orderId: string, newStatus: string) => void;
+}
+
+const OrderCard: React.FC<OrderCardProps> = ({ order, isAdmin = false, onStatusChange }) => {
+  const handleStatusChange = async (newStatus: string) => {
     try {
       const response = await fetch('/api/orders/update', {
         method: 'PUT',
@@ -30,15 +42,18 @@ const OrderCard = ({ order, isAdmin = false, onStatusChange }) => {
 
   // Get the appropriate status label and color
   const getStatusDisplay = () => {
-    const statusMap = {
+    const statusMap: Record<'pending' | 'accepted' | 'outForDelivery' | 'delivered' | 'cancelled', { label: string; color: string }> = {
       pending: { label: 'Pending', color: 'bg-yellow-500' },
       accepted: { label: 'Accepted', color: 'bg-blue-500' },
       outForDelivery: { label: 'Out For Delivery', color: 'bg-purple-500' },
       delivered: { label: 'Delivered', color: 'bg-green-500' },
       cancelled: { label: 'Cancelled', color: 'bg-red-500' }
     };
-    
-    return statusMap[order.status] || { label: order.status, color: 'bg-gray-500' };
+
+    if (order.status in statusMap) {
+      return statusMap[order.status as keyof typeof statusMap];
+    }
+    return { label: order.status, color: 'bg-gray-500' };
   };
 
   const { label, color } = getStatusDisplay();

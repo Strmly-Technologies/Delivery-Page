@@ -1,5 +1,4 @@
-import { S3Client } from '@aws-sdk/client-s3';
-import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, ObjectCannedACL } from '@aws-sdk/client-s3';
 
 // Create an S3 client
 const s3Client = new S3Client({
@@ -16,7 +15,6 @@ export async function uploadFileToS3(file: Buffer, fileName: string): Promise<st
     Key: `products/${Date.now()}-${fileName}`,
     Body: file,
     ContentType: 'image/jpeg', // Adjust based on the file type
-    ACL: 'public-read', // Make the file publicly accessible
   };
 
   try {

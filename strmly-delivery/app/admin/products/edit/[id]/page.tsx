@@ -1,122 +1,122 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import Link from 'next/link';
-import { Package2, BarChart3, ShoppingCart, Settings, ArrowLeft } from 'lucide-react';
+import AdminLayout from '@/app/components/layouts/AdminLayout';
+import ProductForm from '@/app/components/admin/ProductForm';
+import { toast } from 'react-hot-toast';
 
-interface Product {
-  _id: string;
-  name: string;
-  description: string;
-  price: number;
-  category: 'juices' | 'shakes';
-  image: string;
-  stock: number;
+interface EditProductPageProps {
+  params: {
+    id: string;
+  };
 }
 
-export default function EditProductPage({ params }: { params: { id: string } }) {
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
+const EditProductPage = ({ params }: EditProductPageProps) => {
+  const [product, setProduct] = useState<any>(null);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
   const router = useRouter();
-  
+  const { id } = params;
+
   useEffect(() => {
-    const fetchProduct = async () => {
+    // Fetch product data and categories
+    const fetchData = async () => {
+      setIsFetching(true);
       try {
-        setLoading(true);
-        const token = await window.cookieStore.get('authToken').then((cookie) => cookie?.value);
-        const response = await fetch(`/api/admin/products/${params.id}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch product');
+        const [productRes, categoriesRes] = await Promise.all([
+          fetch(`/api/admin/products/${id}`),
+          fetch('/api/categories')
+        ]);
+
+        const productData = await productRes.json();
+        const categoriesData = await categoriesRes.json();
+
+        if (!productRes.ok) {
+          throw new Error(productData.error || 'Failed to fetch product');
         }
-        
-        const data = await response.json();
-        if (data.success) {
-          setProduct(data.product);
-          setImagePreview(data.product.image);
+
+        if (!categoriesRes.ok) {
+          throw new Error(categoriesData.error || 'Failed to fetch categories');
         }
-      } catch (error) {
-        console.error('Error fetching product:', error);
-        alert('Failed to load product details');
+
+        setProduct(productData.product);
+        setCategories(categoriesData.categories.map((cat: any) => cat.name));
+      } catch (error: any) {
+        console.error('Error fetching data:', error);
+        toast.error(error.message || 'Failed to fetch data');
         router.push('/admin/products');
       } finally {
-        setLoading(false);
+        setIsFetching(false);
       }
     };
-    
-    fetchProduct();
-  }, [params.id, router]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    if (!product) return;
-    
-    const { name, value } = e.target;
-    setProduct({
-      ...product,
-      [name]: ['price', 'stock'].includes(name) ? Number(value) : value
-    });
-    
-    // Clear error for this field
-    if (errors[name]) {
-      setErrors({
-        ...errors,
-        [name]: ''
+    if (id) {
+      fetchData();
+    }
+  }, [id, router]);
+
+  const handleSubmit = async (productData: any) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/admin/products/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(productData),
       });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update product');
+      }
+
+      toast.success('Product updated successfully');
+      router.push('/admin/products');
+    } catch (error: any) {
+      console.error('Error updating product:', error);
+      toast.error(error.message || 'Failed to update product');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    
-    const file = e.target.files[0];
-    setImageFile(file);
-    
-    // Create a preview URL
-    const reader = new FileReader();
-    reader.onload = () => {
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-    
-    // Clear any image-related errors
-    if (errors.image) {
-      setErrors({
-        ...errors,
-        image: ''
-      });
-    }
-  };
+  if (isFetching) {
+    return (
+      <AdminLayout>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
-  const validateForm = () => {
-    const newErrors: {[key: string]: string} = {};
-    
-    if (!product) return false;
-    
-    if (!product.name.trim()) newErrors.name = 'Product name is required';
-    if (!product.description.trim()) newErrors.description = 'Description is required';
-    if (!product.price || product.price <= 0) newErrors.price = 'Price must be greater than 0';
-    if (!product.category) newErrors.category = 'Category is required';
-    if (product.stock < 0) newErrors.stock = 'Stock cannot be negative';
-    if (!imagePreview && !imageFile) newErrors.image = 'Product image is required';
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  return (
+    <AdminLayout>
+      <div className="py-6">
+        <h1 className="text-2xl font-bold mb-6">Edit Product</h1>
+        <div className="bg-white shadow rounded-lg p-6">
+          {product && (
+            <ProductForm 
+              onSubmit={handleSubmit} 
+              categories={categories} 
+              initialData={{
+                ...product,
+                category: product.category?.name || '',
+              }}
+              isLoading={isLoading} 
+            />
+          )}
+        </div>
+      </div>
+    </AdminLayout>
+  );
+};
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+export default EditProductPage;
     
     if (!validateForm() || !product) return;
     

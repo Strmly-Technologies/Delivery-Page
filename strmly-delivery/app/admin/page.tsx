@@ -10,6 +10,9 @@ interface DashboardStats {
   orders: number;
   pendingOrders: number;
   revenue: number;
+  outForDeliveryOrders: number;
+  deliveredOrders: number;
+  acceptedOrders: number;
 }
 
 export default function AdminDashboard() {
@@ -18,7 +21,10 @@ export default function AdminDashboard() {
     products: 0,
     orders: 0,
     pendingOrders: 0,
-    revenue: 0
+    revenue: 0,
+    outForDeliveryOrders: 0,
+    deliveredOrders: 0,
+    acceptedOrders: 0
   });
   
   const router = useRouter();

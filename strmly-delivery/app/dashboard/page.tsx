@@ -129,7 +129,7 @@ export default function BesomMobileUI() {
               }}
               className="p-2 text-gray-500"
             >
-              <Menu size={20} className="rotate-45" />
+             
             </button>
             <input
               type="text"
@@ -145,7 +145,6 @@ export default function BesomMobileUI() {
         <header className="bg-white px-5 py-4 flex items-center justify-between sticky top-0 z-50 shadow-sm">
           <div className="flex items-center">
             <button className="text-gray-700 mr-4">
-              <Menu size={22} />
             </button>
             <h1 className="text-xl font-bold text-gray-800">
               Besom {user && `(Hi, ${user.username})`}
@@ -301,28 +300,7 @@ export default function BesomMobileUI() {
         )}
       </main>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-8 py-4 flex items-center justify-between shadow-lg">
-        <button className="flex flex-col items-center text-orange-500">
-          <Home size={22} />
-          <span className="text-xs mt-1">Home</span>
-        </button>
-        <button
-          onClick={() => setIsSearchOpen(true)}
-          className="flex flex-col items-center text-gray-400"
-        >
-          <Search size={22} />
-          <span className="text-xs mt-1">Search</span>
-        </button>
-        <button className="flex flex-col items-center text-gray-400">
-          <Heart size={22} />
-          <span className="text-xs mt-1">Favorites</span>
-        </button>
-        <button className="flex flex-col items-center text-gray-400">
-          <User size={22} />
-          <span className="text-xs mt-1">Profile</span>
-        </button>
-      </nav>
+     
     </div>
   );
 }
