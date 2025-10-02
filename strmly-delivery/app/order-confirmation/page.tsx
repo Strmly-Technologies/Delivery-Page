@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense} from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -24,7 +24,7 @@ interface Order {
   }>;
 }
 
-export default function OrderConfirmationPage() {
+function OrderConfirm() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -109,7 +109,7 @@ export default function OrderConfirmationPage() {
           <div className="flex justify-between items-start mb-6">
             <div>
               <h2 className="text-xl font-semibold text-gray-900">Order Details</h2>
-              <p className="text-gray-600">Order #{order._id.slice(-8).toUpperCase()}</p>
+              <p className="text-gray-600">Order #{order._id.slice(-6).toUpperCase()}</p>
             </div>
             <div className="text-right">
               <div className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
@@ -233,3 +233,11 @@ export default function OrderConfirmationPage() {
   );
 }
 
+
+export default function OrderConfirmationPage() {
+  return (
+    <Suspense fallback={<div>Loading orders...</div>}>
+      <OrderConfirm />
+    </Suspense>
+  );
+}

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
 import dbConnect from '@/lib/dbConnect';
 import OrderModel from '@/model/Order';
-import UserModel from '@/model/User';
 import ProductModel from '@/model/Product';
 import { verifyAuth } from '@/lib/serverAuth';
 

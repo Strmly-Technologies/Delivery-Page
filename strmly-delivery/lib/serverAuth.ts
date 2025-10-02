@@ -7,6 +7,7 @@ export interface AuthUser {
   username: string;
   iat?: number;
   exp?: number;
+  role:string
 }
 
 export async function verifyAuth(request: NextRequest): Promise<AuthUser> {
