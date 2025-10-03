@@ -148,7 +148,7 @@ interface OrderConfirmation {
                         <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                       </div>
                       <p className="text-sm font-medium text-gray-900">
-                        ₹{item.customization.finalPrice * item.quantity}
+                        ₹{item.customization.finalPrice }
                       </p>
                     </div>
                   ))}
