@@ -35,7 +35,7 @@ interface CartItem {
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [removing, setRemoving] = useState<number | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCart();
@@ -60,16 +60,17 @@ export default function CartPage() {
     }
   };
 
-  const removeFromCart = async (index: number) => {
-    setRemoving(index);
+  const removeFromCart = async (productId: string) => {
+    setRemoving(productId);
     try {
+      console.log("Removing item from cart...", productId);
       const response = await fetch('/api/cart', {
         method: 'DELETE',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ itemIndex: index })
+        body: JSON.stringify({ productId })
       });
 
       const data = await response.json();
@@ -171,9 +172,8 @@ export default function CartPage() {
                           {item.product.name}
                         </h3>
                         <button
-                          onClick={() => removeFromCart(index)}
-                          disabled={removing === index}
-                          className="text-red-500 hover:text-red-600 transition p-1 flex-shrink-0"
+                          onClick={() => removeFromCart(item.product._id!)}
+                          className="text-red-500 hover:text-red-600 transition p-1 flex-shrink-0 cursor-pointer"
                           title="Remove item"
                         >
                           <Trash2 size={20} />

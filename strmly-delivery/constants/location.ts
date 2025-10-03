@@ -4,11 +4,26 @@ export const SHOP_LOCATION = {
   address: "Jayanagar, Bangalore"
 };
 
-export const DELIVERY_RANGES = {
-  MAX_RANGE: 5, // kilometers
-  CHARGES: [
-    { range: 2, charge: 10 },
-    { range: 3, charge: 25 },
-    { range: 5, charge: 35 }
-  ]
-};
+import dbConnect from '../lib/dbConnect';
+import DeliverySettingModel from '@/model/Delivery';
+
+export async function getDeliverySettings() {
+  await dbConnect();
+  const settings = await DeliverySettingModel.findOne().sort({ updatedAt: -1 });
+  
+  if (!settings) {
+    return {
+      MAX_RANGE: 5,
+      CHARGES: [
+        { range: 2, charge: 10 },
+        { range: 3, charge: 25 },
+        { range: 5, charge: 35 }
+      ]
+    };
+  }
+
+  return {
+    MAX_RANGE: settings.maxRange,
+    CHARGES: settings.charges
+  };
+}

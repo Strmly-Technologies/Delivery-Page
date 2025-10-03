@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
     
     const userId = decodedToken.userId;
-    const { name, description, price, category, imageUrl, stock, isAvailable } = await request.json();
+    const { name, description, price, category, imageUrl, stock=10, isAvailable } = await request.json();
     
     console.log('Product data:', { name, description, price, category, imageUrl, stock, isAvailable });
     

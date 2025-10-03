@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
-import { SHOP_LOCATION, DELIVERY_RANGES } from '@/constants/location';
+import { SHOP_LOCATION, getDeliverySettings } from '@/constants/location';
 import { calculateDistance, calculateDeliveryCharge, getAddressFromCoords } from '@/lib/location';
 
 
@@ -56,7 +56,7 @@ export default function CheckoutPage() {
     fetchCart();
   }, []);
 
-  const handleGetLocation = async () => {
+ const handleGetLocation = async () => {
   if (!navigator.geolocation) {
     setLocationError('Geolocation is not supported by your browser');
     return;
@@ -64,24 +64,41 @@ export default function CheckoutPage() {
 
   try {
     const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject);
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
+      });
     });
 
     const { latitude, longitude } = position.coords;
     console.log("User coordinates:", latitude, longitude);
+    
+    // Get delivery settings from API
+    const settingsResponse = await fetch('/api/admin/delivery');
+    const settingsData = await settingsResponse.json();
+    
+    if (!settingsData.success) {
+      throw new Error('Failed to fetch delivery settings');
+    }
+    
+    const DELIVERY_RANGES = settingsData.settings;
+    
     const distance = calculateDistance(
       latitude, 
       longitude, 
       SHOP_LOCATION.lat, 
       SHOP_LOCATION.lng
     );
+    
+    console.log("Distance to shop:", distance, "km");
 
     if (distance > DELIVERY_RANGES.MAX_RANGE) {
-      setLocationError(`Sorry, we don't deliver beyond ${DELIVERY_RANGES.MAX_RANGE}km from our shop`);
+      setLocationError(`Sorry, we don't deliver beyond ${DELIVERY_RANGES.MAX_RANGE}km from our shop (Your distance: ${distance.toFixed(2)}km)`);
       return;
     }
 
-    const charge = calculateDeliveryCharge(distance);
+    const charge = calculateDeliveryCharge(distance, DELIVERY_RANGES.CHARGES);
     setDeliveryCharge(charge);
 
     // Get address from coordinates
@@ -93,7 +110,8 @@ export default function CheckoutPage() {
     setLocationError('');
 
   } catch (error) {
-    setLocationError('Unable to get your location. Please enter address manually.');
+    console.error('Location error:', error);
+    setLocationError('Unable to get your location. Please ensure location services are enabled and try again.');
   }
 };
 

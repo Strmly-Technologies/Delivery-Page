@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ShoppingBag, Search, X } from 'lucide-react';
 import ProductCustomization, { ProductCustomization as CustomizationType } from '../components/product/ProductCustomization';
-
+import Image from 'next/image';
 interface Product {
   _id: string;
   name: string;
@@ -210,24 +210,37 @@ export default function BesomMobileUI() {
 
           {/* Products Grid */}
           <div className="space-y-5">
-            {filteredProducts.map((product) => (
-              <div key={product._id} className={`bg-gradient-to-br ${getCategoryColor(product.category)} rounded-3xl p-6 relative overflow-hidden shadow-lg`}>
-                <div className="relative z-10">
-                  <h3 className="text-white text-xl font-bold mb-1 w-56">{product.name}</h3>
-                  <p className="text-white text-2xl font-bold mb-4">₹{product.price}</p>
-                  <button
-                    onClick={() => openCustomizationModal(product)}
-                    disabled={product.stock === 0}
-                    className={`px-6 py-2 rounded-full text-sm font-semibold transition ${
-                      product.stock === 0 ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-white text-gray-800 hover:bg-gray-100'
-                    }`}
-                  >
-                    {product.stock === 0 ? 'Out of Stock' : 'Buy Now'}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+  {filteredProducts.map((product) => (
+    <div key={product._id} className={`bg-gradient-to-br ${getCategoryColor(product.category)} rounded-3xl p-6 relative overflow-hidden shadow-lg`}>
+      <div className="flex justify-between items-center">
+        <div className="relative z-10">
+          <h3 className="text-white text-xl font-bold mb-1 w-56">{product.name}</h3>
+          <p className="text-white text-2xl font-bold mb-4">₹{product.price}</p>
+          <button
+            onClick={() => openCustomizationModal(product)}
+            disabled={product.stock === 0}
+            className={`px-6 py-2 rounded-full text-sm font-semibold transition ${
+              product.stock === 0 
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                : 'bg-white text-gray-800 hover:bg-gray-100'
+            }`}
+          >
+            {product.stock === 0 ? 'Out of Stock' : 'Buy Now'}
+          </button>
+        </div>
+        <div className="relative">
+          <Image 
+            src="/images/juice.png" 
+            alt={product.name}
+            width={100} 
+            height={100} 
+            className="transform -rotate-12 hover:rotate-0 transition-transform duration-300 drop-shadow-xl"
+          />
+        </div>
+      </div>
+    </div>
+  ))}
+</div>
 
           {filteredProducts.length === 0 && (
             <div className="text-center py-12">

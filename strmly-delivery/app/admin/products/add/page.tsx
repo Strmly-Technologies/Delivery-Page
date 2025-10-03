@@ -49,9 +49,7 @@ const AddProductPage = () => {
       newErrors.price = 'Price must be greater than 0';
     }
 
-    if (!formData.stock || parseInt(formData.stock) < 0) {
-      newErrors.stock = 'Stock must be 0 or greater';
-    }
+    
 
     if (!formData.imageUrl) {
       newErrors.imageUrl = 'Please upload a product image';
@@ -274,21 +272,7 @@ const AddProductPage = () => {
                       {errors.price && <p className="mt-1 text-sm text-red-600">{errors.price}</p>}
                     </div>
                     
-                    <div>
-                      <label htmlFor="stock" className="block text-sm font-semibold text-gray-700 mb-2">
-                        Stock <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        id="stock"
-                        name="stock"
-                        value={formData.stock}
-                        onChange={handleChange}
-                        className={`w-full text-black px-4 py-3 border ${errors.stock ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition`}
-                        placeholder="0"
-                      />
-                      {errors.stock && <p className="mt-1 text-sm text-red-600">{errors.stock}</p>}
-                    </div>
+                    
                   </div>
                 </div>
                 
