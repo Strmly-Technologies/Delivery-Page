@@ -405,7 +405,7 @@ interface Order {
                                   {order.products.map((item, index) => (
                                     <li key={index} className="text-sm text-gray-600 flex justify-between">
                                       <span>{item.product.name} x {item.quantity}</span>
-                                      <span>₹{item.quantity * item.product.price}</span>
+                                      <span>₹{item.price}</span>
                                     </li>
                                   ))}
                                   <li className="text-sm font-medium text-gray-900 pt-2 border-t border-gray-200 flex justify-between">

@@ -74,12 +74,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (product.stock === 0) {
-      return NextResponse.json(
-        { error: 'Product is out of stock' },
-        { status: 400 }
-      );
-    }
+  
 
     const user = await UserModel.findById(userId);
     if (!user) {
