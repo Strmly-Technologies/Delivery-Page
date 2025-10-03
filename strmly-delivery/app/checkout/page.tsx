@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
-import RazorPayMethod from '@/components/RazorpayMethod';
 
 interface CustomerDetails {
   name: string;
@@ -12,16 +11,25 @@ interface CustomerDetails {
   address: string;
 }
 
-interface Product {
-  _id: string;
-  name: string;
-  price: number;
-  image: string;
+interface Customization {
+  size: string;
+  quantity: string;
+  ice?: string;
+  sugar?: string;
+  dilution?: string;
+  finalPrice: number;
 }
 
 interface CartItem {
-  product: Product;
+  product: {
+    _id: string;
+    name: string;
+    image: string;
+  };
+  customization: Customization;
+  price: number;
   quantity: number;
+  addedAt: Date;
 }
 
 export default function CheckoutPage() {
@@ -33,7 +41,9 @@ export default function CheckoutPage() {
     phone: '',
     address: ''
   });
-  const [paymentMethod, setPaymentMethod] = useState('COD');
+  const [products, setProducts] = useState<string[]>([]);
+  const [quantities, setQuantities] = useState<number[]>([]);
+
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const router = useRouter();
 
@@ -52,17 +62,10 @@ export default function CheckoutPage() {
 
       const data = await response.json();
       if (data.success) {
-        // Transform cart data to include quantities
-        const cartItemsMap = new Map();
-        data.cart.forEach((product: Product) => {
-          const existing = cartItemsMap.get(product._id);
-          if (existing) {
-            existing.quantity += 1;
-          } else {
-            cartItemsMap.set(product._id, { product, quantity: 1 });
-          }
-        });
-        setCartItems(Array.from(cartItemsMap.values()));
+        setCartItems(data.cart);
+        console.log(data.cart);
+        setProducts(data.cart.map((item: CartItem) => item.product._id));
+        setQuantities(data.cart.map((item: CartItem) => item.quantity));
       }
     } catch (error) {
       console.error('Error fetching cart:', error);
@@ -107,6 +110,13 @@ export default function CheckoutPage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const getTotalPrice = () => {
+    console.log(cartItems);
+    return cartItems.reduce((total, item) => 
+      total + item.customization.finalPrice , 0
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -124,16 +134,7 @@ export default function CheckoutPage() {
     try {
       const token = await window.cookieStore.get('authToken').then((cookie) => cookie?.value);
       
-      // Step 1: Create order in your database
-      const productIds = cartItems.map(item => item.product._id);
-      const quantities = cartItems.map(item => item.quantity);
-      
-      // Ensure each product has a price field before submission
-      const productsWithPrice = cartItems.map(item => ({
-        ...item,
-        price: item.product.price // Adapt based on your data structure
-      }));
-      
+      // Create order
       const orderResponse = await fetch('/api/orders', {
         method: 'POST',
         headers: {
@@ -141,11 +142,9 @@ export default function CheckoutPage() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          productIds,
-          quantities,
           customerDetails,
-          paymentMethod,
-          products: productsWithPrice // Use productsWithPrice instead of cartItems
+          cartItems,
+          totalAmount: getTotalPrice()
         })
       });
 
@@ -154,130 +153,94 @@ export default function CheckoutPage() {
       if (!orderData.success) {
         throw new Error(orderData.error || 'Failed to place order');
       }
+
+      // Create Razorpay order
+      const paymentResponse = await fetch('/api/payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          amount: orderData.totalAmount,
+          orderId: orderData.orderId,
+          receipt: `receipt_${orderData.orderId}`
+        })
+      });
       
-      // Step 2: Handle payment based on method
-      if (paymentMethod === 'online') {
-        // Step 2a: Create Razorpay order
-        const paymentResponse = await fetch('/api/payment', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            amount: orderData.totalAmount,
-            orderId: orderData.orderId,
-            receipt: `receipt_${orderData.orderId}`
-          })
-        });
-        
-        const paymentData = await paymentResponse.json();
-        
-        if (!paymentData.success) {
-          throw new Error(paymentData.error || 'Failed to create payment');
-        }
-        
-        // Step 2b: Initialize and open Razorpay checkout
-        const options = {
-          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-          amount: paymentData.order.amount,
-          currency: paymentData.order.currency,
-          name: "STRMLY Delivery",
-          description: "Payment for your STRMLY Delivery order",
-          order_id: paymentData.order.id,
-          // Step 3: This handler runs AFTER user completes payment
-          handler: async function (response: any) {
-            try {
-              // Step 4: Verify the payment signature on backend
-              const verifyResponse = await fetch('/api/payment/verify', {
-                method: 'POST',
+      const paymentData = await paymentResponse.json();
+      
+      if (!paymentData.success) {
+        throw new Error(paymentData.error || 'Failed to create payment');
+      }
+      
+      // Initialize Razorpay checkout
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: paymentData.order.amount,
+        currency: paymentData.order.currency,
+        name: "STRMLY Delivery",
+        description: "Payment for your order",
+        order_id: paymentData.order.id,
+        handler: async function (response: any) {
+          try {
+            const verifyResponse = await fetch('/api/payment/verify', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                orderId: orderData.orderId
+              })
+            });
+            
+            const verifyData = await verifyResponse.json();
+            
+            if (verifyData.success) {
+              await fetch('/api/cart/clear', {
+                method: 'DELETE',
                 headers: {
-                  'Content-Type': 'application/json',
                   'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                  razorpay_order_id: response.razorpay_order_id,
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_signature: response.razorpay_signature,
-                  orderId: orderData.orderId
-                })
+                }
               });
-              
-              const verifyData = await verifyResponse.json();
-              
-              if (verifyData.success) {
-                try {
-                    await fetch('/api/cart/clear', {
-                      method: 'DELETE',
-                      headers: {
-                        'Authorization': `Bearer ${token}`
-                      }
-                    });
-                    console.log('Cart cleared successfully');
-                  } catch (error) {
-                    console.error('Error clearing cart:', error);
-                    // Continue with redirect even if cart clearing fails
-                  }
-                // Step 5: Payment verified, redirect to success page
-                router.push(`/order-confirmation?orderId=${orderData.orderId}`);
-              } else {
-                alert('Payment verification failed. Please contact support.');
-                setSubmitting(false);
-              }
-            } catch (error) {
-              console.error('Payment verification error:', error);
+              router.push(`/order-confirmation?orderId=${orderData.orderId}`);
+            } else {
               alert('Payment verification failed. Please contact support.');
               setSubmitting(false);
             }
-          },
-          modal: {
-            ondismiss: function() {
-              // User closed the payment modal
-              setSubmitting(false);
-              alert('Payment cancelled');
-            }
-          },
-          prefill: {
-            name: customerDetails.name,
-            contact: customerDetails.phone
-          },
-          theme: {
-            color: "#f97316"
+          } catch (error) {
+            console.error('Payment verification error:', error);
+            alert('Payment verification failed. Please contact support.');
+            setSubmitting(false);
           }
-        };
-        
-        // Open Razorpay payment window
-        const razorpayWindow = new (window as any).Razorpay(options);
-        razorpayWindow.open();
-        
-      } else {
-  // For COD, no payment needed, directly redirect
-  try {
-    await fetch('/api/cart/clear', {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    console.log('Cart cleared successfully');
-  } catch (error) {
-    console.error('Error clearing cart:', error);
-    // Continue with redirect even if cart clearing fails
-  }
-  
-  router.push(`/order-confirmation?orderId=${orderData.orderId}`);
-  setSubmitting(false);
-}
+        },
+        modal: {
+          ondismiss: function() {
+            setSubmitting(false);
+            alert('Payment cancelled');
+          }
+        },
+        prefill: {
+          name: customerDetails.name,
+          contact: customerDetails.phone
+        },
+        theme: {
+          color: "#f97316"
+        }
+      };
+      
+      const razorpayWindow = new (window as any).Razorpay(options);
+      razorpayWindow.open();
       
     } catch (error) {
       console.error('Error during checkout:', error);
       alert(error instanceof Error ? error.message : 'Failed to complete checkout');
       setSubmitting(false);
     }
-  };
-
-  const getTotalPrice = () => {
-    return cartItems.reduce((total, item) => total + item.product.price * item.quantity, 0);
   };
 
   if (loading) {
@@ -302,7 +265,7 @@ export default function CheckoutPage() {
           {/* Left Column - Customer Details Form */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-6">Delivery Details</h2>
+              <h2 className="text-xl text-black font-semibold mb-6">Delivery Details</h2>
               
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
@@ -333,7 +296,7 @@ export default function CheckoutPage() {
                     name="phone"
                     value={customerDetails.phone}
                     onChange={handleInputChange}
-                    className={`w-full px-4 py-2 border  text-black rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                    className={`w-full px-4 py-2 border text-black rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                       errors.phone ? 'border-red-500' : 'border-gray-300'
                     }`}
                     placeholder="Enter 10-digit phone number"
@@ -351,17 +314,12 @@ export default function CheckoutPage() {
                     value={customerDetails.address}
                     onChange={handleInputChange}
                     rows={3}
-                    className={`w-full px-4 py-2 border  text-black rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                    className={`w-full px-4 py-2 border text-black rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                       errors.address ? 'border-red-500' : 'border-gray-300'
                     }`}
                     placeholder="Enter your complete delivery address"
                   />
                   {errors.address && <p className="mt-1 text-sm text-red-500">{errors.address}</p>}
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Payment Method</h3>
-                  <RazorPayMethod value={paymentMethod} onChange={setPaymentMethod} />
                 </div>
 
                 <button
@@ -375,7 +333,7 @@ export default function CheckoutPage() {
                 >
                   {submitting 
                     ? 'Processing...' 
-                    : `${paymentMethod === 'COD' ? 'Place Order' : 'Proceed to Payment'} - ₹${getTotalPrice()}`}
+                    : `Proceed to Payment - ₹${getTotalPrice()}`}
                 </button>
               </form>
             </div>
@@ -384,11 +342,11 @@ export default function CheckoutPage() {
           {/* Right Column - Order Summary */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-md p-6 sticky top-8">
-              <h2 className="text-xl font-semibold mb-6">Order Summary</h2>
+              <h2 className="text-xl font-semibold text-black mb-6">Order Summary</h2>
               
               <div className="space-y-4 mb-6">
                 {cartItems.map((item) => (
-                  <div key={item.product._id} className="flex items-center gap-4">
+                  <div key={`${item.product._id}-${item.addedAt}`} className="flex items-center gap-4">
                     <div className="relative w-16 h-16 flex-shrink-0">
                       <Image
                         src={item.product.image}
@@ -398,11 +356,17 @@ export default function CheckoutPage() {
                       />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">{item.product.name}</p>
+                      <p className="text-sm text-black font-medium">{item.product.name}</p>
+                      <p className="text-sm text-gray-500">
+                        {item.customization.size} • {item.customization.quantity}
+                        {item.customization.ice && ` • ${item.customization.ice}`}
+                        {item.customization.sugar && ` • ${item.customization.sugar}`}
+                        {item.customization.dilution && ` • ${item.customization.dilution}`}
+                      </p>
                       <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                     </div>
                     <p className="text-sm font-medium text-gray-900">
-                      ₹{item.product.price * item.quantity}
+                      ₹{item.customization.finalPrice}
                     </p>
                   </div>
                 ))}

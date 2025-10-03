@@ -46,7 +46,7 @@ const Page = () => {
         return;
       }
       
-      router.push('/admin/dashboard');
+      router.push('/admin');
     } catch (error) {
       console.error('Login error:', error);
       setError({

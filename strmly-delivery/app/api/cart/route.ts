@@ -3,6 +3,7 @@ import dbConnect from '@/lib/dbConnect';
 import UserModel from '@/model/User';
 import ProductModel from '@/model/Product';
 import { verifyAuth } from '@/lib/serverAuth';
+import mongoose from 'mongoose';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,9 +14,10 @@ export async function GET(request: NextRequest) {
     const userId = decodedToken.userId;
     
     const user = await UserModel.findById(userId).populate({
-      path: 'cart',
-      model: 'Product'
-    });
+    path: "cart.product", // path inside the subdocument array
+    model: "Product",     // explicitly set model name (optional if ref is defined)
+    select: "name price image category stock" // select only needed fields
+  });
     
     if (!user) {
       return NextResponse.json(
@@ -23,6 +25,7 @@ export async function GET(request: NextRequest) {
         { status: 404 }
       );
     }
+    console.log(user.cart);
     
     return NextResponse.json({
       success: true,
@@ -38,23 +41,31 @@ export async function GET(request: NextRequest) {
   }
 }
 
+
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
     
-    // Verify authentication
     const decodedToken = await verifyAuth(request);
     const userId = decodedToken.userId;
-    
-    const { productId } = await request.json();
-    
-    if (!productId) {
+
+    const { productId, customization, finalPrice } = await request.json();
+
+    if (!productId || !customization || !finalPrice) {
       return NextResponse.json(
-        { error: 'Product ID is required' },
+        { error: 'Product ID, customization, and final price are required' },
         { status: 400 }
       );
     }
-    
+
+    // Validate customization structure
+    if (!customization.size || !customization.quantity || !customization.finalPrice) {
+      return NextResponse.json(
+        { error: 'Invalid customization data' },
+        { status: 400 }
+      );
+    }
+
     const product = await ProductModel.findById(productId);
     if (!product) {
       return NextResponse.json(
@@ -62,7 +73,14 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
-    
+
+    if (product.stock === 0) {
+      return NextResponse.json(
+        { error: 'Product is out of stock' },
+        { status: 400 }
+      );
+    }
+
     const user = await UserModel.findById(userId);
     if (!user) {
       return NextResponse.json(
@@ -70,27 +88,51 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
-    
-    // Check if product already in cart
-    if (!user.cart.includes(productId)) {
-      user.cart.push(productId);
-      await user.save();
+
+    // Create cart item that matches the schema
+    const cartItem = {
+  product: new mongoose.Types.ObjectId(productId),
+  customization: {
+    size: customization.size,
+    quantity: customization.quantity,
+    ice: customization.ice || undefined,
+    sugar: customization.sugar || undefined,
+    dilution: customization.dilution || undefined,
+    finalPrice: customization.finalPrice
+  },
+  price: finalPrice,
+  quantity: customization.orderQuantity, 
+  addedAt: new Date()
+};
+
+    // Update user document using findByIdAndUpdate
+    const updatedUser = await UserModel.findByIdAndUpdate(
+      userId,
+      { $push: { cart: cartItem } },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
+      return NextResponse.json(
+        { error: 'Failed to update cart' },
+        { status: 500 }
+      );
     }
-    
+
     return NextResponse.json({
       success: true,
-      message: 'Product added to cart'
+      message: 'Product added to cart successfully',
+      cartItemsCount: updatedUser.cart.length
     });
-    
+
   } catch (error) {
     console.error('Add to cart error:', error);
     return NextResponse.json(
       { error: 'Failed to add to cart' },
-      { status: 401 }
+      { status: 500 }
     );
   }
 }
-
 export async function DELETE(request: NextRequest) {
   try {
     await dbConnect();
