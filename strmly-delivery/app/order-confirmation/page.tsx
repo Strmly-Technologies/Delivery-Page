@@ -1,47 +1,52 @@
 'use client';
 
-import { useState, useEffect, Suspense} from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 
-
-interface Order {
+interface OrderConfirmation {
   _id: string;
+  products: {
+    product: {
+      name: string;
+      image: string;
+    };
+    quantity: number;
+    customization: {
+      size: string;
+      quantity: string;
+      ice?: string;
+      sugar?: string;
+      dilution?: string;
+      finalPrice: number;
+    };
+  }[];
   totalAmount: number;
+  status: string;
   customerDetails: {
     name: string;
     phone: string;
     address: string;
   };
-  status: string;
   createdAt: string;
-  products: Array<{
-    product: {
-      name: string;
-      price: number;
-    };
-    quantity: number;
-  }>;
 }
 
-function OrderConfirm() {
-  const [order, setOrder] = useState<Order | null>(null);
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
+ function OrderList() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId');
+  const [order, setOrder] = useState<OrderConfirmation | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!orderId) {
-      router.push('/orders');
-      return;
+    if (orderId) {
+      fetchOrderDetails();
     }
-    fetchOrder();
   }, [orderId]);
 
-  const fetchOrder = async () => {
+  const fetchOrderDetails = async () => {
     try {
-      const token = window.cookieStore.get('authToken').then((cookie) => cookie?.value);
+      const token = await window.cookieStore.get('authToken').then((cookie) => cookie?.value);
       const response = await fetch(`/api/orders/${orderId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -49,26 +54,23 @@ function OrderConfirm() {
       });
 
       const data = await response.json();
+      console.log("order data",data);
       if (data.success) {
         setOrder(data.order);
-      } else {
-        router.push('/orders');
       }
     } catch (error) {
-      console.error('Error fetching order:', error);
-      router.push('/orders');
+      console.error('Error fetching order details:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Show loading while checking authentication
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-6xl mb-4">📋</div>
-          <h2 className="text-2xl font-semibold text-gray-700">Loading Order...</h2>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading order details...</p>
         </div>
       </div>
     );
@@ -78,11 +80,11 @@ function OrderConfirm() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-6xl mb-4">❌</div>
-          <h2 className="text-2xl font-semibold text-gray-700 mb-4">Order not found</h2>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Order Not Found</h1>
+          <p className="text-gray-600 mb-6">We couldn't find the order you're looking for.</p>
           <Link
             href="/orders"
-            className="bg-orange-500 text-white px-6 py-3 rounded-lg hover:bg-orange-600 transition duration-200"
+            className="text-orange-500 hover:text-orange-600 font-medium"
           >
             View All Orders
           </Link>
@@ -92,152 +94,109 @@ function OrderConfirm() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Success Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Order Placed Successfully!
-          </h1>
-          <p className="text-lg text-gray-600">
-            Thank you for your order. We'll prepare your fresh juices right away!
-          </p>
-        </div>
-
-        {/* Order Details Card */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">Order Details</h2>
-              <p className="text-gray-600">Order #{order._id.slice(-6).toUpperCase()}</p>
+    <div className="min-h-screen bg-gray-50 py-12">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="p-6">
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg
+                  className="w-8 h-8 text-green-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Order Confirmed!</h1>
+              <p className="text-gray-600">
+                Thank you for your order. We'll start preparing it right away.
+              </p>
             </div>
-            <div className="text-right">
-              <div className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
-                order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                order.status === 'accepted' ? 'bg-blue-100 text-blue-800' :
-                order.status === 'out-for-delivery' ? 'bg-purple-100 text-purple-800' :
-                order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                'bg-gray-100 text-gray-800'
-              }`}>
-                {order.status.charAt(0).toUpperCase() + order.status.slice(1).replace('-', ' ')}
+
+            <div className="border-t border-gray-200 pt-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Details</h2>
+              <div className="space-y-4 mb-6">
+                <p className="text-sm text-gray-600">
+                  Order ID: <span className="font-medium text-gray-900">#{order._id}</span>
+                </p>
+                <div className="space-y-4">
+                  {order.products.map((item, index) => (
+                    <div key={index} className="flex items-center gap-4">
+                      <div className="relative w-16 h-16 flex-shrink-0">
+                        <Image
+                          src={item.product.image}
+                          alt={item.product.name}
+                          fill
+                          className="object-cover rounded"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">{item.product.name}</p>
+                        <p className="text-sm text-gray-500">
+                          {item.customization.size} • {item.customization.quantity}
+                          {item.customization.ice && ` • ${item.customization.ice}`}
+                          {item.customization.sugar && ` • ${item.customization.sugar}`}
+                          {item.customization.dilution && ` • ${item.customization.dilution}`}
+                        </p>
+                        <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                      </div>
+                      <p className="text-sm font-medium text-gray-900">
+                        ₹{item.customization.finalPrice }
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t border-gray-200 pt-4 mb-6">
+                <div className="flex justify-between text-base font-semibold text-gray-900">
+                  <span>Total Amount</span>
+                  <span>₹{order.totalAmount}</span>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-200 pt-4">
+                <h3 className="text-sm font-medium text-gray-900 mb-2">Delivery Details</h3>
+                <div className="text-sm text-gray-600">
+                  <p className="font-medium">{order.customerDetails.name}</p>
+                  <p>{order.customerDetails.phone}</p>
+                  <p className="whitespace-pre-line">{order.customerDetails.address}</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Items */}
-          <div className="mb-6">
-            <h3 className="font-medium text-gray-900 mb-3">Items Ordered</h3>
-            <div className="space-y-3">
-              {order.products.map((item, index) => (
-                <div key={index} className="flex justify-between items-center py-2">
-                  <div>
-                    <h4 className="font-medium text-gray-900">{item.product.name}</h4>
-                    <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium text-gray-900">₹{item.product.price * item.quantity}</p>
-                  </div>
-                </div>
-              ))}
+            <div className="mt-8 flex justify-center space-x-4">
+              <Link
+                href="/orders"
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+              >
+                View All Orders
+              </Link>
+              <Link
+                href="/menu"
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+              >
+                Continue Shopping
+              </Link>
             </div>
           </div>
-
-          {/* Total */}
-          <div className="border-t pt-4">
-            <div className="flex justify-between items-center text-lg font-bold">
-              <span>Total Amount</span>
-              <span className="text-orange-600">₹{order.totalAmount}</span>
-            </div>
-            <p className="text-sm text-gray-600 mt-1">Payment: Cash on Delivery</p>
-          </div>
-        </div>
-
-        {/* Delivery Information */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Delivery Information</h3>
-          <div className="space-y-2">
-            <div className="flex">
-              <span className="font-medium text-gray-600 w-20">Name:</span>
-              <span className="text-gray-900">{order.customerDetails.name}</span>
-            </div>
-            <div className="flex">
-              <span className="font-medium text-gray-600 w-20">Phone:</span>
-              <span className="text-gray-900">{order.customerDetails.phone}</span>
-            </div>
-            <div className="flex">
-              <span className="font-medium text-gray-600 w-20">Address:</span>
-              <span className="text-gray-900">{order.customerDetails.address}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* What's Next */}
-        <div className="bg-blue-50 rounded-lg p-6 mb-6">
-          <h3 className="font-semibold text-blue-900 mb-3">What's Next?</h3>
-          <div className="space-y-2 text-blue-800">
-            <div className="flex items-center">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-              <span>We'll start preparing your fresh juices</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-              <span>You'll receive a call when your order is ready</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-              <span>Our delivery partner will bring it to your door</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-              <span>Pay cash when you receive your order</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <Link
-            href={`/track-order?orderId=${order._id}`}
-            className="flex-1 bg-orange-500 text-white py-3 px-6 rounded-lg hover:bg-orange-600 transition duration-200 text-center font-semibold"
-          >
-            Track Order
-          </Link>
-          <Link
-            href="/orders"
-            className="flex-1 border border-gray-300 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-50 transition duration-200 text-center font-semibold"
-          >
-            View All Orders
-          </Link>
-          <Link
-            href="/dashboard"
-            className="flex-1 border border-gray-300 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-50 transition duration-200 text-center font-semibold"
-          >
-            Continue Shopping
-          </Link>
-        </div>
-
-        {/* Order Date */}
-        <div className="text-center mt-6">
-          <p className="text-sm text-gray-500">
-            Order placed on {new Date(order.createdAt).toLocaleDateString('en-IN', {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}
-          </p>
         </div>
       </div>
     </div>
   );
 }
 
-
 export default function OrderConfirmationPage() {
   return (
     <Suspense fallback={<div>Loading orders...</div>}>
-      <OrderConfirm />
+      <OrderList />
     </Suspense>
   );
 }

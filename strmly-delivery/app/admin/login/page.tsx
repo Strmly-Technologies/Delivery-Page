@@ -1,24 +1,30 @@
-'use client';
+'use client'
 
-import { loginUser } from '@/lib/auth';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import React, { useState } from 'react'
+import Link from "next/link";
+import { Suspense } from "react";
 
-const Page = () => {
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { loginUser } from "@/lib/auth";
 
-    const [formData,setFormData]=useState({
-        email:'',
-        password:''
-    })
-    const [isLoading,setIsLoading]=useState(false);
-    const [error,setError]=useState<{[key: string]: string}>({});
-    const router=useRouter();
+ function Login() {
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
 
-    const handleSubmit=async(e: React.FormEvent)=>{
-        e.preventDefault();
-        setIsLoading(true);
-        const newErrors: {[key: string]: string} = {};
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isLoading, setIsLoading] = useState(false);
+  const returnUrl = searchParams?.get('returnUrl') || '/dashboard';
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    // Basic validation
+    const newErrors: {[key: string]: string} = {};
     
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
@@ -29,27 +35,30 @@ const Page = () => {
     }
     
     if (Object.keys(newErrors).length > 0) {
-      setError(newErrors);
+      setErrors(newErrors);
       setIsLoading(false);
       return;
     }
-        try {
-             const response= await loginUser({
-                ...formData,
-                isAdmin:true}
-             )
-              if (response.user.role !== 'admin') {
-        setError({
-          general: 'Access denied. Admin privileges required.'
-        });
-        setIsLoading(false);
-        return;
-      }
+    
+    try {
+      const response = await loginUser(formData);
+      console.log('Login successful:', response);
       
-      router.push('/admin/dashboard');
+      // Clear form
+      setFormData({
+        email: '',
+        password: ''
+      });
+      setErrors({});
+      
+      // Redirect to returnUrl or dashboard
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 500);
+      
     } catch (error) {
       console.error('Login error:', error);
-      setError({
+      setErrors({
         general: error instanceof Error ? error.message : 'Login failed'
       });
     } finally {
@@ -57,7 +66,7 @@ const Page = () => {
     }
   };
 
- const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
@@ -65,33 +74,34 @@ const Page = () => {
     });
     
     // Clear error when user starts typing
-    if (error[name]) {
-      setError({
-        ...error,
+    if (errors[name]) {
+      setErrors({
+        ...errors,
         [name]: ''
       });
     }
   };
- return (
+
+  return (
     <div className="min-h-screen bg-gradient-to-br from-orange-500 to-orange-600 px-4 py-8 flex flex-col justify-center items-center">
       {/* Logo or App Name */}
       <div className="w-full max-w-md text-center mb-8">
         <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-white text-orange-500 text-2xl font-bold mb-4 shadow-lg">
           B
         </div>
-        <h1 className="text-white text-3xl font-bold">Admin Portal</h1>
-        <p className="text-white/90 mt-2">Besom Delivery Administration</p>
+        <h1 className="text-white text-3xl font-bold">Besom</h1>
+        <p className="text-white/90 mt-2">Fresh juices & shakes delivered to your doorstep</p>
       </div>
       
       {/* Login Form Card */}
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Admin Sign In</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Sign In</h2>
           
           <form onSubmit={handleSubmit} className="space-y-5">
-            {error.general && (
+            {errors.general && (
               <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-md text-sm">
-                {error.general}
+                {errors.general}
               </div>
             )}
             
@@ -112,11 +122,13 @@ const Page = () => {
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  className="block text-gray-900 w-full pl-10 pr-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition duration-200 text-sm"
-                  placeholder="Enter admin email"
+                  className={`block text-gray-900 w-full pl-10 pr-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition duration-200 text-sm ${
+                    errors.email ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="Enter your email"
                 />
               </div>
-              {error.email && <p className="mt-1 text-sm text-red-500">{error.email}</p>}
+              {errors.email && <p className="mt-1 text-sm text-red-500">{errors.email}</p>}
             </div>
 
             <div>
@@ -136,11 +148,33 @@ const Page = () => {
                   required
                   value={formData.password}
                   onChange={handleChange}
-                  className="block w-full text-gray-900 pl-10 pr-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition duration-200 text-sm"
+                  className={`block w-full text-gray-900 pl-10 pr-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition duration-200 text-sm ${
+                    errors.password ? 'border-red-500' : 'border-gray-300'
+                  }`}
                   placeholder="Enter your password"
                 />
               </div>
-              {error.password && <p className="mt-1 text-sm text-red-500">{error.password}</p>}
+              {errors.password && <p className="mt-1 text-sm text-red-500">{errors.password}</p>}
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  name="remember-me"
+                  type="checkbox"
+                  className="h-4 w-4 text-orange-500 focus:ring-orange-500 border-gray-300 rounded"
+                />
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                  Remember me
+                </label>
+              </div>
+
+              <div className="text-sm">
+                <Link href="/forgot-password" className="text-orange-500 hover:text-orange-600 font-medium">
+                  Forgot password?
+                </Link>
+              </div>
             </div>
 
             <button
@@ -160,21 +194,38 @@ const Page = () => {
                   </svg>
                   Signing In...
                 </>
-              ) : 'Sign In as Admin'}
+              ) : 'Sign In'}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-gray-600 text-sm">
-              <Link href="/" className="text-orange-500 hover:text-orange-600 font-semibold">
-                Return to main site
+              Don't have an account?{' '}
+              <Link href="/signup" className="text-orange-500 hover:text-orange-600 font-semibold">
+                Sign up here
               </Link>
             </p>
           </div>
+        </div>
+        
+        {/* Back to home link */}
+        <div className="text-center mt-6">
+          <Link href="/dashboard" className="inline-flex items-center text-white hover:underline text-sm">
+            <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Home
+          </Link>
         </div>
       </div>
     </div>
   );
 }
 
-export default Page
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading orders...</div>}>
+      <Login />
+    </Suspense>
+  );
+}

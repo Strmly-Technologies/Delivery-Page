@@ -1,33 +1,67 @@
 import mongoose, { Schema, Document } from "mongoose";
 import bcrypt from "bcrypt";
 
+export interface CartItem {
+  product: mongoose.Types.ObjectId;
+  customization: {
+    size: string;
+    quantity: string;
+    ice?: string;
+    sugar?: string;
+    dilution?: string;
+    finalPrice: number;
+  };
+  price: number;
+  quantity: number;
+  addedAt: Date;
+}
+
 export interface User extends Document {
   username: string;
   email: string;
   password: string;
   createdAt: Date;
   updatedAt: Date;
-  cart: mongoose.Types.ObjectId[];
+  cart: CartItem[];
   purchaseHistory: mongoose.Types.ObjectId[];
   comparePassword(candidatePassword: string): Promise<boolean>;
   role?: string;
 }
 
-const userSchema: Schema = new Schema({
+const cartItemSchema = new Schema<CartItem>({
+  product: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Product",
+    required: true,
+  },
+  customization: {
+    size: { type: String, required: true },
+    quantity: { type: String, required: true },
+    ice: { type: String },
+    sugar: { type: String },
+    dilution: { type: String },
+    finalPrice: { type: Number, required: true },
+  },
+  price: { type: Number, required: true },
+  quantity: { type: Number, required: true },
+  addedAt: { type: Date, default: Date.now },
+});
+
+const userSchema = new Schema<User>({
   username: {
     type: String,
     required: true,
-    unique: true, // already creates an index
+    unique: true, // already creates index
   },
   email: {
     type: String,
     required: true,
-    unique: true, // already creates an index
+    unique: true,
   },
   password: {
     type: String,
     required: true,
-    select: false, // Don't include password in queries by default
+    select: false,
   },
   role: {
     type: String,
@@ -42,12 +76,7 @@ const userSchema: Schema = new Schema({
     type: Date,
     default: Date.now,
   },
-  cart: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Product",
-    },
-  ],
+  cart: [cartItemSchema], // now allows full objects
   purchaseHistory: [
     {
       type: mongoose.Schema.Types.ObjectId,
@@ -57,20 +86,20 @@ const userSchema: Schema = new Schema({
 });
 
 // Update `updatedAt` before save
-userSchema.pre("save", function (this: User, next) {
+userSchema.pre<User>("save", function (next) {
   this.updatedAt = new Date();
   next();
 });
 
 // Hash password before save
-userSchema.pre("save", async function (next) {
+userSchema.pre<User>("save", async function (next) {
   if (!this.isModified("password")) return next();
   try {
     const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password as string, salt);
+    this.password = await bcrypt.hash(this.password, salt);
     next();
-  } catch (error: any) {
-    next(error);
+  } catch (error) {
+    next(error as Error);
   }
 });
 
@@ -82,6 +111,7 @@ userSchema.methods.comparePassword = async function (
 };
 
 const UserModel =
-  mongoose.models.User || mongoose.model<User>("User", userSchema);
+  (mongoose.models.User as mongoose.Model<User>) ||
+  mongoose.model<User>("User", userSchema);
 
 export default UserModel;

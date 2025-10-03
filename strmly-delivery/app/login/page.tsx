@@ -52,7 +52,9 @@ import { loginUser } from "@/lib/auth";
       setErrors({});
       
       // Redirect to returnUrl or dashboard
-      router.push(returnUrl);
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 500);
       
     } catch (error) {
       console.error('Login error:', error);
