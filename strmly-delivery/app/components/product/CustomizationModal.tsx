@@ -13,6 +13,9 @@ interface Product {
   category: 'juices' | 'shakes';
   image: string;
   stock: number;
+  smallPrice?: number;
+    mediumPrice?: number;
+    largePrice?: number;
 }
 
 interface ProductCustomizationModalProps {
@@ -103,7 +106,9 @@ export default function ProductCustomizationModal({
                 <div className="px-6 max-h-[60vh] overflow-y-auto">
                   <ProductCustomization
                     category={product.category}
-                    basePrice={product.price}
+                    smallPrice={product.smallPrice ?? 0}
+                    mediumPrice={product.mediumPrice ?? 0}
+                    largePrice={product.largePrice ?? 0}
                     onCustomizationChange={handleCustomizationChange}
                   />
                 </div>

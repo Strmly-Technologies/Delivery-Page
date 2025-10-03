@@ -28,13 +28,17 @@ export async function GET(request: NextRequest) {
     
     const orders = await OrderModel.find(query)
       .populate('user', 'username email')
-      .populate('products')
+      .populate('products.product', 'name price imageUrl')
       .sort({ createdAt: -1 });
+
+      console.log('Admin get orders:', orders);
     
     return NextResponse.json({
       success: true,
       orders
     });
+
+    
     
   } catch (error) {
     console.error('Admin get orders error:', error);

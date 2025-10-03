@@ -13,6 +13,9 @@ interface Product {
   category: 'juices' | 'shakes';
   image: string;
   stock: number;
+  smallPrice?: number;
+  mediumPrice?: number;
+  largePrice?: number;
 }
 
 export default function BesomMobileUI() {
@@ -218,14 +221,11 @@ export default function BesomMobileUI() {
           <p className="text-white text-2xl font-bold mb-4">₹{product.price}</p>
           <button
             onClick={() => openCustomizationModal(product)}
-            disabled={product.stock === 0}
             className={`px-6 py-2 rounded-full text-sm font-semibold transition ${
-              product.stock === 0 
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                : 'bg-white text-gray-800 hover:bg-gray-100'
+             'bg-white text-gray-800 hover:bg-gray-100'
             }`}
           >
-            {product.stock === 0 ? 'Out of Stock' : 'Buy Now'}
+            Buy Now
           </button>
         </div>
         <div className="relative">
@@ -288,7 +288,9 @@ export default function BesomMobileUI() {
             <div className="flex-1 overflow-y-auto px-5">
               <ProductCustomization
                 category={selectedProduct.category}
-                basePrice={selectedProduct.price}
+                smallPrice={selectedProduct.smallPrice ?? 0}
+                mediumPrice={selectedProduct.mediumPrice ?? 0}
+                largePrice={selectedProduct.largePrice ?? 0}
                 onCustomizationChange={handleCustomizationChange}
               />
             </div>
