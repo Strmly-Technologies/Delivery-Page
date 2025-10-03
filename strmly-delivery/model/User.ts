@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from "mongoose";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 export interface CartItem {
   product: mongoose.Types.ObjectId;
@@ -111,7 +111,8 @@ userSchema.methods.comparePassword = async function (
 };
 
 const UserModel =
-  (mongoose.models.User as mongoose.Model<User>) ||
+  (mongoose.models?.User as mongoose.Model<User>) ||
   mongoose.model<User>("User", userSchema);
+
 
 export default UserModel;

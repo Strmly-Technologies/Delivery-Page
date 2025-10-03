@@ -35,7 +35,7 @@ interface CartItem {
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [removing, setRemoving] = useState<number | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCart();
@@ -43,6 +43,7 @@ export default function CartPage() {
 
   const fetchCart = async () => {
     try {
+      console.log("Fetching cart...");
       const response = await fetch('/api/cart', {
         credentials: 'include'
       });
@@ -50,6 +51,7 @@ export default function CartPage() {
       const data = await response.json();
       if (data.success) {
         setCartItems(data.cart);
+        console.log("cart data fetched",data.cart);
       }
     } catch (error) {
       console.error('Error fetching cart:', error);
@@ -58,16 +60,17 @@ export default function CartPage() {
     }
   };
 
-  const removeFromCart = async (index: number) => {
-    setRemoving(index);
+  const removeFromCart = async (productId: string) => {
+    setRemoving(productId);
     try {
+      console.log("Removing item from cart...", productId);
       const response = await fetch('/api/cart', {
         method: 'DELETE',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ itemIndex: index })
+        body: JSON.stringify({ productId })
       });
 
       const data = await response.json();
@@ -155,7 +158,7 @@ export default function CartPage() {
                     <div className="relative w-24 h-24 bg-gradient-to-br from-orange-100 to-orange-50 rounded-xl flex-shrink-0 overflow-hidden">
                       <Image
                         src="/images/juice.png"
-                        alt={item.product.name || 'Product Image'}
+                        alt={'Product Image'}
                         width={96}
                         height={96}
                         className="object-contain"
@@ -169,9 +172,8 @@ export default function CartPage() {
                           {item.product.name}
                         </h3>
                         <button
-                          onClick={() => removeFromCart(index)}
-                          disabled={removing === index}
-                          className="text-red-500 hover:text-red-600 transition p-1 flex-shrink-0"
+                          onClick={() => removeFromCart(item.product._id!)}
+                          className="text-red-500 hover:text-red-600 transition p-1 flex-shrink-0 cursor-pointer"
                           title="Remove item"
                         >
                           <Trash2 size={20} />
@@ -235,10 +237,7 @@ export default function CartPage() {
                     <span className="font-semibold">₹{getTotalPrice()}</span>
                   </div>
                   
-                  <div className="flex justify-between text-gray-700">
-                    <span>Delivery Fee</span>
-                    <span className="font-semibold text-green-600">Free</span>
-                  </div>
+        
                   
                   <div className="border-t border-gray-200 pt-4">
                     <div className="flex justify-between items-center">

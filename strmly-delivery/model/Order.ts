@@ -28,6 +28,7 @@ export interface Order extends Document {
   status: 'pending' | 'accepted' | 'out-for-delivery' | 'delivered' | 'cancelled';
   createdAt: Date;
   updatedAt: Date;
+  deliveryCharge?: number;
 }
 
 const productCustomizationSchema = new Schema<ProductCustomization>(
@@ -67,7 +68,8 @@ const orderSchema: Schema<Order> = new Schema({
     default: 'pending'
   },
   createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
+  updatedAt: { type: Date, default: Date.now },
+  deliveryCharge: { type: Number, default: 0 }
 });
 
 orderSchema.pre('save', function (next) {

@@ -17,12 +17,12 @@ export async function POST(request: NextRequest) {
     }
     
     const userId = decodedToken.userId;
-    const { name, description, price, category, imageUrl, stock, isAvailable } = await request.json();
+    const { name, description, price, category, imageUrl, isAvailable, smallPrice,mediumPrice, largePrice } = await request.json();
     
-    console.log('Product data:', { name, description, price, category, imageUrl, stock, isAvailable });
+    console.log('Product data:', { name, description, price, category, imageUrl, isAvailable , smallPrice, mediumPrice, largePrice});
     
     // Validation
-    if (!name || !description || !price || !category || !imageUrl || stock === undefined) {
+    if (!name || !description || !price || !category || !imageUrl ) {
       return NextResponse.json(
         { error: 'All fields are required' },
         { status: 400 }
@@ -37,12 +37,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (typeof stock !== 'number' || stock < 0) {
-      return NextResponse.json(
-        { error: 'Stock must be a non-negative number' },
-        { status: 400 }
-      );
-    }
+  
 
     // Create new product
     const newProduct = new ProductModel({
@@ -51,9 +46,11 @@ export async function POST(request: NextRequest) {
       price,
       category,
       image: imageUrl,
-      stock,
       isAvailable: isAvailable !== undefined ? isAvailable : true,
-      createdBy: userId
+      createdBy: userId,
+        smallPrice:Number(smallPrice) || 0,
+        mediumPrice:Number(mediumPrice) || 0,
+        largePrice:Number(largePrice) || 0,
     });
     
     await newProduct.save();

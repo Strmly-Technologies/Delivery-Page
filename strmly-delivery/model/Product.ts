@@ -27,6 +27,9 @@ export interface ProductDocument extends Document {
   createdBy?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
+  smallPrice?: number;
+  mediumPrice?: number;
+  largePrice?: number;
 }
 
 const customizationSchema = new Schema<Customization>({
@@ -127,7 +130,10 @@ const productSchema = new Schema<ProductDocument>({
   updatedAt: {
     type: Date,
     default: Date.now
-  }
+  },
+  smallPrice: { type: Number },
+  mediumPrice: { type: Number },
+  largePrice: { type: Number }
 });
 
 const Product: Model<ProductDocument> =

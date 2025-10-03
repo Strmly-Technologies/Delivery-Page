@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
+import { SHOP_LOCATION, getDeliverySettings } from '@/constants/location';
+import { calculateDistance, calculateDeliveryCharge, getAddressFromCoords } from '@/lib/location';
+
 
 interface CustomerDetails {
   name: string;
@@ -43,6 +46,8 @@ export default function CheckoutPage() {
   });
   const [products, setProducts] = useState<string[]>([]);
   const [quantities, setQuantities] = useState<number[]>([]);
+  const [deliveryCharge, setDeliveryCharge] = useState(0);
+  const [locationError, setLocationError] = useState('');
 
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const router = useRouter();
@@ -50,6 +55,65 @@ export default function CheckoutPage() {
   useEffect(() => {
     fetchCart();
   }, []);
+
+ const handleGetLocation = async () => {
+  if (!navigator.geolocation) {
+    setLocationError('Geolocation is not supported by your browser');
+    return;
+  }
+
+  try {
+    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
+      });
+    });
+
+    const { latitude, longitude } = position.coords;
+    console.log("User coordinates:", latitude, longitude);
+    
+    // Get delivery settings from API
+    const settingsResponse = await fetch('/api/admin/delivery');
+    const settingsData = await settingsResponse.json();
+    
+    if (!settingsData.success) {
+      throw new Error('Failed to fetch delivery settings');
+    }
+    
+    const DELIVERY_RANGES = settingsData.settings;
+    
+    const distance = calculateDistance(
+      latitude, 
+      longitude, 
+      SHOP_LOCATION.lat, 
+      SHOP_LOCATION.lng
+    );
+    
+    console.log("Distance to shop:", distance, "km");
+
+    if (distance > DELIVERY_RANGES.MAX_RANGE) {
+      setLocationError(`Sorry, we don't deliver beyond ${DELIVERY_RANGES.MAX_RANGE}km from our shop (Your distance: ${distance.toFixed(2)}km)`);
+      return;
+    }
+
+    const charge = calculateDeliveryCharge(distance, DELIVERY_RANGES.CHARGES);
+    setDeliveryCharge(charge);
+
+    // Get address from coordinates
+    const address = await getAddressFromCoords(latitude, longitude);
+    setCustomerDetails(prev => ({
+      ...prev,
+      address
+    }));
+    setLocationError('');
+
+  } catch (error) {
+    console.error('Location error:', error);
+    setLocationError('Unable to get your location. Please ensure location services are enabled and try again.');
+  }
+};
 
   const fetchCart = async () => {
     try {
@@ -111,11 +175,11 @@ export default function CheckoutPage() {
   };
 
   const getTotalPrice = () => {
-    console.log(cartItems);
-    return cartItems.reduce((total, item) => 
-      total + item.customization.finalPrice , 0
-    );
-  };
+  const itemsTotal = cartItems.reduce((total, item) => 
+    total + item.customization.finalPrice, 0
+  );
+  return itemsTotal + deliveryCharge;
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,7 +208,8 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           customerDetails,
           cartItems,
-          totalAmount: getTotalPrice()
+          totalAmount: getTotalPrice(),
+          deliveryCharge
         })
       });
 
@@ -305,21 +370,40 @@ export default function CheckoutPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">
+  <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">
                     Delivery Address *
                   </label>
-                  <textarea
-                    id="address"
-                    name="address"
-                    value={customerDetails.address}
-                    onChange={handleInputChange}
-                    rows={3}
-                    className={`w-full px-4 py-2 border text-black rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
-                      errors.address ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="Enter your complete delivery address"
-                  />
-                  {errors.address && <p className="mt-1 text-sm text-red-500">{errors.address}</p>}
+                  <div className="flex gap-2">
+                    <textarea
+                      id="address"
+                      name="address"
+                      value={customerDetails.address}
+                      onChange={handleInputChange}
+                      rows={3}
+                      className={`w-full text-black px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                        errors.address ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder="Enter your complete delivery address"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleGetLocation}
+                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      Get Current Location
+                    </button>
+                  </div>
+                  {locationError && (
+                    <p className="mt-1 text-sm text-red-500">{locationError}</p>
+                  )}
+                  {deliveryCharge > 0 && (
+                    <p className="mt-1 text-sm text-green-600">
+                      Delivery Charge: ₹{deliveryCharge}
+                    </p>
+                  )}
+                  {errors.address && (
+                    <p className="mt-1 text-sm text-red-500">{errors.address}</p>
+                  )}
                 </div>
 
                 <button
@@ -371,6 +455,11 @@ export default function CheckoutPage() {
                   </div>
                 ))}
               </div>
+              {/* Delivery Charge Price */}
+              <div className="flex justify-between text-gray-700">
+                    <span>Delivery Fee</span>
+                    <span className="font-semibold text-green-600">{deliveryCharge}</span>
+                  </div>
 
               <div className="border-t pt-4 space-y-2">
                 <div className="flex justify-between text-base font-semibold text-gray-900">

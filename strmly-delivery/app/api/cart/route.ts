@@ -74,12 +74,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (product.stock === 0) {
-      return NextResponse.json(
-        { error: 'Product is out of stock' },
-        { status: 400 }
-      );
-    }
+  
 
     const user = await UserModel.findById(userId);
     if (!user) {
@@ -136,21 +131,19 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     await dbConnect();
-    
+
     // Verify authentication
     const decodedToken = await verifyAuth(request);
     const userId = decodedToken.userId;
-    
-    const { searchParams } = new URL(request.url);
-    const productId = searchParams.get('productId');
-    
+
+    const { productId } = await request.json();
     if (!productId) {
       return NextResponse.json(
         { error: 'Product ID is required' },
         { status: 400 }
       );
     }
-    
+
     const user = await UserModel.findById(userId);
     if (!user) {
       return NextResponse.json(
@@ -158,20 +151,25 @@ export async function DELETE(request: NextRequest) {
         { status: 404 }
       );
     }
-    
-    user.cart = user.cart.filter((id: any) => id.toString() !== productId);
+
+    // Filter out the cart item by matching the product ObjectId
+    user.cart = user.cart.filter(
+      (item) => item.product.toString() !== productId
+    );
+
     await user.save();
-    
+
     return NextResponse.json({
       success: true,
-      message: 'Product removed from cart'
+      message: 'Product removed from cart',
+      cart: user.cart, // optional: return updated cart
     });
-    
+
   } catch (error) {
     console.error('Remove from cart error:', error);
     return NextResponse.json(
       { error: 'Failed to remove from cart' },
-      { status: 401 }
+      { status: 500 }
     );
   }
 }

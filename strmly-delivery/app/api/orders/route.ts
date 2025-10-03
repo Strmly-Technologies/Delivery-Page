@@ -3,7 +3,7 @@ import dbConnect from '@/lib/dbConnect';
 import OrderModel from '@/model/Order';
 import { verifyAuth } from '@/lib/serverAuth';
 import mongoose from 'mongoose';
-import { CartItem } from '@/model/User';
+import UserModel, { CartItem } from '@/model/User';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +13,8 @@ export async function POST(request: NextRequest) {
     const decodedToken = await verifyAuth(request);
     const userId = decodedToken.userId;
     
-    const { customerDetails, cartItems, totalAmount } = await request.json();
+    const { customerDetails, cartItems, totalAmount, deliveryCharge } = await request.json();
+    console.log('Order data:', { customerDetails, cartItems, totalAmount, deliveryCharge });
 
     // Validate required fields
     if (!customerDetails || !cartItems || !totalAmount) {
@@ -41,13 +42,19 @@ export async function POST(request: NextRequest) {
         address: customerDetails.address
       },
       status: 'pending',
-      paymentStatus: 'pending'
+      paymentStatus: 'pending',
+      deliveryCharge
     });
+    console.log('Created order:', order);
+
+    // clear user's cart after order creation
+    await UserModel.findByIdAndUpdate(userId, { $set: { cart: [] } });
     return NextResponse.json({
       success: true,
       orderId: order._id,
       totalAmount
     });
+    
 
   } catch (error) {
     console.error('Create order error:', error);

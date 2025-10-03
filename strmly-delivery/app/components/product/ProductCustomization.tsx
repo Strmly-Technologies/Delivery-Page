@@ -11,7 +11,9 @@ interface SizeOption {
 
 interface ProductCustomizationProps {
   category: string;
-  basePrice: number;
+  smallPrice: number;
+  mediumPrice: number;
+  largePrice: number;
   onCustomizationChange: (customization: ProductCustomization, finalPrice: number) => void;
 }
 
@@ -27,7 +29,9 @@ export interface ProductCustomization {
 
 const ProductCustomization: React.FC<ProductCustomizationProps> = ({
   category,
-  basePrice,
+  smallPrice,
+  mediumPrice,
+  largePrice,
   onCustomizationChange
 }) => {
   const isJuice = category.toLowerCase() === 'juices';
@@ -35,9 +39,9 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
 
   // Size options with corresponding quantities and price adjustments
   const sizeOptions: SizeOption[] = [
-    { name: 'Small', quantity: '250mL', priceAdjustment: 0 },
-    { name: 'Medium', quantity: '350mL', priceAdjustment: 15 },
-    { name: 'Large', quantity: '500mL', priceAdjustment: 30 },
+    { name: 'Small', quantity: '250mL', priceAdjustment: smallPrice },
+    { name: 'Medium', quantity: '350mL', priceAdjustment: mediumPrice },
+    { name: 'Large', quantity: '500mL', priceAdjustment: largePrice },
   ];
 
   const iceOptions = ['No Ice', 'Less Ice', 'Normal Ice', 'More Ice'];
@@ -54,7 +58,7 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
 
   // Calculate final price based on selections
  const calculateFinalPrice = () => {
-  return (basePrice + selectedSize.priceAdjustment) * orderQuantity;
+  return (selectedSize.priceAdjustment) * orderQuantity;
 };
 
   // Update parent component when selections change
@@ -129,10 +133,10 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
                       }`}
                     >
                       {option.priceAdjustment === 0 
-                        ? `₹${basePrice}`
+                        ? `₹${smallPrice}`
                         : option.priceAdjustment > 0 
-                          ? `₹${basePrice + option.priceAdjustment} `
-                          : `₹${basePrice + option.priceAdjustment} `
+                          ? `₹${ option.priceAdjustment} `
+                          : `₹${ option.priceAdjustment} `
                       }
                     </RadioGroup.Description>
                   </div>
@@ -305,7 +309,7 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
       <span className="text-xl font-bold text-orange-600">₹{calculateFinalPrice()}</span>
       {orderQuantity > 1 && (
         <span className="text-sm text-gray-500 block">
-          (₹{basePrice + selectedSize.priceAdjustment} × {orderQuantity})
+          (₹{ selectedSize.priceAdjustment} × {orderQuantity})
         </span>
       )}
     </div>

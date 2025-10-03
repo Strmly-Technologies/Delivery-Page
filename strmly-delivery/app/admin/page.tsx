@@ -135,6 +135,12 @@ export default function AdminDashboard() {
               Settings
             </div>
           </Link>
+  <Link
+  href="/admin/delivery"
+  className="flex items-center px-4 py-2 text-gray-700 hover:bg-orange-50"
+>
+  <span className="mx-4">Delivery Settings</span>
+</Link>
           <div className="mt-10 px-6">
             <button 
               onClick={handleLogout}
