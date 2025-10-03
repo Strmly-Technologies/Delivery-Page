@@ -43,6 +43,7 @@ export default function CartPage() {
 
   const fetchCart = async () => {
     try {
+      console.log("Fetching cart...");
       const response = await fetch('/api/cart', {
         credentials: 'include'
       });
@@ -50,6 +51,7 @@ export default function CartPage() {
       const data = await response.json();
       if (data.success) {
         setCartItems(data.cart);
+        console.log("cart data fetched",data.cart);
       }
     } catch (error) {
       console.error('Error fetching cart:', error);
@@ -155,7 +157,7 @@ export default function CartPage() {
                     <div className="relative w-24 h-24 bg-gradient-to-br from-orange-100 to-orange-50 rounded-xl flex-shrink-0 overflow-hidden">
                       <Image
                         src="/images/juice.png"
-                        alt={item.product.name || 'Product Image'}
+                        alt={'Product Image'}
                         width={96}
                         height={96}
                         className="object-contain"
@@ -235,10 +237,7 @@ export default function CartPage() {
                     <span className="font-semibold">₹{getTotalPrice()}</span>
                   </div>
                   
-                  <div className="flex justify-between text-gray-700">
-                    <span>Delivery Fee</span>
-                    <span className="font-semibold text-green-600">Free</span>
-                  </div>
+        
                   
                   <div className="border-t border-gray-200 pt-4">
                     <div className="flex justify-between items-center">
