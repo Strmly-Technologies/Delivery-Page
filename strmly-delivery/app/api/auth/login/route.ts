@@ -57,28 +57,41 @@ export async function POST(request: NextRequest) {
     // Generate JWT token
     const token = jwt.sign(
       { 
-        userId: user._id.toString(), 
+        userId: (user._id as any).toString(), 
         email: user.email,
-        username: user.username ,
-        role:user.role
+        username: user.username,
+        role: user.role
       },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
-    // Return success response without password
-    return NextResponse.json({
+    // Create response with user data
+    const response = NextResponse.json({
       message: 'Login successful',
       user: {
-        id: user._id.toString(),
+        id: (user._id as any).toString(),
         username: user.username,
         email: user.email,
-        fullName: user.username, // You may want to add a fullName field to your User model
+        fullName: user.username,
         createdAt: user.createdAt,
-        role:user.role
+        role: user.role
       },
-      token
+      token // Still return token for localStorage if needed
     });
+
+    // Set cookie with the JWT token
+    response.cookies.set({
+      name: 'authToken',
+      value: token,
+      httpOnly: true, // Prevents client-side JS from accessing the cookie (security)
+      secure: process.env.NODE_ENV === 'production', // Only send over HTTPS in production
+      sameSite: 'lax', // Protects against CSRF attacks
+      maxAge: 60 * 60 * 24 * 7, // 7 days in seconds
+      path: '/', // Cookie available across entire site
+    });
+
+    return response;
 
   } catch (error) {
     console.error('Login error:', error);

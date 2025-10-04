@@ -70,6 +70,7 @@ export async function loginUser(credentials: {
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include', // IMPORTANT: This makes the browser handle cookies
     body: JSON.stringify({
       email: credentials.email,
       password: credentials.password
@@ -82,13 +83,9 @@ export async function loginUser(credentials: {
     throw new Error(data.error || 'Login failed');
   }
 
-  // Store token in a cookie (not localStorage)
-  setCookie('authToken', data.token);
-  
-  // Store user info in localStorage for convenience (non-sensitive info only)
+  // Remove the setCookie call - the server already set it!
+  // Just store non-sensitive user info in localStorage
   localStorage.setItem('user', JSON.stringify(data.user));
-  
-  // Also store role for easy access
   localStorage.setItem('userRole', data.user.role);
 
   return data;
