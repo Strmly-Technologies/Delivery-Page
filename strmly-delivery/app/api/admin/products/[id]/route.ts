@@ -10,6 +10,7 @@ export async function GET(
 ) {
   try {
     await dbConnect();
+
     
     // Verify authentication and admin role
     const decodedToken = await verifyAuth(request);
@@ -21,6 +22,7 @@ export async function GET(
     }
     
     const product = await ProductModel.findById(params.id);
+    console.log('Fetched product:', product);
     if (!product) {
       return NextResponse.json(
         { error: 'Product not found' },
@@ -59,10 +61,10 @@ export async function PUT(
       );
     }
     
-    const { name, description, price, category, image, stock } = await request.json();
+    const { name, description, price, category, image,smallPrice,mediumPrice,largePrice } = await request.json();
     
     // Basic validation
-    if (!name || !description || !price || !category || !image || stock === undefined) {
+    if (!name || !description || !price || !category || !image) {
       return NextResponse.json(
         { error: 'All fields are required' },
         { status: 400 }
@@ -78,7 +80,9 @@ export async function PUT(
         price,
         category,
         image,
-        stock,
+        smallPrice,
+        mediumPrice,
+        largePrice,
         updatedAt: new Date()
       },
       { new: true, runValidators: true }

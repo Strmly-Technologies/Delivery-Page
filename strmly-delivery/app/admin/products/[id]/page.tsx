@@ -135,7 +135,9 @@ function ProductDetailContent() {
               {isJuiceOrShake ? (
                 <ProductCustomization 
                   category={product.category} 
-                  basePrice={product.price} 
+                  smallPrice={product.price} 
+                  mediumPrice={product.price + 20}
+                  largePrice={product.price + 40}
                   onCustomizationChange={handleCustomizationChange}
                 />
               ) : (

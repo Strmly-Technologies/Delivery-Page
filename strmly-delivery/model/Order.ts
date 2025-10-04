@@ -29,6 +29,10 @@ export interface Order extends Document {
   createdAt: Date;
   updatedAt: Date;
   deliveryCharge?: number;
+  customisablePrices?: {
+    category: string;
+    price: number;
+  }[];
 }
 
 const productCustomizationSchema = new Schema<ProductCustomization>(
@@ -69,7 +73,11 @@ const orderSchema: Schema<Order> = new Schema({
   },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
-  deliveryCharge: { type: Number, default: 0 }
+  deliveryCharge: { type: Number, default: 0 },
+  customisablePrices: [{
+    category: { type: String },
+    price: { type: Number }
+  }]
 });
 
 orderSchema.pre('save', function (next) {

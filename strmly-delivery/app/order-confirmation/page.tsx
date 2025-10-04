@@ -31,6 +31,10 @@ interface OrderConfirmation {
   };
   createdAt: string;
   deliveryCharge?: number;
+  customisablePrices?: {
+    category: string;
+    price: number;
+  }[];
 }
 
  function OrderList() {
@@ -158,6 +162,18 @@ interface OrderConfirmation {
                 <div className="flex justify-between text-gray-700">
                   <span>Delivery Fee</span>
                   <span className="font-semibold">₹{order.deliveryCharge}</span>
+                </div>
+                )}
+                {order.customisablePrices && order.customisablePrices.length > 0 && (
+                <div className="mt-4">
+                  <div className="space-y-1">
+                    {order.customisablePrices.map((item, idx) => (
+                      <div key={idx} className="flex justify-between text-gray-700">
+                        <span>{item.category}</span>
+                        <span className="font-semibold">₹{item.price}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 )}
               </div>
