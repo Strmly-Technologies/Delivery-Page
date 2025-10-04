@@ -41,21 +41,15 @@ import { loginUser } from "@/lib/auth";
     }
     
     try {
-      const response = await loginUser(formData);
-      console.log('Login successful:', response);
-      
-      // Clear form
-      setFormData({
-        email: '',
-        password: ''
-      });
-      setErrors({});
-      
-      // Redirect to returnUrl or dashboard
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 500);
-      
+  const response = await loginUser(formData);
+  console.log('Login successful:', response);
+  
+  setFormData({ email: '', password: '' });
+  setErrors({});
+  
+  // Cookie is set server-side, redirect immediately
+  router.push("/dashboard");
+    
     } catch (error) {
       console.error('Login error:', error);
       setErrors({
