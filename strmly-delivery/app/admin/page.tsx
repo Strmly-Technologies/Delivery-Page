@@ -285,10 +285,15 @@ export default function AdminDashboard() {
               <Truck className="h-6 w-6 mx-auto text-blue-600 mb-2" />
               <p className="text-gray-700">Process Orders</p>
             </Link>
-            
-            <Link href="/admin/settings" className="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 transition">
-              <Settings className="h-6 w-6 mx-auto text-gray-600 mb-2" />
-              <p className="text-gray-700">Settings</p>
+           
+            <Link 
+              href="/admin/others" 
+              className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium"
+            >
+              <div className="flex items-center">
+                <Package2 className="h-5 w-5 mr-3" />
+                Other Settings
+              </div>
             </Link>
           </div>
         </div>

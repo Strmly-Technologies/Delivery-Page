@@ -31,7 +31,6 @@ export async function GET(request: NextRequest) {
       .populate('products.product', 'name price imageUrl')
       .sort({ createdAt: -1 });
 
-      console.log('Admin get orders:', orders);
     
     return NextResponse.json({
       success: true,

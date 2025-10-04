@@ -35,6 +35,11 @@ interface CartItem {
   addedAt: Date;
 }
 
+interface CustomisablePrices{
+  category:string;
+  price:number;
+}
+
 export default function CheckoutPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,13 +53,32 @@ export default function CheckoutPage() {
   const [quantities, setQuantities] = useState<number[]>([]);
   const [deliveryCharge, setDeliveryCharge] = useState(0);
   const [locationError, setLocationError] = useState('');
+  const [customisablePrices, setCustomisablePrices] = useState<CustomisablePrices[]>([]);
 
   const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [disableAddressInput, setDisableAddressInput] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     fetchCart();
+    fetchCustomisablePrices();
   }, []);
+
+  const fetchCustomisablePrices = async () => {
+    try {
+      const response = await fetch('/api/ui-header',
+        { method: 'GET',
+          credentials:'include'
+        }
+      );
+      const data = await response.json();
+      if (data.success) {
+        setCustomisablePrices(data.customisablePricings || []);
+      }
+    } catch (error) {
+      console.error('Error fetching customisable prices:', error);
+    }
+  };
 
  const handleGetLocation = async () => {
   if (!navigator.geolocation) {
@@ -108,6 +132,7 @@ export default function CheckoutPage() {
       address
     }));
     setLocationError('');
+    setDisableAddressInput(true);
 
   } catch (error) {
     console.error('Location error:', error);
@@ -127,7 +152,6 @@ export default function CheckoutPage() {
       const data = await response.json();
       if (data.success) {
         setCartItems(data.cart);
-        console.log(data.cart);
         setProducts(data.cart.map((item: CartItem) => item.product._id));
         setQuantities(data.cart.map((item: CartItem) => item.quantity));
       }
@@ -175,9 +199,15 @@ export default function CheckoutPage() {
   };
 
   const getTotalPrice = () => {
-  const itemsTotal = cartItems.reduce((total, item) => 
+  let itemsTotal = cartItems.reduce((total, item) => 
     total + item.customization.finalPrice, 0
   );
+  for(let i=0;i<customisablePrices.length;i++){
+    const item=customisablePrices[i];
+    console.log("Customisable item:", item.category, item.price);
+    itemsTotal+=item.price;
+  }
+  console.log("Items total:", itemsTotal, "Delivery charge:", deliveryCharge);
   return itemsTotal + deliveryCharge;
 };
 
@@ -209,7 +239,8 @@ export default function CheckoutPage() {
           customerDetails,
           cartItems,
           totalAmount: getTotalPrice(),
-          deliveryCharge
+          deliveryCharge,
+          customisablePrices
         })
       });
 
@@ -379,6 +410,7 @@ export default function CheckoutPage() {
                       name="address"
                       value={customerDetails.address}
                       onChange={handleInputChange}
+                      disabled={customerDetails.address==='' ? true : disableAddressInput}
                       rows={3}
                       className={`w-full text-black px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                         errors.address ? 'border-red-500' : 'border-gray-300'
@@ -460,6 +492,17 @@ export default function CheckoutPage() {
                     <span>Delivery Fee</span>
                     <span className="font-semibold text-green-600">{deliveryCharge}</span>
                   </div>
+                {/* Customisable Prices if any */}
+                {customisablePrices.length > 0 && (
+                  <div className="mt-4 border-t pt-4 space-y-2">
+                    {customisablePrices.map((item, index) => (
+                      <div key={index} className="flex justify-between text-gray-700">
+                        <span>{item.category} Price</span>
+                        <span className="font-semibold text-gray-900">₹{item.price}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
               <div className="border-t pt-4 space-y-2">
                 <div className="flex justify-between text-base font-semibold text-gray-900">

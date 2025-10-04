@@ -25,7 +25,6 @@ export async function GET(request: NextRequest) {
         { status: 404 }
       );
     }
-    console.log(user.cart);
     
     return NextResponse.json({
       success: true,

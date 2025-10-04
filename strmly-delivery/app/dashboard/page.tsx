@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ShoppingBag, Search, X } from 'lucide-react';
 import ProductCustomization, { ProductCustomization as CustomizationType } from '../components/product/ProductCustomization';
 import Image from 'next/image';
+import { set } from 'mongoose';
 interface Product {
   _id: string;
   name: string;
@@ -17,6 +18,10 @@ interface Product {
   mediumPrice?: number;
   largePrice?: number;
 }
+interface UIHeader {
+  text: string;
+  image: string;
+}
 
 export default function BesomMobileUI() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -27,6 +32,10 @@ export default function BesomMobileUI() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [uiHeader,setUIHeader]=useState<UIHeader>({
+  text:'Besom',
+  image:'/images/juice.png'
+  })
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -40,6 +49,7 @@ export default function BesomMobileUI() {
       setUser(JSON.parse(currentUser));
     }
     fetchProducts();
+    fetchUIHeader();
   }, [filter]);
 
   useEffect(() => {
@@ -54,6 +64,26 @@ export default function BesomMobileUI() {
       setFilteredProducts(filtered);
     }
   }, [searchQuery, products]);
+
+  const fetchUIHeader=async()=>{
+    try {
+      const response=await fetch('/api/ui-header',
+        {method:'GET',
+        credentials:'include'
+        }
+      );
+      if(response.ok){
+        const data=await response.json();
+        console.log('UI Header data:',data);
+        setUIHeader({
+          text:data.header.text,
+          image:data.header.image
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching UI header:',error);
+    }
+  }
 
   const fetchProducts = async () => {
     try {
@@ -179,20 +209,34 @@ export default function BesomMobileUI() {
 
         {/* Main Content */}
         <main className="px-5 py-6 space-y-5">
-          {/* Discount Card */}
           {!isSearchOpen && searchQuery === '' && (
-            <div className={`bg-gradient-to-br ${getCategoryColor('discount')} rounded-3xl p-6 relative overflow-hidden shadow-lg`}>
-              <div className="relative z-10">
-                <h2 className="text-white text-2xl font-bold mb-2">10% Discount</h2>
-                <p className="text-white text-sm opacity-90 mb-4 max-w-[60%]">
-                  Buy Besom Product & get 10% discount today!
-                </p>
-                <button className="bg-white text-gray-800 px-6 py-2 rounded-full text-sm font-semibold hover:bg-gray-100 transition">
-                  Explore More
-                </button>
-              </div>
-            </div>
-          )}
+    <div
+      className={`bg-gradient-to-br ${getCategoryColor(
+        'discount'
+      )} rounded-3xl p-6 relative overflow-hidden shadow-lg`}
+    >
+      <div className="relative z-10 flex items-center justify-between">
+        {/* Left side: text + button */}
+        <div className="max-w-[60%]">
+          <p className="text-white text-sm opacity-90 mb-4">
+            {uiHeader.text}
+          </p>
+          <button className="bg-white text-gray-800 px-6 py-2 rounded-full text-sm font-semibold hover:bg-gray-100 transition">
+            Explore More
+          </button>
+        </div>
+
+        {/* Right side: image */}
+        <Image
+          src={uiHeader.image}
+          alt="header image"
+          width={120}
+          height={120}
+          className="transform rounded-2xl -rotate-12 hover:rotate-0 transition-transform duration-300 drop-shadow-xl"
+        />
+      </div>
+    </div>
+  )}
 
           {/* Filter Buttons */}
           {!isSearchOpen && (
