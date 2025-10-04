@@ -27,6 +27,12 @@ export async function middleware(request: NextRequest) {
   
   // Get auth token from cookies
   const authToken = request.cookies.get('authToken')?.value;
+
+    console.log('=== MIDDLEWARE DEBUG ===');
+  console.log('Pathname:', pathname);
+  console.log('Has authToken:', !!authToken);
+  console.log('All cookies:', request.cookies.getAll());
+  console.log('=======================');
   
   // Check if the user is trying to access a protected route
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));

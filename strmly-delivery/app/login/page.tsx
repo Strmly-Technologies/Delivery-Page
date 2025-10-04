@@ -47,10 +47,13 @@ import { loginUser } from "@/lib/auth";
   setFormData({ email: '', password: '' });
   setErrors({});
   
-  // Cookie is set server-side, redirect immediately
-  router.push("/dashboard");
-    
-    } catch (error) {
+  // Wait a bit longer and verify cookie is actually set
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  
+  // Force a hard refresh instead of client-side navigation
+  window.location.href = "/dashboard";
+  
+} catch (error) {
       console.error('Login error:', error);
       setErrors({
         general: error instanceof Error ? error.message : 'Login failed'
