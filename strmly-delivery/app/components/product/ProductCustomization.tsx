@@ -85,67 +85,59 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
 
   return (
     <div className="space-y-6 py-4">
-      {/* Size Selection */}
-      <div>
-        <h3 className="text-sm font-medium text-gray-900 mb-3">Size</h3>
-        <RadioGroup value={selectedSize} onChange={setSelectedSize}>
-          <div className="grid grid-cols-3 gap-3">
-            {sizeOptions.map((option) => (
-              <RadioGroup.Option
-                key={option.name}
-                value={option}
-                className={({ active, checked }) =>
-                  `${
-                    active
-                      ? 'ring-2 ring-orange-500'
-                      : ''
-                  }
-                  ${
-                    checked
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-white text-gray-900 border border-gray-200'
-                  }
-                    relative flex cursor-pointer rounded-lg px-4 py-3 shadow-sm focus:outline-none`
-                }
+   // ...existing code...
+
+{/* Size Selection */}
+<div>
+  <h3 className="text-sm font-medium text-gray-900 mb-3">Size</h3>
+  <RadioGroup value={selectedSize} onChange={setSelectedSize}>
+    <div className="grid grid-cols-3 gap-3">
+      {sizeOptions.map((option) => (
+        <RadioGroup.Option
+          key={option.name}
+          value={option}
+          className={({ checked }) =>
+            `${
+              checked
+                ? 'bg-orange-50 border-2 border-orange-500 text-orange-700 ring-2ring-orange-500'
+                : ' border bg-orange-50  border-gray-200 text-gray-900 hover:bg-gray-50'
+            }
+            relative flex cursor-pointer rounded-lg px-4 py-3 shadow-sm focus:outline-none transition-colors duration-200`
+          }
+        >
+          {({ checked }) => (
+            <div className="flex flex-col w-full text-center">
+              <RadioGroup.Label
+                as="p"
+                className={`font-medium ${
+                  checked ? 'text-orange-700' : 'text-gray-900'
+                }`}
               >
-                {({ checked }) => (
-                  <div className="flex flex-col w-full text-center">
-                    <RadioGroup.Label
-                      as="p"
-                      className={`font-medium ${
-                        checked ? 'text-white' : 'text-gray-900'
-                      }`}
-                    >
-                      {option.name}
-                    </RadioGroup.Label>
-                    <RadioGroup.Description
-                      as="span"
-                      className={`text-sm ${
-                        checked ? 'text-white' : 'text-gray-500'
-                      }`}
-                    >
-                      {option.quantity}
-                    </RadioGroup.Description>
-                    <RadioGroup.Description
-                      as="span"
-                      className={`text-sm ${
-                        checked ? 'text-white' : 'text-gray-500'
-                      }`}
-                    >
-                      {option.priceAdjustment === 0 
-                        ? `₹${smallPrice}`
-                        : option.priceAdjustment > 0 
-                          ? `₹${ option.priceAdjustment} `
-                          : `₹${ option.priceAdjustment} `
-                      }
-                    </RadioGroup.Description>
-                  </div>
-                )}
-              </RadioGroup.Option>
-            ))}
-          </div>
-        </RadioGroup>
-      </div>
+                {option.name}
+              </RadioGroup.Label>
+              <RadioGroup.Description
+                as="span"
+                className={`text-sm ${
+                  checked ? 'text-orange-600' : 'text-gray-500'
+                }`}
+              >
+                {option.quantity}
+              </RadioGroup.Description>
+              <RadioGroup.Description
+                as="span"
+                className={`text-sm ${
+                  checked ? 'text-orange-600 font-medium' : 'text-gray-500'
+                }`}
+              >
+                ₹{option.priceAdjustment}
+              </RadioGroup.Description>
+            </div>
+          )}
+        </RadioGroup.Option>
+      ))}
+    </div>
+  </RadioGroup>
+</div>
 
       {/* Ice Options - Available for both Juices and Shakes */}
       {(isJuice || isShake) && (
