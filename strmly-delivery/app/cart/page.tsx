@@ -3,7 +3,10 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Trash2, ShoppingCart } from 'lucide-react';
+import { Trash2, ShoppingCart, Home, History } from 'lucide-react';
+import { localCart } from '@/lib/cartStorage';
+import { useRouter } from 'next/navigation';
+import OtpModal from '../components/login/otpModal';
 
 interface ProductCustomization {
   size: string;
@@ -36,10 +39,33 @@ export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [removing, setRemoving] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
-    fetchCart();
+    const currentUser=localStorage.getItem('user');
+    if(currentUser){
+      setIsAuthenticated(true);
+      fetchCart();
+    }else{
+      const localItems = localCart.getItems().map((item) => ({
+        ...item,
+        addedAt: item.addedAt ? new Date(item.addedAt) : undefined,
+      }));
+      setCartItems(localItems);
+      setLoading(false);
+    }
   }, []);
+
+  const handleCheckoutClick = (e: React.MouseEvent) => {
+  e.preventDefault();
+  if (!isAuthenticated) {
+    setShowOtpModal(true);
+  } else {
+    router.push('/checkout');
+  }
+};
 
   const fetchCart = async () => {
     try {
@@ -62,6 +88,7 @@ export default function CartPage() {
 
   const removeFromCart = async (productId: string) => {
     setRemoving(productId);
+    if(isAuthenticated){
     try {
       console.log("Removing item from cart...", productId);
       const response = await fetch('/api/cart', {
@@ -84,6 +111,14 @@ export default function CartPage() {
       alert('Failed to remove item');
     } finally {
       setRemoving(null);
+    }}else{
+      localCart.removeItem(productId);
+      const updatedItems = localCart.getItems().map((item) => ({
+        ...item,
+        addedAt: item.addedAt ? new Date(item.addedAt) : undefined,
+      }));
+      setCartItems(updatedItems);
+      setRemoving(null);
     }
   };
 
@@ -94,6 +129,29 @@ export default function CartPage() {
   const getTotalItems = () => {
     return cartItems.length;
   };
+  const handleVerificationComplete = async () => {
+  setShowOtpModal(false);
+  
+  // Transfer local cart to server
+  try {
+    const localItems = localCart.getItems();
+    await fetch('/api/cart/sync', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: localItems })
+    });
+    
+    // Clear local cart
+    localCart.clearCart();
+    
+    // Redirect to checkout
+    router.push('/checkout');
+  } catch (error) {
+    console.error('Failed to sync cart:', error);
+    alert('Failed to sync your cart. Please try again.');
+  }
+};
 
   if (loading) {
     return (
@@ -110,18 +168,37 @@ export default function CartPage() {
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
       <header className="bg-white shadow-sm border-b sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <Link href="/dashboard" className="text-2xl">🥤</Link>
-              <h1 className="text-xl font-bold text-gray-800">My Cart</h1>
-            </div>
-            <Link href="/orders" className="text-gray-700 hover:text-gray-900 text-sm font-medium">
-              Orders
-            </Link>
-          </div>
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="flex justify-between items-center h-16">
+      <div className="flex items-center space-x-3">
+        <h1 className="text-xl font-bold text-gray-800">My Cart</h1>
+      </div>
+      <div className="flex items-center space-x-4">
+        <div className="group relative">
+          <Link href='/orders' className="text-gray-700">
+            <button className="text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <History className="w-5 h-5" />
+            </button>
+          </Link>
+          <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">
+            My Orders
+          </span>
         </div>
-      </header>
+        
+        <div className="group relative">
+          <Link href='/dashboard' className="text-gray-700">
+            <button className="text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <Home className="w-5 h-5" />
+            </button>
+          </Link>
+          <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">
+            Home
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {cartItems.length === 0 ? (
@@ -247,10 +324,16 @@ export default function CartPage() {
                       </span>
                     </div>
                   </div>
+                       <OtpModal
+                        isOpen={showOtpModal}
+                        onClose={() => setShowOtpModal(false)}
+                        onVerificationComplete={handleVerificationComplete}
+                      />
                 </div>
 
-                <Link
+               <Link
                   href="/checkout"
+                  onClick={handleCheckoutClick}
                   className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-4 px-4 rounded-xl hover:from-orange-600 hover:to-orange-700 transition duration-200 font-bold text-center block shadow-md hover:shadow-lg mb-3"
                 >
                   Proceed to Checkout
@@ -267,6 +350,8 @@ export default function CartPage() {
           </div>
         )}
       </div>
+ 
     </div>
+    
   );
 }

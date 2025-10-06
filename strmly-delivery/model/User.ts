@@ -26,6 +26,7 @@ export interface User extends Document {
   purchaseHistory: mongoose.Types.ObjectId[];
   comparePassword(candidatePassword: string): Promise<boolean>;
   role?: string;
+  otpVerified?: boolean;
 }
 
 const cartItemSchema = new Schema<CartItem>({
@@ -83,6 +84,7 @@ const userSchema = new Schema<User>({
       ref: "Order",
     },
   ],
+  otpVerified: { type: Boolean, default: false },
 });
 
 // Update `updatedAt` before save

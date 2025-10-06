@@ -4,8 +4,6 @@ import { jwtVerify } from 'jose';
 
 // Define which routes require authentication
 const protectedRoutes = [
-  '/dashboard',
-  '/cart',
   '/checkout',
   '/orders',
   '/order-confirmation',
@@ -24,16 +22,14 @@ const authRoutes = ['/login', '/signup', '/admin/login'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  if (pathname === '/') {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
   
   // Get auth token from cookies
   const authToken = request.cookies.get('authToken')?.value;
 
-    console.log('=== MIDDLEWARE DEBUG ===');
-  console.log('Pathname:', pathname);
-  console.log('Has authToken:', !!authToken);
-  console.log('All cookies:', request.cookies.getAll());
-  console.log('=======================');
-  
+
   // Check if the user is trying to access a protected route
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
   const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route));
@@ -98,6 +94,7 @@ export async function middleware(request: NextRequest) {
 // Configure which routes the middleware runs on
 export const config = {
   matcher: [
+    '/',
     '/((?!_next/static|_next/image|favicon.ico|public|api).*)',
   ],
 };

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { RadioGroup } from '@headlessui/react';
+import { Description, RadioGroup, Label, Radio } from '@headlessui/react';
 
 interface SizeOption {
   name: string;
@@ -85,59 +85,40 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
 
   return (
     <div className="space-y-6 py-4">
-   // ...existing code...
-
-{/* Size Selection */}
-<div>
-  <h3 className="text-sm font-medium text-gray-900 mb-3">Size</h3>
-  <RadioGroup value={selectedSize} onChange={setSelectedSize}>
-    <div className="grid grid-cols-3 gap-3">
-      {sizeOptions.map((option) => (
-        <RadioGroup.Option
-          key={option.name}
-          value={option}
-          className={({ checked }) =>
-            `${
-              checked
-                ? 'bg-orange-50 border-2 border-orange-500 text-orange-700 ring-2ring-orange-500'
-                : ' border bg-orange-50  border-gray-200 text-gray-900 hover:bg-gray-50'
-            }
-            relative flex cursor-pointer rounded-lg px-4 py-3 shadow-sm focus:outline-none transition-colors duration-200`
-          }
-        >
-          {({ checked }) => (
-            <div className="flex flex-col w-full text-center">
-              <RadioGroup.Label
-                as="p"
-                className={`font-medium ${
-                  checked ? 'text-orange-700' : 'text-gray-900'
-                }`}
+      {/* Size Selection */}
+     <div>
+        <h3 className="text-sm font-medium text-gray-900 mb-3">Size</h3>
+        <div className="grid grid-cols-3 gap-3">
+          {sizeOptions.map((option) => {
+            const isChecked = selectedSize.name === option.name;
+            return (
+              <button
+                key={option.name}
+                type="button"
+                onClick={() => setSelectedSize(option)}
+                className={`${
+                  isChecked
+                    ? 'bg-orange-100 border-orange-500 text-orange-800 ring-2 ring-orange-500'
+                    : 'border bg-white border-gray-200 text-gray-900 hover:bg-gray-50'
+                }
+                relative flex cursor-pointer rounded-lg px-4 py-3 shadow-sm focus:outline-none transition-colors duration-200`}
               >
-                {option.name}
-              </RadioGroup.Label>
-              <RadioGroup.Description
-                as="span"
-                className={`text-sm ${
-                  checked ? 'text-orange-600' : 'text-gray-500'
-                }`}
-              >
-                {option.quantity}
-              </RadioGroup.Description>
-              <RadioGroup.Description
-                as="span"
-                className={`text-sm ${
-                  checked ? 'text-orange-600 font-medium' : 'text-gray-500'
-                }`}
-              >
-                ₹{option.priceAdjustment}
-              </RadioGroup.Description>
-            </div>
-          )}
-        </RadioGroup.Option>
-      ))}
-    </div>
-  </RadioGroup>
-</div>
+                <div className="flex flex-col w-full text-center">
+                  <p className={`font-medium ${isChecked ? 'text-orange-800' : 'text-gray-900'}`}>
+                    {option.name}
+                  </p>
+                  <span className={`text-sm ${isChecked ? 'text-orange-800' : 'text-gray-500'}`}>
+                    {option.quantity}
+                  </span>
+                  <span className={`text-sm ${isChecked ? 'text-orange-800 font-medium' : 'text-gray-500'}`}>
+                    ₹{option.priceAdjustment}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Ice Options - Available for both Juices and Shakes */}
       {(isJuice || isShake) && (
@@ -146,12 +127,12 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
           <RadioGroup value={selectedIce} onChange={setSelectedIce}>
             <div className="grid grid-cols-2 gap-2">
               {iceOptions.map((option) => (
-                <RadioGroup.Option
+                <Radio
                   key={option}
                   value={option}
-                  className={({ active, checked }) =>
+                  className={({ focus, checked }) =>
                     `${
-                      active
+                      focus
                         ? 'ring-2 ring-orange-500'
                         : ''
                     }
@@ -165,17 +146,17 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
                 >
                   {({ checked }) => (
                     <div className="flex items-center justify-center w-full">
-                      <RadioGroup.Label
+                      <Label
                         as="p"
                         className={`font-medium text-sm ${
                           checked ? 'text-orange-800' : 'text-gray-700'
                         }`}
                       >
                         {option}
-                      </RadioGroup.Label>
+                      </Label>
                     </div>
                   )}
-                </RadioGroup.Option>
+                </Radio>
               ))}
             </div>
           </RadioGroup>
@@ -189,12 +170,12 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
           <RadioGroup value={selectedSugar} onChange={setSelectedSugar}>
             <div className="grid grid-cols-3 gap-2">
               {sugarOptions.map((option) => (
-                <RadioGroup.Option
+                <Radio
                   key={option}
                   value={option}
-                  className={({ active, checked }) =>
+                  className={({ focus, checked }) =>
                     `${
-                      active
+                      focus
                         ? 'ring-2 ring-orange-500'
                         : ''
                     }
@@ -208,17 +189,17 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
                 >
                   {({ checked }) => (
                     <div className="flex items-center justify-center w-full">
-                      <RadioGroup.Label
+                      <Label
                         as="p"
                         className={`font-medium text-sm ${
                           checked ? 'text-orange-800' : 'text-gray-700'
                         }`}
                       >
                         {option}
-                      </RadioGroup.Label>
+                      </Label>
                     </div>
                   )}
-                </RadioGroup.Option>
+                </Radio>
               ))}
             </div>
           </RadioGroup>
@@ -232,12 +213,12 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
           <RadioGroup value={selectedDilution} onChange={setSelectedDilution}>
             <div className="grid grid-cols-3 gap-2">
               {dilutionOptions.map((option) => (
-                <RadioGroup.Option
+                <Radio
                   key={option}
                   value={option}
-                  className={({ active, checked }) =>
+                  className={({ focus, checked }) =>
                     `${
-                      active
+                      focus
                         ? 'ring-2 ring-orange-500'
                         : ''
                     }
@@ -251,67 +232,66 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
                 >
                   {({ checked }) => (
                     <div className="flex items-center justify-center w-full">
-                      <RadioGroup.Label
+                      <Label
                         as="p"
                         className={`font-medium text-sm ${
                           checked ? 'text-orange-800' : 'text-gray-700'
                         }`}
                       >
                         {option}
-                      </RadioGroup.Label>
+                      </Label>
                     </div>
                   )}
-                </RadioGroup.Option>
+                </Radio>
               ))}
             </div>
           </RadioGroup>
         </div>
       )}
+
       {/* Quantity Selector */}
-<div className="flex items-center space-x-4 py-4">
-  <h3 className="text-sm font-medium text-gray-900">Quantity:</h3>
-  <div className="flex items-center border border-gray-200 rounded">
-    <button
-      type="button"
-      onClick={() => setOrderQuantity(Math.max(1, orderQuantity - 1))}
-      className="px-3 py-1 text-gray-600 hover:text-orange-500 focus:outline-none"
-    >
-      -
-    </button>
-    <span className="px-4 py-1 text-gray-900 border-x border-gray-200">
-      {orderQuantity}
-    </span>
-    <button
-      type="button"
-      onClick={() => setOrderQuantity(orderQuantity + 1)}
-      className="px-3 py-1 text-gray-600 hover:text-orange-500 focus:outline-none"
-    >
-      +
-    </button>
-  </div>
-</div>
-
-
+      <div className="flex items-center space-x-4 py-4">
+        <h3 className="text-sm font-medium text-gray-900">Quantity:</h3>
+        <div className="flex items-center border border-gray-200 rounded">
+          <button
+            type="button"
+            onClick={() => setOrderQuantity(Math.max(1, orderQuantity - 1))}
+            className="px-3 py-1 text-gray-600 hover:text-orange-500 focus:outline-none"
+          >
+            -
+          </button>
+          <span className="px-4 py-1 text-gray-900 border-x border-gray-200">
+            {orderQuantity}
+          </span>
+          <button
+            type="button"
+            onClick={() => setOrderQuantity(orderQuantity + 1)}
+            className="px-3 py-1 text-gray-600 hover:text-orange-500 focus:outline-none"
+          >
+            +
+          </button>
+        </div>
+      </div>
 
       {/* Final Price Display */}
       <div className="pt-4 border-t border-gray-200">
-  <div className="flex justify-between items-center">
-    <span className="text-base font-medium text-gray-900">Final Price:</span>
-    <div className="text-right">
-      <span className="text-xl font-bold text-orange-600">₹{calculateFinalPrice()}</span>
-      {orderQuantity > 1 && (
-        <span className="text-sm text-gray-500 block">
-          (₹{ selectedSize.priceAdjustment} × {orderQuantity})
-        </span>
-      )}
-    </div>
-  </div>
-  <p className="text-sm text-gray-500 mt-1">
-    {selectedSize.name} ({selectedSize.quantity}) × {orderQuantity}
-    {isJuice && `, ${selectedIce}`}
-    {isShake && `, ${selectedIce}, ${selectedSugar}, ${selectedDilution}`}
-  </p>
-</div>
+        <div className="flex justify-between items-center">
+          <span className="text-base font-medium text-gray-900">Final Price:</span>
+          <div className="text-right">
+            <span className="text-xl font-bold text-orange-600">₹{calculateFinalPrice()}</span>
+            {orderQuantity > 1 && (
+              <span className="text-sm text-gray-500 block">
+                (₹{selectedSize.priceAdjustment} × {orderQuantity})
+              </span>
+            )}
+          </div>
+        </div>
+        <p className="text-sm text-gray-500 mt-1">
+          {selectedSize.name} ({selectedSize.quantity}) × {orderQuantity}
+          {isJuice && `, ${selectedIce}`}
+          {isShake && `, ${selectedIce}, ${selectedSugar}, ${selectedDilution}`}
+        </p>
+      </div>
     </div>
   );
 };

@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, Search, X } from 'lucide-react';
+import { ShoppingBag, Search, X, History, UserPlus } from 'lucide-react';
 import ProductCustomization, { ProductCustomization as CustomizationType } from '../components/product/ProductCustomization';
 import Image from 'next/image';
 import { set } from 'mongoose';
+import { localCart } from '@/lib/cartStorage';
 interface Product {
   _id: string;
   name: string;
@@ -33,7 +34,7 @@ export default function BesomMobileUI() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [uiHeader,setUIHeader]=useState<UIHeader>({
-  text:'Besom',
+  text:'JUICE RANI',
   image:'/images/juice.png'
   })
   
@@ -42,11 +43,14 @@ export default function BesomMobileUI() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [customization, setCustomization] = useState<CustomizationType | null>(null);
   const [finalPrice, setFinalPrice] = useState(0);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     const currentUser = localStorage.getItem('user');
     if (currentUser) {
+      console.log('Found user in localStorage:', currentUser);
       setUser(JSON.parse(currentUser));
+      setIsAuthenticated(true);
     }
     fetchProducts();
     fetchUIHeader();
@@ -124,6 +128,7 @@ export default function BesomMobileUI() {
 
     setCartLoading(selectedProduct._id);
     try {
+      if(isAuthenticated){
       const response = await fetch('/api/cart', {
         method: 'POST',
         credentials: 'include',
@@ -140,7 +145,20 @@ export default function BesomMobileUI() {
         closeModal();
       } else {
         alert(data.error || 'Failed to add to cart');
-      }
+      }}
+      else{
+        localCart.addItem({
+          productId: selectedProduct._id,
+          product: selectedProduct,
+          customization: customization,
+          price: finalPrice || selectedProduct.price,
+          quantity:customization.orderQuantity || 1,
+          addedAt: new Date().toISOString()
+        });
+        alert('Product added to cart!');
+        closeModal();
+        console.log('Current local cart items:', localCart.getItems()); 
+        }
     } catch (error) {
       console.error('Error adding to cart:', error);
       alert('Failed to add to cart');
@@ -162,7 +180,6 @@ export default function BesomMobileUI() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-6xl mb-4">🥤</div>
           <h2 className="text-xl font-semibold text-gray-700">Loading...</h2>
         </div>
       </div>
@@ -191,20 +208,64 @@ export default function BesomMobileUI() {
           </header>
         ) : (
           <header className="bg-white px-5 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
-            <h1 className="text-xl font-bold text-gray-800">
-              Besom {user && `(Hi, ${user.username})`}
-            </h1>
-            <div className="flex items-center space-x-4">
-              <button onClick={() => setIsSearchOpen(true)} className="text-gray-700">
-                <Search size={22} />
-              </button>
-             <Link href="/cart" className="relative text-gray-700">
-              <button className="text-gray-700">
-                <ShoppingBag size={22} />
-              </button>
-             </Link>
-            </div>
-          </header>
+  <div className="flex flex-col">
+    <h1 className="text-xl font-bold text-gray-800">
+      JUICE RANI
+    </h1>
+    {user && (
+      <span className="text-sm text-gray-600 mt-0.5">Hi, {user.username}</span>
+    )}
+  </div>
+  
+  <div className="flex items-center space-x-4">
+    <div className="group relative">
+      <button 
+        onClick={() => setIsSearchOpen(true)} 
+        className="text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors"
+      >
+        <Search size={22} />
+      </button>
+      <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">
+        Search
+      </span>
+    </div>
+
+    <div className="group relative">
+      <Link href="/cart" className="relative text-gray-700">
+        <button className="text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors">
+          <ShoppingBag size={20} />
+        </button>
+      </Link>
+      <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">
+        My Cart
+      </span>
+    </div>
+
+    <div className="group relative">
+      <Link href='/orders' className="text-gray-700">
+        <button className="text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors">
+          <History className="w-5 h-5" />
+        </button>
+      </Link>
+      <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">
+        My Orders
+      </span>
+    </div>
+
+    {!user && (
+      <div className="group relative">
+        <Link href='/login' className="text-gray-700">
+          <button className="text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <UserPlus className="w-5 h-5" />
+          </button>
+        </Link>
+        <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">
+          Login
+        </span>
+      </div>
+    )}
+  </div>
+</header>
         )}
 
         {/* Main Content */}
@@ -249,7 +310,7 @@ export default function BesomMobileUI() {
                     filter === f ? 'bg-orange-500 text-white shadow-md' : 'bg-white text-gray-700 border border-gray-200'
                   }`}
                 >
-                  {f === 'all' ? 'All Products' : f === 'juices' ? 'Juices 🍊' : 'Shakes 🥤'}
+                  {f === 'all' ? 'All Products' : f === 'juices' ? 'Juices ' : 'Shakes '}
                 </button>
               ))}
             </div>

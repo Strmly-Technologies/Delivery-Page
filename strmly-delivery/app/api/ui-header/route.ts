@@ -17,7 +17,6 @@ export async function GET(request:NextRequest){
                 customisablePricings:[]
             });
         }
-        console.log('UI header fetched:',response);
         return NextResponse.json({
             success:true,
             header:response.dashboard,

@@ -102,7 +102,9 @@ export default function SignupPage() {
         <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-white text-orange-500 text-2xl font-bold mb-4 shadow-lg">
           B
         </div>
-        <h1 className="text-white text-3xl font-bold">Besom</h1>
+<h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-500 to-yellow-400 tracking-wide drop-shadow-md">
+  JUICE RANI
+</h1>
         <p className="text-white/90 mt-2">Create your account</p>
       </div>
       

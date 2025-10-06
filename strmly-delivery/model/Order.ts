@@ -24,6 +24,7 @@ export interface Order extends Document {
     name: string;
     phone: string;
     address: string;
+    additionalAddressInfo?: string;
   };
   status: 'pending' | 'accepted' | 'out-for-delivery' | 'delivered' | 'cancelled';
   createdAt: Date;
@@ -64,7 +65,8 @@ const orderSchema: Schema<Order> = new Schema({
   customerDetails: {
     name: { type: String, required: true },
     phone: { type: String, required: true },
-    address: { type: String, required: true }
+    address: { type: String, required: true },
+    additionalAddressInfo: { type: String }
   },
   status: {
     type: String,

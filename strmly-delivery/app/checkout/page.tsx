@@ -12,6 +12,7 @@ interface CustomerDetails {
   name: string;
   phone: string;
   address: string;
+  additionalAddressInfo?: string;
 }
 
 interface Customization {
@@ -47,7 +48,8 @@ export default function CheckoutPage() {
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails>({
     name: '',
     phone: '',
-    address: ''
+    address: '',
+    additionalAddressInfo: ''
   });
   const [products, setProducts] = useState<string[]>([]);
   const [quantities, setQuantities] = useState<number[]>([]);
@@ -80,7 +82,7 @@ export default function CheckoutPage() {
     }
   };
 
- const handleGetLocation = async () => {
+const handleGetLocation = async () => {
   if (!navigator.geolocation) {
     setLocationError('Geolocation is not supported by your browser');
     return;
@@ -88,11 +90,29 @@ export default function CheckoutPage() {
 
   try {
     const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: true,
-        timeout: 5000,
-        maximumAge: 0
-      });
+      navigator.geolocation.getCurrentPosition(
+        (position) => resolve(position),
+        (error: GeolocationPositionError) => {
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              reject('Please allow location access to use this feature.');
+              break;
+            case error.POSITION_UNAVAILABLE:
+              reject('Location information is unavailable.');
+              break;
+            case error.TIMEOUT:
+              reject('Location request timed out.');
+              break;
+            default:
+              reject('An unknown error occurred.');
+          }
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000, // Increased timeout to 10 seconds
+          maximumAge: 0
+        }
+      );
     });
 
     const { latitude, longitude } = position.coords;
@@ -100,8 +120,11 @@ export default function CheckoutPage() {
     
     // Get delivery settings from API
     const settingsResponse = await fetch('/api/admin/delivery');
-    const settingsData = await settingsResponse.json();
+    if (!settingsResponse.ok) {
+      throw new Error('Failed to fetch delivery settings');
+    }
     
+    const settingsData = await settingsResponse.json();
     if (!settingsData.success) {
       throw new Error('Failed to fetch delivery settings');
     }
@@ -127,6 +150,10 @@ export default function CheckoutPage() {
 
     // Get address from coordinates
     const address = await getAddressFromCoords(latitude, longitude);
+    if (!address) {
+      throw new Error('Failed to get address from coordinates');
+    }
+    
     setCustomerDetails(prev => ({
       ...prev,
       address
@@ -135,8 +162,13 @@ export default function CheckoutPage() {
     setDisableAddressInput(true);
 
   } catch (error) {
-    console.error('Location error:', error);
-    setLocationError('Unable to get your location. Please ensure location services are enabled and try again.');
+    console.error('Location error:', error instanceof Error ? error.message : String(error));
+    setLocationError(
+      error instanceof Error ? 
+      error.message : 
+      'Unable to get your location. Please ensure location services are enabled and try again.'
+    );
+    setDisableAddressInput(false);
   }
 };
 
@@ -428,6 +460,17 @@ export default function CheckoutPage() {
                   {locationError && (
                     <p className="mt-1 text-sm text-red-500">{locationError}</p>
                   )}
+                  <div>
+                    <textarea
+                    id='additionalAddressInfo'
+                    name='additionalAddressInfo'
+                    value={customerDetails.additionalAddressInfo}
+                    onChange={handleInputChange}
+                    rows={2}
+                    className="mt-2 w-full text-black px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    placeholder="Additional address info (landmarks, floor, etc.)"
+                    />
+                  </div>
                   {deliveryCharge > 0 && (
                     <p className="mt-1 text-sm text-green-600">
                       Delivery Charge: ₹{deliveryCharge}
