@@ -146,7 +146,9 @@ export default function CartPage() {
     localCart.clearCart();
     
     // Redirect to checkout
+    setTimeout(() => {
     router.push('/checkout');
+    }, 2000); // Slight delay to ensure cart is synced before redirecting
   } catch (error) {
     console.error('Failed to sync cart:', error);
     alert('Failed to sync your cart. Please try again.');

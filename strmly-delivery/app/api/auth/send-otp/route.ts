@@ -60,6 +60,6 @@ export async function POST(request: Request) {
     console.error(error);
     return NextResponse.json({ success: false, error: 'Failed to send OTP' });
   } finally {
-    await redis.disconnect();
+    await redis.close();
   }
 }
