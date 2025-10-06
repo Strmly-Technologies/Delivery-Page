@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Home } from 'lucide-react';
 
 interface Customization {
   size: string;
@@ -35,6 +36,7 @@ interface Order {
     name: string;
     phone: string;
     address: string;
+    additionalAddressInfo?: string;
   };
   createdAt: string;
 }
@@ -106,17 +108,69 @@ const getStatusColor = (status?: string) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">My Orders</h1>
+   <div className="min-h-screen bg-gray-50 py-8">
+  <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="flex items-center justify-between mb-8">
+      <h1 className="text-3xl font-bold text-gray-900">My Orders</h1>
+      <div className="group relative">
+        <Link href='/dashboard'>
+          <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+            <Home className="h-6 w-6 text-gray-600 hover:text-gray-800" />
+          </button>
+        </Link>
+        <span className="absolute -bottom-8 right-0 whitespace-nowrap px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">
+          Back to Home
+        </span>
+      </div>
+    </div>
 
         {orders.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-md p-6 text-center">
-            <p className="text-gray-600">No orders found.</p>
-            <Link href="/menu" className="text-orange-500 hover:text-orange-600 mt-4 inline-block">
-              Browse Menu
-            </Link>
-          </div>
+          <div className="bg-white rounded-2xl shadow-lg p-8 text-center max-w-md mx-auto">
+  <div className="flex flex-col items-center space-y-4">
+    {/* Shopping bag icon or illustration */}
+    <div className="w-24 h-24 bg-orange-50 rounded-full flex items-center justify-center mb-2">
+      <svg 
+        className="w-12 h-12 text-orange-500"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path 
+          strokeLinecap="round" 
+          strokeLinejoin="round" 
+          strokeWidth={1.5} 
+          d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" 
+        />
+      </svg>
+    </div>
+
+    <h3 className="text-xl font-semibold text-gray-900">No Orders Yet</h3>
+    
+    <p className="text-gray-500 max-w-xs">
+      Looks like you haven't placed any orders. Start exploring our delicious drinks!
+    </p>
+
+    <Link 
+      href="/dashboard" 
+      className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-medium rounded-full hover:from-orange-600 hover:to-orange-700 transition-all duration-200 transform hover:scale-105 hover:shadow-lg"
+    >
+      <span>Start Ordering</span>
+      <svg 
+        className="ml-2 w-4 h-4" 
+        fill="none" 
+        viewBox="0 0 24 24" 
+        stroke="currentColor"
+      >
+        <path 
+          strokeLinecap="round" 
+          strokeLinejoin="round" 
+          strokeWidth={2} 
+          d="M14 5l7 7m0 0l-7 7m7-7H3" 
+        />
+      </svg>
+    </Link>
+  </div>
+</div>
         ) : (
           <div className="space-y-6">
             {orders.map((order) => (
@@ -181,7 +235,8 @@ const getStatusColor = (status?: string) => {
                       <p className="text-sm text-gray-500 mt-1">
                         {order.customerDetails.name}<br />
                         {order.customerDetails.phone}<br />
-                        {order.customerDetails.address}
+                        {order.customerDetails.address}<br/>
+                        {order.customerDetails.additionalAddressInfo}
                       </p>
                     </div>
                   </div>

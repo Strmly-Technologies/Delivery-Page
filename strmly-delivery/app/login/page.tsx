@@ -86,7 +86,7 @@ import { loginUser } from "@/lib/auth";
         <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-white text-orange-500 text-2xl font-bold mb-4 shadow-lg">
           B
         </div>
-        <h1 className="text-white text-3xl font-bold">Besom</h1>
+        <h1 className="text-white text-3xl font-bold">JUICE RANI</h1>
         <p className="text-white/90 mt-2">Fresh juices & shakes delivered to your doorstep</p>
       </div>
       

@@ -39,7 +39,8 @@ export async function POST(request: NextRequest) {
       customerDetails: {
         name: customerDetails.name,
         phone: customerDetails.phone,
-        address: customerDetails.address
+        address: customerDetails.address,
+        additionalAddressInfo: customerDetails.additionalAddressInfo || ''
       },
       status: 'pending',
       paymentStatus: 'pending',

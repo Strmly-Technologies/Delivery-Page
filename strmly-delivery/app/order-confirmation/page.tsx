@@ -28,6 +28,7 @@ interface OrderConfirmation {
     name: string;
     phone: string;
     address: string;
+    additionalAddressInfo?: string;
   };
   createdAt: string;
   deliveryCharge?: number;
@@ -191,6 +192,7 @@ interface OrderConfirmation {
                   <p className="font-medium">{order.customerDetails.name}</p>
                   <p>{order.customerDetails.phone}</p>
                   <p className="whitespace-pre-line">{order.customerDetails.address}</p>
+                  <p>{order.customerDetails.additionalAddressInfo}</p>
                 </div>
               </div>
             </div>
