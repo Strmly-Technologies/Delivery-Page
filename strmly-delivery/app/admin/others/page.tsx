@@ -161,6 +161,7 @@ export default function OtherSettingsPage() {
         {/* Header */}
         <div className="mb-8">
           <button 
+            onClick={() => router.push('/admin')}
             className="group flex items-center text-black hover:text-orange-600 mb-4 transition-colors font-medium"
           >
             <svg className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">

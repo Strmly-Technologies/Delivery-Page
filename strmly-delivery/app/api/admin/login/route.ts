@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     // Generate JWT token with role included
     const token = jwt.sign(
       { 
-        userId: user._id.toString(), 
+        userId: String(user._id), 
         email: user.email,
         username: user.username,
         role: user.role
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       message: 'Login successful',
       user: {
-        id: user._id.toString(),
+        id: String(user._id),
         username: user.username,
         email: user.email,
         role: user.role,

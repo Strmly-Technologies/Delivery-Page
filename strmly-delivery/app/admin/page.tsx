@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Package2, ShoppingCart, BarChart3, Settings, LogOut, Users, Clock, Truck, CheckCircle, AlertCircle } from 'lucide-react';
+import { Package2, ShoppingCart, BarChart3, Settings, LogOut, Users, Clock, Truck, CheckCircle, AlertCircle, SlidersHorizontal } from 'lucide-react';
 
 interface DashboardStats {
   products: number;
@@ -129,18 +129,18 @@ export default function AdminDashboard() {
               Orders
             </div>
           </Link>
-          <Link href="/admin/settings" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+          <Link href="/admin/delivery" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
             <div className="flex items-center">
               <Settings className="h-5 w-5 mr-3" />
-              Settings
+              Delivery Settings
             </div>
           </Link>
-  <Link
-  href="/admin/delivery"
-  className="flex items-center px-4 py-2 text-gray-700 hover:bg-orange-50"
->
-  <span className="mx-4">Delivery Settings</span>
-</Link>
+ <Link href="/admin/others" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+            <div className="flex items-center">
+              <SlidersHorizontal className="h-5 w-5 mr-3" />
+              Customisations 
+            </div>
+          </Link>
           <div className="mt-10 px-6">
             <button 
               onClick={handleLogout}
