@@ -144,18 +144,10 @@ export default function CartPage() {
     
     // Clear local cart
     localCart.clearCart();
-    const waitForCookie = async (name: string, timeout = 3000) => {
-  const start = Date.now();
-  while (Date.now() - start < timeout) {
-    if (document.cookie.includes(`${name}=`)) return true;
-    await new Promise(r => setTimeout(r, 100));
-  }
-  return false;
-};
-
-// After verification:
-await waitForCookie('authToken');
-router.push('/checkout');
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  
+  // Force a hard refresh instead of client-side navigation
+  window.location.href = "/checkout";
   } catch (error) {
     console.error('Failed to sync cart:', error);
     alert('Failed to sync your cart. Please try again.');
