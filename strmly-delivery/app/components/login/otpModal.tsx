@@ -52,7 +52,8 @@ export default function OtpModal({ isOpen, onClose, onVerificationComplete }: Ot
       });
       
       const data = await response.json();
-      const user=data.user;
+      if (data.success) {
+        const user=data.user;
       localStorage.setItem('user', JSON.stringify({
         id: (user._id as any).toString(),
         username: user.username,
@@ -61,8 +62,11 @@ export default function OtpModal({ isOpen, onClose, onVerificationComplete }: Ot
         createdAt: user.createdAt,
         role: user.role
       }));
-      if (data.success) {
+       await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      if (onVerificationComplete) {
         onVerificationComplete();
+      }
       } else {
         setError(data.error || 'Invalid OTP');
       }

@@ -32,18 +32,25 @@ export async function POST(request: Request) {
 
       const token = await createToken(user._id);
 
-      (await cookies()).set('authToken', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 7 * 24 * 60 * 60,
-      });
+      const response = NextResponse.json({ 
+      success: true,
+      user: {
+        _id: user._id,
+        email: user.email,
+        username: user.username
+      }
+    });
 
-      
+    // Set cookie with strict settings
+    response.cookies.set('authToken', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+    });
 
-      await redis.del(`otp:${email}`);
-      return NextResponse.json({ success: true, userId: user._id, user:user });
+    return response;
     }
 
     return NextResponse.json({ success: false, error: 'Invalid OTP' });
