@@ -42,12 +42,14 @@ export async function POST(request: Request) {
     });
 
     // Set cookie with strict settings
-    response.cookies.set('authToken', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+    response.cookies.set({
+      name: 'authToken',
+      value: token,
+      httpOnly: true, // Prevents client-side JS from accessing the cookie (security)
+      secure: process.env.NODE_ENV === 'production', // Only send over HTTPS in production
+      sameSite: 'lax', // Protects against CSRF attacks
+      maxAge: 60 * 60 * 24 * 7, // 7 days in seconds
+      path: '/', // Cookie available across entire site
     });
 
     return response;

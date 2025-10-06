@@ -48,6 +48,7 @@ export default function OtpModal({ isOpen, onClose, onVerificationComplete }: Ot
       const response = await fetch('/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email, otp })
       });
       

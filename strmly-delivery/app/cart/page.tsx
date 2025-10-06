@@ -144,11 +144,18 @@ export default function CartPage() {
     
     // Clear local cart
     localCart.clearCart();
-    
-    // Redirect to checkout
-    setTimeout(() => {
-    router.push('/checkout');
-    }, 2000); // Slight delay to ensure cart is synced before redirecting
+    const waitForCookie = async (name: string, timeout = 3000) => {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    if (document.cookie.includes(`${name}=`)) return true;
+    await new Promise(r => setTimeout(r, 100));
+  }
+  return false;
+};
+
+// After verification:
+await waitForCookie('authToken');
+router.push('/checkout');
   } catch (error) {
     console.error('Failed to sync cart:', error);
     alert('Failed to sync your cart. Please try again.');
