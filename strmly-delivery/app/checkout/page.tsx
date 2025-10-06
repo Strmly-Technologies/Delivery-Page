@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Info } from 'lucide-react';
+import DeliveryInfoModal from '../components/delivery/DeliveryInfoModal';
+
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
@@ -59,11 +62,28 @@ export default function CheckoutPage() {
 
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [disableAddressInput, setDisableAddressInput] = useState(false);
+  const [showDeliveryInfo, setShowDeliveryInfo] = useState(false);
+  const [deliverySettings, setDeliverySettings] = useState(null);
+
   const router = useRouter();
+
+  const fetchDeliverySettings = async () => {
+  try {
+    const response = await fetch('/api/admin/delivery');
+    const data = await response.json();
+    if (data.success) {
+      setDeliverySettings(data.settin); // Note: using 'settin' as per your API response
+    }
+  } catch (error) {
+    console.error('Error fetching delivery settings:', error);
+  }
+};
 
   useEffect(() => {
     fetchCart();
     fetchCustomisablePrices();
+    fetchDeliverySettings();
+
   }, []);
 
   const fetchCustomisablePrices = async () => {
@@ -434,52 +454,61 @@ const handleGetLocation = async () => {
 
                 <div>
   <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">
-                    Delivery Address *
-                  </label>
-                  <div className="flex gap-2">
-                    <textarea
-                      id="address"
-                      name="address"
-                      value={customerDetails.address}
-                      onChange={handleInputChange}
-                      disabled={customerDetails.address==='' ? true : disableAddressInput}
-                      rows={3}
-                      className={`w-full text-black px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
-                        errors.address ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      placeholder="Enter your complete delivery address"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleGetLocation}
-                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    >
-                      Get Current Location
-                    </button>
-                  </div>
-                  {locationError && (
-                    <p className="mt-1 text-sm text-red-500">{locationError}</p>
-                  )}
-                  <div>
-                    <textarea
-                    id='additionalAddressInfo'
-                    name='additionalAddressInfo'
-                    value={customerDetails.additionalAddressInfo}
-                    onChange={handleInputChange}
-                    rows={2}
-                    className="mt-2 w-full text-black px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                    placeholder="Additional address info (landmarks, floor, etc.)"
-                    />
-                  </div>
-                  {deliveryCharge > 0 && (
-                    <p className="mt-1 text-sm text-green-600">
-                      Delivery Charge: ₹{deliveryCharge}
-                    </p>
-                  )}
-                  {errors.address && (
-                    <p className="mt-1 text-sm text-red-500">{errors.address}</p>
-                  )}
-                </div>
+    Delivery Address *
+  </label>
+  <div className="flex gap-2">
+    <textarea
+      id="address"
+      name="address"
+      value={customerDetails.address}
+      onChange={handleInputChange}
+      disabled={customerDetails.address==='' ? true : disableAddressInput}
+      rows={3}
+      className={`w-full text-black px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+        errors.address ? 'border-red-500' : 'border-gray-300'
+      }`}
+      placeholder="Enter your complete delivery address"
+    />
+    <button
+      type="button"
+      onClick={handleGetLocation}
+      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
+    >
+      Get Current Location
+    </button>
+  </div>
+  {locationError && (
+    <p className="mt-1 text-sm text-red-500">{locationError}</p>
+  )}
+  <div>
+    <textarea
+      id='additionalAddressInfo'
+      name='additionalAddressInfo'
+      value={customerDetails.additionalAddressInfo}
+      onChange={handleInputChange}
+      rows={2}
+      className="mt-2 w-full text-black px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+      placeholder="Additional address info (landmarks, floor, etc.)"
+    />
+  </div>
+  {deliveryCharge > 0 && (
+    <div className="flex items-center space-x-2 mt-2">
+      <p className="text-sm font-medium text-gray-900">
+        Delivery Charge: ₹{deliveryCharge}
+      </p>
+      <button
+        type="button"
+        onClick={() => setShowDeliveryInfo(true)}
+        className="inline-flex items-center justify-center p-1.5 text-gray-500 hover:text-orange-500 hover:bg-orange-50 rounded-full transition-all duration-200"
+      >
+        <Info className="w-4 h-4" />
+      </button>
+    </div>
+  )}
+  {errors.address && (
+    <p className="mt-1 text-sm text-red-500">{errors.address}</p>
+  )}
+</div>
 
                 <button
                   type="submit"
@@ -557,6 +586,12 @@ const handleGetLocation = async () => {
           </div>
         </div>
       </div>
+      <DeliveryInfoModal
+  isOpen={showDeliveryInfo}
+  onClose={() => setShowDeliveryInfo(false)}
+  settings={deliverySettings}
+/>
     </div>
+    
   );
 }
