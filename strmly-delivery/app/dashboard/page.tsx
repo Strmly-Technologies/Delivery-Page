@@ -35,7 +35,7 @@ export default function BesomMobileUI() {
   const [user, setUser] = useState<any>(null);
   const [uiHeader,setUIHeader]=useState<UIHeader>({
   text:'JUICE RANI',
-  image:'/images/juice.png'
+  image:'/images/front.png'
   })
   
   // Modal state
@@ -68,6 +68,8 @@ export default function BesomMobileUI() {
       setFilteredProducts(filtered);
     }
   }, [searchQuery, products]);
+
+  
 
   const fetchUIHeader=async()=>{
     try {
@@ -271,34 +273,17 @@ export default function BesomMobileUI() {
         {/* Main Content */}
         <main className="px-5 py-6 space-y-5">
           {!isSearchOpen && searchQuery === '' && (
-    <div
-      className={`bg-gradient-to-br ${getCategoryColor(
-        'discount'
-      )} rounded-3xl p-6 relative overflow-hidden shadow-lg`}
-    >
-      <div className="relative z-10 flex items-center justify-between">
-        {/* Left side: text + button */}
-        <div className="max-w-[60%]">
-          <p className="text-white text-sm opacity-90 mb-4">
-            {uiHeader.text}
-          </p>
-          <button className="bg-white text-gray-800 px-6 py-2 rounded-full text-sm font-semibold hover:bg-gray-100 transition">
-            Explore More
-          </button>
-        </div>
-
-        {/* Right side: image */}
-        <Image
-          src={uiHeader.image}
-          alt="header image"
-          width={120}
-          height={120}
-          className="transform rounded-2xl -rotate-12 hover:rotate-0 transition-transform duration-300 drop-shadow-xl"
-        />
-      </div>
+    <div className="relative">
+      <Image 
+        src={uiHeader.image==""?"/images/front.png":uiHeader.image}
+        alt="header image"
+        width={400}
+        height={200}
+        className="w-full h-[200px] object-cover rounded-2xl transform hover:scale-105 transition-transform duration-300 drop-shadow-xl"
+        priority
+      />
     </div>
-  )}
-
+)}
           {/* Filter Buttons */}
           {!isSearchOpen && (
             <div className="flex gap-3 overflow-x-auto pb-2">
