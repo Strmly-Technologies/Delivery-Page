@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, Search, X, History, UserPlus } from 'lucide-react';
+import { ShoppingBag, Search, X, History, UserPlus, LogOut } from 'lucide-react';
 import ProductCustomization, { ProductCustomization as CustomizationType } from '../components/product/ProductCustomization';
 import Image from 'next/image';
 import { set } from 'mongoose';
@@ -69,6 +69,11 @@ export default function BesomMobileUI() {
     }
   }, [searchQuery, products]);
 
+  const handleLogout = async () => {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  localStorage.removeItem('user');
+  window.location.href = '/';
+};
   
 
   const fetchUIHeader=async()=>{
@@ -263,6 +268,16 @@ export default function BesomMobileUI() {
         </Link>
         <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">
           Login
+        </span>
+      </div>
+    )}
+    {user && (
+      <div className="group relative">
+        <button onClick={handleLogout} className="text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors">
+          <LogOut className="w-5 h-5 transform rotate-180" />
+        </button>
+        <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">
+          Logout
         </span>
       </div>
     )}

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { BarChart3, Package2, ShoppingCart, Settings, Search, Plus, Edit, Trash2, AlertCircle } from 'lucide-react';
+import { BarChart3, Package2, ShoppingCart, Settings, Search, Plus, Edit, Trash2, AlertCircle, SlidersHorizontal } from 'lucide-react';
 
 interface Product {
   _id: string;
@@ -148,10 +148,16 @@ export default function ProductsPage() {
               Orders
             </div>
           </Link>
-          <Link href="/admin/settings" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+             <Link href="/admin/delivery" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
             <div className="flex items-center">
               <Settings className="h-5 w-5 mr-3" />
-              Settings
+              Delivery Settings
+            </div>
+          </Link>
+ <Link href="/admin/others" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+            <div className="flex items-center">
+              <SlidersHorizontal className="h-5 w-5 mr-3" />
+              Customisations 
             </div>
           </Link>
         </nav>

@@ -5,7 +5,7 @@ import { Suspense } from "react";
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { BarChart3, Package2, ShoppingCart, Settings, Search, Eye, RefreshCw, Phone, ChevronDown } from 'lucide-react';
+import { BarChart3, Package2, ShoppingCart, Settings, Search, Eye, RefreshCw, Phone, ChevronDown, SlidersHorizontal } from 'lucide-react';
 
 interface OrderProduct {
   product: {
@@ -232,10 +232,16 @@ interface Order {
               Orders
             </div>
           </Link>
-          <Link href="/admin/settings" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+            <Link href="/admin/delivery" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
             <div className="flex items-center">
               <Settings className="h-5 w-5 mr-3" />
-              Settings
+              Delivery Settings
+            </div>
+          </Link>
+ <Link href="/admin/others" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+            <div className="flex items-center">
+              <SlidersHorizontal className="h-5 w-5 mr-3" />
+              Customisations 
             </div>
           </Link>
         </nav>

@@ -53,7 +53,7 @@ import { loginUser } from "@/lib/auth";
       
       // Redirect to returnUrl or dashboard
       setTimeout(() => {
-        router.push("/dashboard");
+        router.push("/admin");
       }, 500);
       
     } catch (error) {
