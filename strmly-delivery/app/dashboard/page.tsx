@@ -350,7 +350,7 @@ const fetchCartCount = async () => {
           {/* Products Grid */}
           <div className="space-y-5">
   {filteredProducts.map((product) => (
-    <div key={product._id} className={`bg-gradient-to-br ${getCategoryColor(product.category)} rounded-3xl p-6 relative overflow-hidden shadow-lg`}>
+    <div onClick={()=>openCustomizationModal(product)} key={product._id} className={`bg-gradient-to-br ${getCategoryColor(product.category)} rounded-3xl p-6 relative overflow-hidden shadow-lg`}>
       <div className="flex justify-between items-center">
         <div className="relative z-10">
           <h3 className="text-white text-xl font-bold mb-1 w-56">{product.name}</h3>
@@ -358,7 +358,7 @@ const fetchCartCount = async () => {
           <button
             onClick={() => openCustomizationModal(product)}
             className={`px-6 py-2 rounded-full text-sm font-semibold transition ${
-             'bg-white text-gray-800 hover:bg-gray-100'
+             'bg-white cursor-pointer text-gray-800 hover:bg-gray-100'
             }`}
           >
             Buy Now
