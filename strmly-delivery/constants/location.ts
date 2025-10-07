@@ -1,8 +1,9 @@
 export const SHOP_LOCATION = {
-  lat: 12.926,  // Jayanagar, Bangalore latitude
-  lng: 77.553,  // Jayanagar, Bangalore longitude
+  lat: 28.681528, 
+  lng: 77.206602,  
   address: "Jayanagar, Bangalore"
 };
+//12.926, 77.553
 
 import dbConnect from '../lib/dbConnect';
 import DeliverySettingModel from '@/model/Delivery';
