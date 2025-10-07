@@ -25,6 +25,9 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/') {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
+  if(pathname==='/signup' || pathname==='/login'){
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
   
   // Get auth token from cookies
   const authToken = request.cookies.get('authToken')?.value;

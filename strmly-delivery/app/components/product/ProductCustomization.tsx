@@ -39,9 +39,9 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
 
   // Size options with corresponding quantities and price adjustments
   const sizeOptions: SizeOption[] = [
-    { name: 'Small', quantity: '250mL', priceAdjustment: smallPrice },
-    { name: 'Medium', quantity: '350mL', priceAdjustment: mediumPrice },
-    { name: 'Large', quantity: '500mL', priceAdjustment: largePrice },
+    { name: 'Regular', quantity: '250mL', priceAdjustment: smallPrice },
+    { name: 'Large', quantity: '350mL', priceAdjustment: mediumPrice },
+    { name: 'Jumbo', quantity: '500mL', priceAdjustment: largePrice },
   ];
 
   const iceOptions = ['No Ice', 'Less Ice', 'Normal Ice', 'More Ice'];

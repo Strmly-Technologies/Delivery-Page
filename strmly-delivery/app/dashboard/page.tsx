@@ -44,6 +44,9 @@ export default function BesomMobileUI() {
   const [customization, setCustomization] = useState<CustomizationType | null>(null);
   const [finalPrice, setFinalPrice] = useState(0);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [cartItemCount, setCartItemCount] = useState(0);
+
+
 
   useEffect(() => {
     const currentUser = localStorage.getItem('user');
@@ -55,6 +58,10 @@ export default function BesomMobileUI() {
     fetchProducts();
     fetchUIHeader();
   }, [filter]);
+
+  useEffect(() => {
+  fetchCartCount();
+}, [isAuthenticated]);
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -75,6 +82,24 @@ export default function BesomMobileUI() {
   window.location.href = '/';
 };
   
+const fetchCartCount = async () => {
+  try {
+    if (isAuthenticated) {
+      const response = await fetch('/api/cart', {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      if (data.success) {
+        setCartItemCount(data.cart.length);
+      }
+    } else {
+      const localCartItems = localCart.getItems();
+      setCartItemCount(localCartItems.length);
+    }
+  } catch (error) {
+    console.error('Error fetching cart count:', error);
+  }
+};
 
   const fetchUIHeader=async()=>{
     try {
@@ -150,6 +175,7 @@ export default function BesomMobileUI() {
       if (data.success) {
         alert('Product added to cart!');
         closeModal();
+        fetchCartCount();
       } else {
         alert(data.error || 'Failed to add to cart');
       }}
@@ -238,15 +264,20 @@ export default function BesomMobileUI() {
     </div>
 
     <div className="group relative">
-      <Link href="/cart" className="relative text-gray-700">
-        <button className="text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors">
-          <ShoppingBag size={20} />
-        </button>
-      </Link>
-      <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">
-        My Cart
-      </span>
-    </div>
+  <Link href="/cart" className="relative text-gray-700">
+    <button className="text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors">
+      <ShoppingBag size={20} />
+      {cartItemCount > 0 && (
+        <span className="absolute -top-3 -right-1 bg-orange-500 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center font-medium">
+          {cartItemCount}
+        </span>
+      )}
+    </button>
+  </Link>
+  <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">
+    My Cart
+  </span>
+</div>
 
     <div className="group relative">
       <Link href='/orders' className="text-gray-700">
@@ -259,7 +290,7 @@ export default function BesomMobileUI() {
       </span>
     </div>
 
-    {!user && (
+    {/* {!user && (
       <div className="group relative">
         <Link href='/login' className="text-gray-700">
           <button className="text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -270,7 +301,7 @@ export default function BesomMobileUI() {
           Login
         </span>
       </div>
-    )}
+    )} */}
     {user && (
       <div className="group relative">
         <button onClick={handleLogout} className="text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -335,11 +366,11 @@ export default function BesomMobileUI() {
         </div>
         <div className="relative">
           <Image 
-            src="/images/juice.png" 
+            src={product.image}
             alt={product.name}
             width={100} 
             height={100} 
-            className="transform -rotate-12 hover:rotate-0 transition-transform duration-300 drop-shadow-xl"
+            className="transform rounded-lg hover:rotate-0 transition-transform duration-300 drop-shadow-xl"
           />
         </div>
       </div>
@@ -349,7 +380,6 @@ export default function BesomMobileUI() {
 
           {filteredProducts.length === 0 && (
             <div className="text-center py-12">
-              <div className="text-6xl mb-4">🤷‍♂️</div>
               <h3 className="text-lg font-semibold text-gray-700 mb-2">No products found</h3>
             </div>
           )}

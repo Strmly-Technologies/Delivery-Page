@@ -48,7 +48,7 @@ export async function POST(request: Request) {
       httpOnly: true, // Prevents client-side JS from accessing the cookie (security)
       secure: process.env.NODE_ENV === 'production', // Only send over HTTPS in production
       sameSite: 'lax', // Protects against CSRF attacks
-      maxAge: 60 * 60 * 24 * 7, // 7 days in seconds
+      maxAge: 5 * 365 * 24 * 60 * 60,
       path: '/', // Cookie available across entire site
     });
 
