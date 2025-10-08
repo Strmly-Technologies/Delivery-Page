@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react';
 import { Info } from 'lucide-react';
 import DeliveryInfoModal from '../components/delivery/DeliveryInfoModal';
-
+import { Home, ShoppingBag } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
 import { SHOP_LOCATION, getDeliverySettings } from '@/constants/location';
 import { calculateDistance, calculateDeliveryCharge, getAddressFromCoords } from '@/lib/location';
-
+import Link from 'next/link';
 
 interface CustomerDetails {
   name: string;
@@ -406,8 +406,36 @@ const handleGetLocation = async () => {
     <div className="min-h-screen bg-gray-50">
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Checkout</h1>
+     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div className="flex items-center justify-between mb-8">
+    <h1 className="text-3xl font-bold text-gray-900">Checkout</h1>
+    
+    <div className="flex items-center space-x-4">
+      <div className="group relative">
+        <Link href='/cart' className="text-gray-700">
+          <button className="text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <ShoppingBag className="w-5 h-5" />
+          </button>
+        </Link>
+        <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">
+          My Cart
+        </span>
+      </div>
+      
+      <div className="group relative">
+        <Link href='/dashboard' className="text-gray-700">
+          <button className="text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <Home className="w-5 h-5" />
+          </button>
+        </Link>
+        <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">
+          Dashboard
+        </span>
+      </div>
+    </div>
+  </div>
+
+        
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Customer Details Form */}

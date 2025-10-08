@@ -95,6 +95,7 @@ const fetchCartCount = async () => {
     } else {
       const localCartItems = localCart.getItems();
       setCartItemCount(localCartItems.length);
+      console.log('Local cart items for count:', localCartItems);
     }
   } catch (error) {
     console.error('Error fetching cart count:', error);
@@ -156,11 +157,11 @@ const fetchCartCount = async () => {
   };
 
   const addToCart = async () => {
-    if (!selectedProduct || !customization) return;
+  if (!selectedProduct || !customization) return;
 
-    setCartLoading(selectedProduct._id);
-    try {
-      if(isAuthenticated){
+  setCartLoading(selectedProduct._id);
+  try {
+    if (isAuthenticated) {
       const response = await fetch('/api/cart', {
         method: 'POST',
         credentials: 'include',
@@ -178,27 +179,30 @@ const fetchCartCount = async () => {
         fetchCartCount();
       } else {
         alert(data.error || 'Failed to add to cart');
-      }}
-      else{
+      }
+    } else {
+      try {
         localCart.addItem({
           productId: selectedProduct._id,
-          product: selectedProduct,
           customization: customization,
           price: finalPrice || selectedProduct.price,
-          quantity:customization.orderQuantity || 1,
+          quantity: customization.orderQuantity || 1,
           addedAt: new Date().toISOString()
         });
-        alert('Product added to cart!');
         closeModal();
-        console.log('Current local cart items:', localCart.getItems()); 
-        }
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      alert('Failed to add to cart');
-    } finally {
-      setCartLoading(null);
+        fetchCartCount();
+        console.log('Current local cart items:',);
+      } catch (error:any) {
+        alert(error.message || 'Failed to add to cart. Please try clearing some items.');
+      }
     }
-  };
+  } catch (error) {
+    console.error('Error adding to cart:', error);
+    alert('Failed to add to cart. Please try again.');
+  } finally {
+    setCartLoading(null);
+  }
+};
 
   const getCategoryColor = (category: 'juices' | 'shakes' | 'discount') => {
     const colors = {
@@ -312,16 +316,6 @@ const fetchCartCount = async () => {
         </span>
       </div>
     )}
-    {user && (
-      <div className="group relative">
-        <button onClick={handleLogout} className="text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors">
-          <LogOut className="w-5 h-5 transform rotate-180" />
-        </button>
-        <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">
-          Logout
-        </span>
-      </div>
-    )}
   </div>
 </header>
         )}
@@ -371,7 +365,7 @@ const fetchCartCount = async () => {
              'bg-white cursor-pointer text-gray-800 hover:bg-gray-100'
             }`}
           >
-            Buy Now
+            Add
           </button>
         </div>
         <div className="relative">

@@ -1,7 +1,9 @@
 export const SHOP_LOCATION = {
   lat: 28.681528, 
   lng: 77.206602,  
-  address: "Jayanagar, Bangalore"
+  // lat: 12.926,
+  // lng: 77.553,
+  //address: "Jayanagar, Bangalore"
 };
 //12.926, 77.553
 
