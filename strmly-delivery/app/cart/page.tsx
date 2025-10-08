@@ -120,7 +120,7 @@ export default function CartPage() {
     }
   };
 
-  const removeFromCart = async (productId: string,price:number) => {
+  const removeFromCart = async (productId: string,price:number,customization:any) => {
     setRemoving(productId);
     if(isAuthenticated){
     try {
@@ -131,7 +131,11 @@ export default function CartPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ productId })
+        body: JSON.stringify({
+          productId,
+          price,
+          customization
+        })
       });
 
       const data = await response.json();
@@ -281,7 +285,7 @@ export default function CartPage() {
                           {item.product.name}
                         </h3>
                         <button
-                          onClick={() => removeFromCart(item.product._id!,item.price)}
+                          onClick={() => removeFromCart(item.product._id!,item.price,item.customization)}
                           className="text-red-500 hover:text-red-600 transition p-1 flex-shrink-0 cursor-pointer"
                           title="Remove item"
                         >

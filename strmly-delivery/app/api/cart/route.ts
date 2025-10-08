@@ -135,10 +135,10 @@ export async function DELETE(request: NextRequest) {
     const decodedToken = await verifyAuth(request);
     const userId = decodedToken.userId;
 
-    const { productId } = await request.json();
-    if (!productId) {
+    const { productId, price, customization } = await request.json();
+    if (!productId || !price || !customization) {
       return NextResponse.json(
-        { error: 'Product ID is required' },
+        { error: 'Product ID, price and customization are required' },
         { status: 400 }
       );
     }
@@ -151,17 +151,35 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Filter out the cart item by matching the product ObjectId
-    user.cart = user.cart.filter(
-      (item) => item.product.toString() !== productId
-    );
+    console.log('Initial cart items:', user.cart); // Debug log
+
+    // Filter out the cart item by matching product ID, price and customization
+    user.cart = user.cart.filter((item) => {
+      // Convert ObjectId to string for comparison
+      const isProductMatch = item.product.toString() === productId;
+      const isPriceMatch = item.price === price;
+      
+      // Compare customization fields
+      const isCustomizationMatch = 
+        item.customization.size === customization.size &&
+        item.customization.quantity === customization.quantity &&
+        item.customization.finalPrice === customization.finalPrice &&
+        item.customization.ice === customization.ice &&
+        item.customization.sugar === customization.sugar &&
+        item.customization.dilution === customization.dilution;
+
+      // Only remove if all criteria match
+      return !(isProductMatch && isPriceMatch && isCustomizationMatch);
+    });
+
+    
 
     await user.save();
 
     return NextResponse.json({
       success: true,
       message: 'Product removed from cart',
-      cart: user.cart, // optional: return updated cart
+      cart: user.cart
     });
 
   } catch (error) {

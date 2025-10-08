@@ -162,6 +162,11 @@ const fetchCartCount = async () => {
   setCartLoading(selectedProduct._id);
   try {
     if (isAuthenticated) {
+      console.log('Adding to server cart:', {
+        productId: selectedProduct._id,
+        customization,
+        finalPrice
+      });
       const response = await fetch('/api/cart', {
         method: 'POST',
         credentials: 'include',
@@ -174,7 +179,6 @@ const fetchCartCount = async () => {
       });
       const data = await response.json();
       if (data.success) {
-        alert('Product added to cart!');
         closeModal();
         fetchCartCount();
       } else {
@@ -283,7 +287,7 @@ const fetchCartCount = async () => {
   </span>
 </div>
 
-    <div className="group relative">
+    {/* <div className="group relative">
       <Link href='/orders' className="text-gray-700">
         <button className="text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors">
           <History className="w-5 h-5" />
@@ -292,7 +296,7 @@ const fetchCartCount = async () => {
       <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">
         My Orders
       </span>
-    </div>
+    </div> */}
 
     {/* {!user && (
       <div className="group relative">
@@ -306,7 +310,7 @@ const fetchCartCount = async () => {
         </span>
       </div>
     )} */}
-    {user && (
+    {/* {user && (
       <div className="group relative">
         <button onClick={handleLogout} className="text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors">
           <LogOut className="w-5 h-5 transform rotate-180" />
@@ -315,7 +319,7 @@ const fetchCartCount = async () => {
           Logout
         </span>
       </div>
-    )}
+    )} */}
   </div>
 </header>
         )}
