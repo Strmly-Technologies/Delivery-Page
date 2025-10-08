@@ -70,11 +70,13 @@ export default function CartPage() {
                 },
                 customization: item.customization,
                 quantity: item.quantity,
-                price: item.customization.finalPrice*item.quantity,
+                price: item.customization.finalPrice,
                 addedAt: new Date()
               };
             });
+             console.log('Merged local cart items:', mergedCart);
             return mergedCart;
+
   }
 }
 
@@ -109,6 +111,7 @@ export default function CartPage() {
       });
 
       const data = await response.json();
+      console.log("Cart fetch response:", data);
       if (data.success) {
         setCartItems(data.cart);
         console.log("cart data fetched",data.cart);
