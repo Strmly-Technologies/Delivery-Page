@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Trash2, ShoppingCart, Home, History } from 'lucide-react';
-import { localCart } from '@/lib/cartStorage';
+import { localCart, LocalCartItem } from '@/lib/cartStorage';
 import { useRouter } from 'next/navigation';
 import OtpModal from '../components/login/otpModal';
 
@@ -43,18 +43,52 @@ export default function CartPage() {
   const [showOtpModal, setShowOtpModal] = useState(false);
   const router = useRouter();
 
+  const localFetchProductDetails = async () => {
+    const localItems = localCart.getItems().map((item:any) => ({
+        ...item,
+        addedAt: item.addedAt ? new Date(item.addedAt) : undefined,
+      }));
+      const productIds = [...new Set(localItems.map((item:LocalCartItem) => item.productId))];
+
+       const productsResponse = await fetch('/api/products/batch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productIds })
+          });
+           const productsData = await productsResponse.json();
+          
+          if (productsData.success) {
+            // Merge product details with local cart items
+            const mergedCart = localItems.map((item:LocalCartItem) => {
+              const productDetails = productsData.products.find((p:any) => p._id === item.productId);
+              return {
+                product: {
+                  _id: productDetails._id,
+                  name: productDetails.name,
+                  image: productDetails.image,
+                  price: productDetails.price
+                },
+                customization: item.customization,
+                quantity: item.quantity,
+                price: item.customization.finalPrice*item.quantity,
+                addedAt: new Date()
+              };
+            });
+            return mergedCart;
+  }
+}
+
   useEffect(() => {
     const currentUser=localStorage.getItem('user');
     if(currentUser){
       setIsAuthenticated(true);
       fetchCart();
     }else{
-      const localItems = localCart.getItems().map((item) => ({
-        ...item,
-        addedAt: item.addedAt ? new Date(item.addedAt) : undefined,
-      }));
-      setCartItems(localItems);
-      setLoading(false);
+      const localItems = localFetchProductDetails();
+      localItems.then((items) => {
+        setCartItems(items || []);
+        setLoading(false);
+      });
     }
   }, []);
 
@@ -86,7 +120,7 @@ export default function CartPage() {
     }
   };
 
-  const removeFromCart = async (productId: string) => {
+  const removeFromCart = async (productId: string,price:number) => {
     setRemoving(productId);
     if(isAuthenticated){
     try {
@@ -112,11 +146,8 @@ export default function CartPage() {
     } finally {
       setRemoving(null);
     }}else{
-      localCart.removeItem(productId);
-      const updatedItems = localCart.getItems().map((item) => ({
-        ...item,
-        addedAt: item.addedAt ? new Date(item.addedAt) : undefined,
-      }));
+      localCart.removeItem(productId,price);
+      const updatedItems = await localFetchProductDetails();
       setCartItems(updatedItems);
       setRemoving(null);
     }
@@ -235,7 +266,7 @@ export default function CartPage() {
                     {/* Product Image */}
                     <div className="relative w-24 h-24 bg-gradient-to-br from-orange-100 to-orange-50 rounded-xl flex-shrink-0 overflow-hidden">
                       <Image
-                        src="/images/juice.png"
+                        src={item.product.image}
                         alt={'Product Image'}
                         width={96}
                         height={96}
@@ -250,7 +281,7 @@ export default function CartPage() {
                           {item.product.name}
                         </h3>
                         <button
-                          onClick={() => removeFromCart(item.product._id!)}
+                          onClick={() => removeFromCart(item.product._id!,item.price)}
                           className="text-red-500 hover:text-red-600 transition p-1 flex-shrink-0 cursor-pointer"
                           title="Remove item"
                         >
