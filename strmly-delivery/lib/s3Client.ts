@@ -9,22 +9,18 @@ const s3Client = new S3Client({
   },
 });
 
-export async function uploadFileToS3(file: Buffer, fileName: string): Promise<string> {
+export async function uploadFileToS3(file: Buffer, fileName: string, mimeType: string): Promise<string> {
   const params = {
     Bucket: process.env.AWS_S3_BUCKET_NAME || '',
     Key: `products/${Date.now()}-${fileName}`,
     Body: file,
-    ContentType: 'image/jpeg', // Adjust based on the file type
+    ContentType: mimeType,
   };
 
-  try {
-    await s3Client.send(new PutObjectCommand(params));
-    // Construct the URL to the uploaded file
-    return `https://${params.Bucket}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${params.Key}`;
-  } catch (error) {
-    console.error('Error uploading to S3:', error);
-    throw new Error('Failed to upload file to S3');
-  }
+  await s3Client.send(new PutObjectCommand(params));
+
+  return `https://${params.Bucket}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${params.Key}`;
 }
+
 
 export default s3Client;

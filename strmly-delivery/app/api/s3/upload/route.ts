@@ -47,9 +47,10 @@ export async function POST(request: NextRequest) {
     // Convert file to buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+    const mineType = file.type; 
 
     // Upload to S3
-    const imageUrl = await uploadFileToS3(buffer, file.name);
+    const imageUrl = await uploadFileToS3(buffer, file.name,mineType);
 
     console.log('File uploaded to S3:', imageUrl);
 

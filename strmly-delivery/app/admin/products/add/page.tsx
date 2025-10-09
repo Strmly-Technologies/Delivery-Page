@@ -81,31 +81,59 @@ const AddProductPage = () => {
     }
   };
 
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+ const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      alert('Image size must be less than 2MB');
-      return;
+  if (file.size > 2 * 1024 * 1024) {
+    alert('Image size must be less than 2MB');
+    return;
+  }
+
+  // Show preview immediately
+  const reader = new FileReader();
+  reader.onloadend = () => {
+    setImagePreview(reader.result as string);
+  };
+  reader.readAsDataURL(file);
+
+  setIsUploading(true);
+  
+  try {
+    // Create form data for S3 upload
+    const formData = new FormData();
+    formData.append('image', file);
+
+    // Upload to S3
+    const uploadResponse = await fetch('/api/s3/upload', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!uploadResponse.ok) {
+      const error = await uploadResponse.json();
+      throw new Error(error.error || 'Failed to upload image');
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-
-    setIsUploading(true);
+    const { url } = await uploadResponse.json();
     
-    // Simulate upload - replace with actual API call
-    setTimeout(() => {
-      setFormData(prev => ({ ...prev, imageUrl: reader.result as string }));
-      if (errors.imageUrl) setErrors(prev => ({ ...prev, imageUrl: '' }));
-      setIsUploading(false);
-      alert('Image uploaded successfully');
-    }, 1500);
-  };
+    // Update form data with S3 URL
+    setFormData(prev => ({ 
+      ...prev, 
+      imageUrl: url 
+    }));
+    
+    if (errors.imageUrl) {
+      setErrors(prev => ({ ...prev, imageUrl: '' }));
+    }
+
+  } catch (error: any) {
+    console.error('Error uploading image:', error);
+    alert(error.message || 'Failed to upload image');
+  } finally {
+    setIsUploading(false);
+  }
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -329,14 +357,26 @@ const AddProductPage = () => {
                       )}
                     </div>
                     {isUploading && (
-                      <div className="mt-2 flex items-center text-sm text-orange-600">
-                        <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                        Uploading image...
-                      </div>
-                    )}
+                    <div className="mt-2 flex items-center text-sm text-orange-600">
+                      <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
+                        <circle 
+                          className="opacity-25" 
+                          cx="12" 
+                          cy="12" 
+                          r="10" 
+                          stroke="currentColor" 
+                          strokeWidth="4" 
+                          fill="none" 
+                        />
+                        <path 
+                          className="opacity-75" 
+                          fill="currentColor" 
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" 
+                        />
+                      </svg>
+                      Uploading to S3...
+                    </div>
+                  )}
                     {errors.imageUrl && <p className="mt-1 text-sm text-orange-600">{errors.imageUrl}</p>}
                   </div>
                   

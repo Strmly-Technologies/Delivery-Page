@@ -48,20 +48,55 @@ export default function BesomMobileUI() {
 
 
 
-  useEffect(() => {
-    const currentUser = localStorage.getItem('user');
-    if (currentUser) {
-      console.log('Found user in localStorage:', currentUser);
-      setUser(JSON.parse(currentUser));
-      setIsAuthenticated(true);
-    }
-    fetchProducts();
-    fetchUIHeader();
-  }, [filter]);
+   useEffect(() => {
+    const initializeDashboard = async () => {
+      setLoading(true);
+      try {
+        const currentUser = localStorage.getItem('user');
+        if (currentUser) {
+          setUser(JSON.parse(currentUser));
+          setIsAuthenticated(true);
+        }
 
-  useEffect(() => {
-  fetchCartCount();
-}, [isAuthenticated]);
+        const url = filter === 'all' 
+          ? '/api/dashboard' 
+          : `/api/dashboard?category=${filter}`;
+
+        const response = await fetch(url, { 
+          credentials: 'include',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          setProducts(data.products);
+          setFilteredProducts(data.products);
+          setUIHeader({
+            text: data.header.text,
+            image: data.header.image
+          });
+          
+          // Set cart count based on authentication status
+          if (isAuthenticated) {
+            setCartItemCount(data.cart.length);
+          } else {
+            const localCartItems = localCart.getItems();
+            setCartItemCount(localCartItems.length);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeDashboard();
+  }, [filter, isAuthenticated]);
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
