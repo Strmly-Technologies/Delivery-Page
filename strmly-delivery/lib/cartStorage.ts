@@ -41,6 +41,7 @@ export const localCart = {
 
       if (existingItemIndex !== -1) {
         // Update quantity instead of adding new item
+        items[existingItemIndex].customization.finalPrice +=item.customization.finalPrice;
         items[existingItemIndex].quantity += item.quantity;
         items[existingItemIndex].price = item.customization.finalPrice * items[existingItemIndex].quantity; // Update price
       } else {
