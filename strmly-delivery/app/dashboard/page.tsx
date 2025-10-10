@@ -46,7 +46,44 @@ export default function BesomMobileUI() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [cartItemCount, setCartItemCount] = useState(0);
 
+useEffect(() => {
+  if(!localStorage.getItem('latitude') && !localStorage.getItem('longitude')){
+  getLocation();
+  }
+}, []);
 
+const getLocation=async()=>{
+  const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => resolve(position),
+        (error: GeolocationPositionError) => {
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              reject('Please allow location access to use this feature.');
+              break;
+            case error.POSITION_UNAVAILABLE:
+              reject('Location information is unavailable.');
+              break;
+            case error.TIMEOUT:
+              reject('Location request timed out.');
+              break;
+            default:
+              reject('An unknown error occurred.');
+          }
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000, // Increased timeout to 10 seconds
+          maximumAge: 0
+        }
+      );
+    });
+
+    const { latitude, longitude } = position.coords;
+    localStorage.setItem('latitude', latitude.toString());
+    localStorage.setItem('longitude', longitude.toString());
+    console.log('Location obtained:', { latitude, longitude });
+}
 
    useEffect(() => {
     const initializeDashboard = async () => {
@@ -255,9 +292,7 @@ const fetchCartCount = async () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-700">Loading...</h2>
-        </div>
+       
       </div>
     );
   }
