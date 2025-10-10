@@ -83,8 +83,68 @@ export default function CheckoutPage() {
     fetchCart();
     fetchCustomisablePrices();
     fetchDeliverySettings();
+    initializeLocationFromStorage();
 
   }, []);
+
+  const initializeLocationFromStorage = async () => {
+  try {
+    const storedLat = localStorage.getItem('latitude');
+    const storedLng = localStorage.getItem('longitude');
+
+    if (!storedLat || !storedLng) {
+      console.log('No stored coordinates found');
+      return;
+    }
+
+    const latitude = parseFloat(storedLat);
+    const longitude = parseFloat(storedLng);
+
+    // Get delivery settings
+    const settingsResponse = await fetch('/api/admin/delivery');
+    if (!settingsResponse.ok) {
+      throw new Error('Failed to fetch delivery settings');
+    }
+    
+    const settingsData = await settingsResponse.json();
+    if (!settingsData.success) {
+      throw new Error('Failed to fetch delivery settings');
+    }
+    
+    const DELIVERY_RANGES = settingsData.settings;
+    
+    // Calculate distance and delivery charge
+    const distance = calculateDistance(
+      latitude, 
+      longitude, 
+      SHOP_LOCATION.lat, 
+      SHOP_LOCATION.lng
+    );
+    const address = await getAddressFromCoords(latitude, longitude);
+    if (!address) {
+      throw new Error('Failed to get address from coordinates');
+    }
+     setCustomerDetails(prev => ({
+      ...prev,
+      address
+    }));
+
+    if (distance > DELIVERY_RANGES.MAX_RANGE) {
+      setLocationError(`Sorry, we don't deliver beyond ${DELIVERY_RANGES.MAX_RANGE}km from our shop (Your distance: ${distance.toFixed(2)}km)`);
+      return;
+    }
+
+    const charge = calculateDeliveryCharge(distance, DELIVERY_RANGES.CHARGES);
+    setDeliveryCharge(charge);
+   
+    setDisableAddressInput(true);
+
+  } catch (error) {
+    console.error('Error initializing location:', error);
+    setLocationError('Failed to load saved location. Please try getting current location.');
+    setDisableAddressInput(false);
+  }
+};
 
   const fetchCustomisablePrices = async () => {
     try {
@@ -109,6 +169,11 @@ const handleGetLocation = async () => {
   }
 
   try {
+     setCustomerDetails(prev => ({
+      ...prev,
+      address: ''
+    }));
+    setDisableAddressInput(false);
     const position = await new Promise<GeolocationPosition>((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(
         (position) => resolve(position),
@@ -135,7 +200,10 @@ const handleGetLocation = async () => {
       );
     });
 
-    const { latitude, longitude } = position.coords;
+    const latitude= position.coords.latitude;
+    const longitude= position.coords.longitude;
+    localStorage.setItem('latitude',latitude.toString());
+    localStorage.setItem('longitude',longitude.toString());
     console.log("User coordinates:", latitude, longitude);
     
     // Get delivery settings from API
@@ -256,10 +324,8 @@ const handleGetLocation = async () => {
   );
   for(let i=0;i<customisablePrices.length;i++){
     const item=customisablePrices[i];
-    console.log("Customisable item:", item.category, item.price);
     itemsTotal+=item.price;
   }
-  console.log("Items total:", itemsTotal, "Delivery charge:", deliveryCharge);
   return itemsTotal + deliveryCharge;
 };
 
