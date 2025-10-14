@@ -10,6 +10,8 @@ import Script from 'next/script';
 import { SHOP_LOCATION, getDeliverySettings } from '@/constants/location';
 import { calculateDistance, calculateDeliveryCharge, getAddressFromCoords } from '@/lib/location';
 import Link from 'next/link';
+import { TIME_SLOTS } from '@/constants/timeSlots';
+import { getAvailableTimeSlots } from '@/lib/timeUtil';
 
 interface CustomerDetails {
   name: string;
@@ -59,11 +61,12 @@ export default function CheckoutPage() {
   const [deliveryCharge, setDeliveryCharge] = useState(0);
   const [locationError, setLocationError] = useState('');
   const [customisablePrices, setCustomisablePrices] = useState<CustomisablePrices[]>([]);
-
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [disableAddressInput, setDisableAddressInput] = useState(false);
   const [showDeliveryInfo, setShowDeliveryInfo] = useState(false);
   const [deliverySettings, setDeliverySettings] = useState(null);
+  const [availableTimeSlots, setAvailableTimeSlots] = useState(TIME_SLOTS);
 
   const router = useRouter();
 
@@ -84,8 +87,20 @@ export default function CheckoutPage() {
     fetchCustomisablePrices();
     fetchDeliverySettings();
     initializeLocationFromStorage();
-
   }, []);
+
+  useEffect(() => {
+    // Update available time slots every minute
+    const updateTimeSlots = () => {
+      setAvailableTimeSlots(getAvailableTimeSlots(TIME_SLOTS));
+    };
+
+    updateTimeSlots(); // Initial update
+    const interval = setInterval(updateTimeSlots, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
+
 
   const initializeLocationFromStorage = async () => {
   try {
@@ -340,6 +355,13 @@ const handleGetLocation = async () => {
       alert('Your cart is empty');
       return;
     }
+    if(!selectedTimeSlot){
+      setErrors(prev => ({
+        ...prev,
+        timeSlot:"Please select a delivery time slot"
+      }));
+      return;
+    }
 
     setSubmitting(true);
     
@@ -358,7 +380,8 @@ const handleGetLocation = async () => {
           cartItems,
           totalAmount: getTotalPrice(),
           deliveryCharge,
-          customisablePrices
+          customisablePrices,
+          deliveryTimeSlot: selectedTimeSlot
         })
       });
 
@@ -468,6 +491,16 @@ const handleGetLocation = async () => {
     );
   }
 
+
+  function handleTimeSlotSelect(range: string): void {
+    // Toggle selection: if the same slot is clicked again, deselect it
+    setSelectedTimeSlot(prev => (prev === range ? null : range));
+
+    // Clear any validation error related to time slot selection
+    if (errors.deliveryTimeSlot) {
+      setErrors(prev => ({ ...prev, deliveryTimeSlot: '' }));
+    }
+  }
   return (
     <div className="min-h-screen bg-gray-50">
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
@@ -585,6 +618,32 @@ const handleGetLocation = async () => {
       placeholder="Additional address info (landmarks, floor, etc.)"
     />
   </div>
+  <div className="mt-4">
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Delivery Time Slot
+      </label>
+      {availableTimeSlots.length > 0 ? (
+        <div className="grid grid-cols-2 gap-2">
+          {availableTimeSlots.map((slot) => (
+            <button
+              key={slot.id}
+              onClick={() => handleTimeSlotSelect(slot.range)}
+              className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+                selectedTimeSlot === slot.range
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {slot.range}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center p-4 bg-orange-50 rounded-lg text-orange-600">
+          No delivery slots available for today. Please try again tomorrow.
+        </div>
+      )}
+    </div>
   {deliveryCharge > 0 && (
     <div className="flex items-center space-x-2 mt-2">
       <p className="text-sm font-medium text-gray-900">

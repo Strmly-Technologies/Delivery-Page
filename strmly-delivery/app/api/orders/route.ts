@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     const decodedToken = await verifyAuth(request);
     const userId = decodedToken.userId;
     
-    const { customerDetails, cartItems, totalAmount, deliveryCharge, customisablePrices } = await request.json();
+    const { customerDetails, cartItems, totalAmount, deliveryCharge, customisablePrices, deliveryTimeSlot } = await request.json();
     console.log('Order data:', { customerDetails, cartItems, totalAmount, deliveryCharge, customisablePrices });
 
     // Validate required fields
@@ -45,7 +45,8 @@ export async function POST(request: NextRequest) {
       status: 'pending',
       paymentStatus: 'pending',
       deliveryCharge,
-      customisablePrices
+      customisablePrices,
+      deliveryTimeSlot
     });
     console.log('Created order:', order);
 

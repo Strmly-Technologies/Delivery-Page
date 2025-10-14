@@ -30,6 +30,7 @@ interface Order {
   status: 'pending' | 'accepted' | 'out-for-delivery' | 'delivered' | 'cancelled';
   createdAt: string;
   updatedAt: string;
+  deliveryTimeSlot?: string;
 }
 
  function OrdersList() {
@@ -343,6 +344,9 @@ interface Order {
                       Date
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Time Slot
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Total
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -373,6 +377,11 @@ interface Order {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-500">
                             {formatDate(order.createdAt)}
+                          </div>
+                        </td>
+                         <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-500">
+                            {order.deliveryTimeSlot || 'N/A'}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">

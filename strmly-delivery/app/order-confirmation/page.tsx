@@ -32,6 +32,7 @@ interface OrderConfirmation {
   };
   createdAt: string;
   deliveryCharge?: number;
+  deliveryTimeSlot?: string;
   customisablePrices?: {
     category: string;
     price: number;
@@ -189,6 +190,7 @@ interface OrderConfirmation {
               <div className="border-t border-gray-200 pt-4">
                 <h3 className="text-sm font-medium text-gray-900 mb-2">Delivery Details</h3>
                 <div className="text-sm text-gray-600">
+                  <p>Delivery Time Slot: {order.deliveryTimeSlot}</p>
                   <p className="font-medium">{order.customerDetails.name}</p>
                   <p>{order.customerDetails.phone}</p>
                   <p className="whitespace-pre-line">{order.customerDetails.address}</p>

@@ -94,8 +94,16 @@ export default function CartPage() {
     }
   }, []);
 
-  const handleCheckoutClick = (e: React.MouseEvent) => {
+const handleCheckoutClick = (e: React.MouseEvent) => {
   e.preventDefault();
+  
+  const totalPrice = getTotalPrice();
+  
+  if (totalPrice < 150) {
+    alert('Minimum order amount is ₹150. Please add more items to continue.');
+    return;
+  }
+
   if (!isAuthenticated) {
     setShowOtpModal(true);
   } else {
@@ -369,14 +377,30 @@ export default function CartPage() {
                         onVerificationComplete={handleVerificationComplete}
                       />
                 </div>
-
-               <Link
-                  href="/checkout"
+              
+              <div>
+                <button
                   onClick={handleCheckoutClick}
-                  className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-4 px-4 rounded-xl hover:from-orange-600 hover:to-orange-700 transition duration-200 font-bold text-center block shadow-md hover:shadow-lg mb-3"
+                  className={`w-full py-4 px-4 rounded-xl font-bold text-center block shadow-md transition duration-200 ${
+                    getTotalPrice() < 150
+                      ? 'bg-gray-300 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 hover:shadow-lg'
+                  }`}
                 >
-                  Proceed to Checkout
-                </Link>
+                  {getTotalPrice() < 150 ? (
+                    <span className="text-sm">
+                      Add ₹{150 - getTotalPrice()} more to checkout
+                    </span>
+                  ) : (
+                    'Proceed to Checkout'
+                  )}
+                </button>
+                {getTotalPrice() < 150 && (
+                  <p className="text-xs text-gray-500 mt-2 text-center">
+                    Minimum order amount is ₹150
+                  </p>
+                )}
+              </div>
                 
                 <Link
                   href="/dashboard"

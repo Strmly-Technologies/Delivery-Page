@@ -30,6 +30,7 @@ export interface Order extends Document {
   createdAt: Date;
   updatedAt: Date;
   deliveryCharge?: number;
+  deliveryTimeSlot?: string;
   customisablePrices?: {
     category: string;
     price: number;
@@ -79,7 +80,8 @@ const orderSchema: Schema<Order> = new Schema({
   customisablePrices: [{
     category: { type: String },
     price: { type: Number }
-  }]
+  }],
+  deliveryTimeSlot: { type: String }
 });
 
 orderSchema.pre('save', function (next) {
