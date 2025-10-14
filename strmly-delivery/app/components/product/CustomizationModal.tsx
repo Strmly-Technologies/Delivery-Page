@@ -14,8 +14,7 @@ interface Product {
   image: string;
   stock: number;
   smallPrice?: number;
-    mediumPrice?: number;
-    largePrice?: number;
+  mediumPrice?: number;
 }
 
 interface ProductCustomizationModalProps {
@@ -108,7 +107,6 @@ export default function ProductCustomizationModal({
                     category={product.category}
                     smallPrice={product.smallPrice ?? 0}
                     mediumPrice={product.mediumPrice ?? 0}
-                    largePrice={product.largePrice ?? 0}
                     onCustomizationChange={handleCustomizationChange}
                   />
                 </div>

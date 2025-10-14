@@ -29,7 +29,6 @@ export interface ProductDocument extends Document {
   updatedAt: Date;
   smallPrice?: number;
   mediumPrice?: number;
-  largePrice?: number;
 }
 
 const customizationSchema = new Schema<Customization>({
@@ -133,7 +132,6 @@ const productSchema = new Schema<ProductDocument>({
   },
   smallPrice: { type: Number },
   mediumPrice: { type: Number },
-  largePrice: { type: Number }
 });
 
 const Product: Model<ProductDocument> =

@@ -96,13 +96,6 @@ export default function CartPage() {
 
 const handleCheckoutClick = (e: React.MouseEvent) => {
   e.preventDefault();
-  
-  const totalPrice = getTotalPrice();
-  
-  if (totalPrice < 150) {
-    alert('Minimum order amount is ₹150. Please add more items to continue.');
-    return;
-  }
 
   if (!isAuthenticated) {
     setShowOtpModal(true);
@@ -382,29 +375,16 @@ const handleCheckoutClick = (e: React.MouseEvent) => {
                 <button
                   onClick={handleCheckoutClick}
                   className={`w-full py-4 px-4 rounded-xl font-bold text-center block shadow-md transition duration-200 ${
-                    getTotalPrice() < 150
-                      ? 'bg-gray-300 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 hover:shadow-lg'
+                      ' py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 hover:shadow-lg'
                   }`}
                 >
-                  {getTotalPrice() < 150 ? (
-                    <span className="text-sm">
-                      Add ₹{150 - getTotalPrice()} more to checkout
-                    </span>
-                  ) : (
-                    'Proceed to Checkout'
-                  )}
+                  Proceed to Checkout
                 </button>
-                {getTotalPrice() < 150 && (
-                  <p className="text-xs text-gray-500 mt-2 text-center">
-                    Minimum order amount is ₹150
-                  </p>
-                )}
               </div>
                 
                 <Link
                   href="/dashboard"
-                  className="w-full border-2 border-gray-200 text-gray-700 py-3 px-4 rounded-xl hover:bg-gray-50 transition duration-200 text-center block font-semibold"
+                  className="w-full border-2 mt-4 border-gray-200 text-gray-700 py-3 px-4 rounded-xl hover:bg-gray-50 transition duration-200 text-center block font-semibold"
                 >
                   Add More Items
                 </Link>

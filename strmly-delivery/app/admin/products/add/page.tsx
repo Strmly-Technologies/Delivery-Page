@@ -18,7 +18,6 @@ const AddProductPage = () => {
     isAvailable: true,
     smallPrice: '',
     mediumPrice: '',
-    largePrice: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -47,9 +46,7 @@ const AddProductPage = () => {
       newErrors.mediumPrice = 'Medium price must be greater than 0';
     }
 
-    if (!formData.largePrice || parseFloat(formData.largePrice) <= 0) {
-      newErrors.largePrice = 'Large price must be greater than 0';
-    }
+   
 
     if (!formData.imageUrl) {
       newErrors.imageUrl = 'Please upload a product image';
@@ -65,7 +62,7 @@ const AddProductPage = () => {
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
       setFormData(prev => ({ ...prev, [name]: checked }));
-    } else if (name === 'smallPrice' || name === 'mediumPrice' || name === 'largePrice') {
+    } else if (name === 'smallPrice' || name === 'mediumPrice') {
       if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
         setFormData(prev => ({ ...prev, [name]: value }));
         if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
@@ -290,20 +287,7 @@ const AddProductPage = () => {
                       {errors.mediumPrice && <p className="mt-1 text-sm text-orange-600">{errors.mediumPrice}</p>}
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-black mb-2">
-                        Large Size (₹)
-                      </label>
-                      <input
-                        type="text"
-                        name="largePrice"
-                        value={formData.largePrice}
-                        onChange={handleChange}
-                        className={`w-full text-black px-4 py-3 border ${errors.largePrice ? 'border-orange-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition bg-white`}
-                        placeholder="0.00"
-                      />
-                      {errors.largePrice && <p className="mt-1 text-sm text-orange-600">{errors.largePrice}</p>}
-                    </div>
+                   
                   </div>
                 </div>
                 

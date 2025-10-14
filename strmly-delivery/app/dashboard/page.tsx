@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, Search, X, History, UserPlus, LogOut } from 'lucide-react';
+import { ShoppingBag, Search, X, History, UserPlus, LogOut, Zap } from 'lucide-react';
 import ProductCustomization, { ProductCustomization as CustomizationType } from '../components/product/ProductCustomization';
 import Image from 'next/image';
 import { set } from 'mongoose';
@@ -17,7 +17,6 @@ interface Product {
   stock: number;
   smallPrice?: number;
   mediumPrice?: number;
-  largePrice?: number;
 }
 interface UIHeader {
   text: string;
@@ -397,6 +396,17 @@ const fetchCartCount = async () => {
         {/* Main Content */}
         <main className="px-5 py-6 space-y-5">
           {!isSearchOpen && searchQuery === '' && (
+        <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-center mb-4">
+          <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center mr-3 flex-shrink-0">
+            <Zap className="w-5 h-5 text-orange-600" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900">QuickSip Delivery</h3>
+            <p className="text-sm text-gray-600">Minimum order value: ₹150</p>
+          </div>
+        </div>
+      )}
+          {!isSearchOpen && searchQuery === '' && (
     <div className="relative">
       <Image 
         src={uiHeader.image==""?"/images/front.png":uiHeader.image}
@@ -503,7 +513,6 @@ const fetchCartCount = async () => {
                 category={selectedProduct.category}
                 smallPrice={selectedProduct.smallPrice ?? 0}
                 mediumPrice={selectedProduct.mediumPrice ?? 0}
-                largePrice={selectedProduct.largePrice ?? 0}
                 onCustomizationChange={handleCustomizationChange}
               />
             </div>

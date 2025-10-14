@@ -61,7 +61,7 @@ export async function PUT(
       );
     }
     
-    const { name, description, price, category, image,smallPrice,mediumPrice,largePrice } = await request.json();
+    const { name, description, price, category, image,smallPrice,mediumPrice } = await request.json();
     
     // Basic validation
     if (!name || !description || !price || !category || !image) {
@@ -82,7 +82,6 @@ export async function PUT(
         image,
         smallPrice,
         mediumPrice,
-        largePrice,
         updatedAt: new Date()
       },
       { new: true, runValidators: true }

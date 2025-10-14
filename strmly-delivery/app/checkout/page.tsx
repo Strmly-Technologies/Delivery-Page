@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { TIME_SLOTS } from '@/constants/timeSlots';
 import { getAvailableTimeSlots } from '@/lib/timeUtil';
 
+
 interface CustomerDetails {
   name: string;
   phone: string;
@@ -67,6 +68,8 @@ export default function CheckoutPage() {
   const [showDeliveryInfo, setShowDeliveryInfo] = useState(false);
   const [deliverySettings, setDeliverySettings] = useState(null);
   const [availableTimeSlots, setAvailableTimeSlots] = useState(TIME_SLOTS);
+  const [calculatedDeliveryCharge, setCalculatedDeliveryCharge] = useState(0);
+
 
   const router = useRouter();
 
@@ -75,18 +78,32 @@ export default function CheckoutPage() {
     const response = await fetch('/api/admin/delivery');
     const data = await response.json();
     if (data.success) {
-      setDeliverySettings(data.settin); // Note: using 'settin' as per your API response
+      setDeliverySettings(data.settings);
+      return data.settings;
     }
   } catch (error) {
     console.error('Error fetching delivery settings:', error);
   }
+  return null;
+};
+
+const initialise = async () => {
+  setLoading(true);
+  try {
+    // Fetch all data and get the returned values
+    const cartData = await fetchCart();
+    const pricesData = await fetchCustomisablePrices();
+    const settingsData = await fetchDeliverySettings();
+    
+    // Now initialize location with the actual data
+    await initializeLocationFromStorage(cartData, pricesData, settingsData);
+  } finally {
+    setLoading(false);
+  }
 };
 
   useEffect(() => {
-    fetchCart();
-    fetchCustomisablePrices();
-    fetchDeliverySettings();
-    initializeLocationFromStorage();
+     initialise();
   }, []);
 
   useEffect(() => {
@@ -102,7 +119,13 @@ export default function CheckoutPage() {
   }, []);
 
 
-  const initializeLocationFromStorage = async () => {
+  // Replace your initializeLocationFromStorage function with this:
+
+const initializeLocationFromStorage = async (
+  cartData: CartItem[] = [],
+  pricesData: CustomisablePrices[] = [],
+  settingsData: any = null
+) => {
   try {
     const storedLat = localStorage.getItem('latitude');
     const storedLng = localStorage.getItem('longitude');
@@ -115,31 +138,35 @@ export default function CheckoutPage() {
     const latitude = parseFloat(storedLat);
     const longitude = parseFloat(storedLng);
 
-    // Get delivery settings
-    const settingsResponse = await fetch('/api/admin/delivery');
-    if (!settingsResponse.ok) {
-      throw new Error('Failed to fetch delivery settings');
+    // Get delivery settings if not provided
+    let DELIVERY_RANGES = settingsData?.settings;
+    if (!DELIVERY_RANGES) {
+      const settingsResponse = await fetch('/api/admin/delivery');
+      if (!settingsResponse.ok) {
+        throw new Error('Failed to fetch delivery settings');
+      }
+      
+      const settingsDataFetched = await settingsResponse.json();
+      if (!settingsDataFetched.success) {
+        throw new Error('Failed to fetch delivery settings');
+      }
+      
+      DELIVERY_RANGES = settingsDataFetched.settings;
     }
     
-    const settingsData = await settingsResponse.json();
-    if (!settingsData.success) {
-      throw new Error('Failed to fetch delivery settings');
-    }
-    
-    const DELIVERY_RANGES = settingsData.settings;
-    
-    // Calculate distance and delivery charge
     const distance = calculateDistance(
       latitude, 
       longitude, 
       SHOP_LOCATION.lat, 
       SHOP_LOCATION.lng
     );
+    
     const address = await getAddressFromCoords(latitude, longitude);
     if (!address) {
       throw new Error('Failed to get address from coordinates');
     }
-     setCustomerDetails(prev => ({
+    
+    setCustomerDetails(prev => ({
       ...prev,
       address
     }));
@@ -149,9 +176,31 @@ export default function CheckoutPage() {
       return;
     }
 
-    const charge = calculateDeliveryCharge(distance, DELIVERY_RANGES.CHARGES);
-    setDeliveryCharge(charge);
+    // Calculate items total using the passed data (not state)
+    const cartTotal = cartData.reduce((total, item) => 
+      total + (item.customization?.finalPrice || 0), 0
+    );
+    
+    let additionalTotal = 0;
+    for(let i = 0; i < pricesData.length; i++) {
+      additionalTotal += pricesData[i].price;
+    }
+    
+    const itemsTotal = cartTotal + additionalTotal;
+    
+    // Always calculate what the charge would be
+    const calculatedCharge = calculateDeliveryCharge(distance, DELIVERY_RANGES.CHARGES);
+    setCalculatedDeliveryCharge(calculatedCharge);
+    
+    if (itemsTotal >= 150) {
+      setDeliveryCharge(0);
+      console.log("✓ Free delivery applied - items total is ₹" + itemsTotal);
+    } else {
+      setDeliveryCharge(calculatedCharge);
+      console.log("✓ Delivery charge applied: ₹" + calculatedCharge + " - items total is ₹" + itemsTotal);
+    }
    
+    setLocationError('');
     setDisableAddressInput(true);
 
   } catch (error) {
@@ -160,22 +209,23 @@ export default function CheckoutPage() {
     setDisableAddressInput(false);
   }
 };
-
-  const fetchCustomisablePrices = async () => {
-    try {
-      const response = await fetch('/api/ui-header',
-        { method: 'GET',
-          credentials:'include'
-        }
-      );
-      const data = await response.json();
-      if (data.success) {
-        setCustomisablePrices(data.customisablePricings || []);
-      }
-    } catch (error) {
-      console.error('Error fetching customisable prices:', error);
+const fetchCustomisablePrices = async () => {
+  try {
+    const response = await fetch('/api/ui-header', {
+      method: 'GET',
+      credentials: 'include'
+    });
+    const data = await response.json();
+    if (data.success) {
+      const prices = data.customisablePricings || [];
+      setCustomisablePrices(prices);
+      return prices;
     }
-  };
+  } catch (error) {
+    console.error('Error fetching customisable prices:', error);
+  }
+  return [];
+};
 
 const handleGetLocation = async () => {
   if (!navigator.geolocation) {
@@ -184,11 +234,12 @@ const handleGetLocation = async () => {
   }
 
   try {
-     setCustomerDetails(prev => ({
+    setCustomerDetails(prev => ({
       ...prev,
       address: ''
     }));
     setDisableAddressInput(false);
+    
     const position = await new Promise<GeolocationPosition>((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(
         (position) => resolve(position),
@@ -209,19 +260,17 @@ const handleGetLocation = async () => {
         },
         {
           enableHighAccuracy: true,
-          timeout: 10000, // Increased timeout to 10 seconds
+          timeout: 10000,
           maximumAge: 0
         }
       );
     });
 
-    const latitude= position.coords.latitude;
-    const longitude= position.coords.longitude;
-    localStorage.setItem('latitude',latitude.toString());
-    localStorage.setItem('longitude',longitude.toString());
-    console.log("User coordinates:", latitude, longitude);
+    const latitude = position.coords.latitude;
+    const longitude = position.coords.longitude;
+    localStorage.setItem('latitude', latitude.toString());
+    localStorage.setItem('longitude', longitude.toString());
     
-    // Get delivery settings from API
     const settingsResponse = await fetch('/api/admin/delivery');
     if (!settingsResponse.ok) {
       throw new Error('Failed to fetch delivery settings');
@@ -240,18 +289,24 @@ const handleGetLocation = async () => {
       SHOP_LOCATION.lat, 
       SHOP_LOCATION.lng
     );
-    
-    console.log("Distance to shop:", distance, "km");
 
     if (distance > DELIVERY_RANGES.MAX_RANGE) {
       setLocationError(`Sorry, we don't deliver beyond ${DELIVERY_RANGES.MAX_RANGE}km from our shop (Your distance: ${distance.toFixed(2)}km)`);
       return;
     }
 
-    const charge = calculateDeliveryCharge(distance, DELIVERY_RANGES.CHARGES);
-    setDeliveryCharge(charge);
+    const itemsTotal = getItemsTotal();
+    const calculatedCharge = calculateDeliveryCharge(distance, DELIVERY_RANGES.CHARGES);
+    setCalculatedDeliveryCharge(calculatedCharge);
+    
+    if (itemsTotal >= 150) {
+      setDeliveryCharge(0);
+      console.log("Free delivery applied");
+    } else {
+      setDeliveryCharge(calculatedCharge);
+      console.log("Delivery charge applied:", calculatedCharge);
+    }
 
-    // Get address from coordinates
     const address = await getAddressFromCoords(latitude, longitude);
     if (!address) {
       throw new Error('Failed to get address from coordinates');
@@ -275,27 +330,28 @@ const handleGetLocation = async () => {
   }
 };
 
-  const fetchCart = async () => {
-    try {
-      const token = await window.cookieStore.get('authToken').then((cookie) => cookie?.value);
-      const response = await fetch('/api/cart', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
 
-      const data = await response.json();
-      if (data.success) {
-        setCartItems(data.cart);
-        setProducts(data.cart.map((item: CartItem) => item.product._id));
-        setQuantities(data.cart.map((item: CartItem) => item.quantity));
+  const fetchCart = async () => {
+  try {
+    const token = await window.cookieStore.get('authToken').then((cookie) => cookie?.value);
+    const response = await fetch('/api/cart', {
+      headers: {
+        'Authorization': `Bearer ${token}`
       }
-    } catch (error) {
-      console.error('Error fetching cart:', error);
-    } finally {
-      setLoading(false);
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      setCartItems(data.cart);
+      setProducts(data.cart.map((item: CartItem) => item.product._id));
+      setQuantities(data.cart.map((item: CartItem) => item.quantity));
+      return data.cart;
     }
-  };
+  } catch (error) {
+    console.error('Error fetching cart:', error);
+  }
+  return [];
+};
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -333,15 +389,20 @@ const handleGetLocation = async () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const getTotalPrice = () => {
+  const getItemsTotal = () => {
   let itemsTotal = cartItems.reduce((total, item) => 
     total + item.customization.finalPrice, 0
   );
-  for(let i=0;i<customisablePrices.length;i++){
-    const item=customisablePrices[i];
-    itemsTotal+=item.price;
+  
+  for(let i=0; i < customisablePrices.length; i++) {
+    const item = customisablePrices[i];
+    itemsTotal += item.price;
   }
-  return itemsTotal + deliveryCharge;
+  
+  return itemsTotal;
+};
+const getTotalPrice = () => {
+  return getItemsTotal() + deliveryCharge;
 };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -644,7 +705,7 @@ const handleGetLocation = async () => {
         </div>
       )}
     </div>
-  {deliveryCharge > 0 && (
+  {deliveryCharge >= 0 && (
     <div className="flex items-center space-x-2 mt-2">
       <p className="text-sm font-medium text-gray-900">
         Delivery Charge: ₹{deliveryCharge}
@@ -713,10 +774,19 @@ const handleGetLocation = async () => {
                 ))}
               </div>
               {/* Delivery Charge Price */}
-              <div className="flex justify-between text-gray-700">
-                    <span>Delivery Fee</span>
-                    <span className="font-semibold text-green-600">{deliveryCharge}</span>
-                  </div>
+              {deliveryCharge >= 0 && (
+  <div className="flex items-center justify-between text-gray-700 mb-2">
+    <span>Delivery Fee</span>
+    {deliveryCharge === 0 && calculatedDeliveryCharge > 0 ? (
+      <div className="flex items-center gap-2">
+        <span className="line-through text-red-500">₹{calculatedDeliveryCharge}</span>
+        <span className="font-semibold text-green-600">₹0</span>
+      </div>
+    ) : (
+      <span className="font-semibold text-green-600">₹{deliveryCharge}</span>
+    )}
+  </div>
+)}
                 {/* Customisable Prices if any */}
                 {customisablePrices.length > 0 && (
                   <div className="mt-4 border-t pt-4 space-y-2">
@@ -743,6 +813,7 @@ const handleGetLocation = async () => {
   isOpen={showDeliveryInfo}
   onClose={() => setShowDeliveryInfo(false)}
   settings={deliverySettings}
+  totalPrice={getItemsTotal()}
 />
     </div>
     
