@@ -110,6 +110,7 @@ const getLocation=async()=>{
         
         if (data.success) {
           setProducts(data.products);
+          console.log('Fetched products:', data.products);
           setFilteredProducts(data.products);
           setUIHeader({
             text: data.header.text,

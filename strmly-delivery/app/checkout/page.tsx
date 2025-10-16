@@ -553,15 +553,19 @@ const getTotalPrice = () => {
   }
 
 
-  function handleTimeSlotSelect(range: string): void {
-    // Toggle selection: if the same slot is clicked again, deselect it
-    setSelectedTimeSlot(prev => (prev === range ? null : range));
+  function handleTimeSlotSelect(e: React.MouseEvent, range: string): void {
+  // Prevent form submission
+  e.preventDefault();
+  e.stopPropagation();
+  
+  // Toggle selection: if the same slot is clicked again, deselect it
+  setSelectedTimeSlot(prev => (prev === range ? null : range));
 
-    // Clear any validation error related to time slot selection
-    if (errors.deliveryTimeSlot) {
-      setErrors(prev => ({ ...prev, deliveryTimeSlot: '' }));
-    }
+  // Clear any validation error related to time slot selection
+  if (errors.timeSlot) {
+    setErrors(prev => ({ ...prev, timeSlot: '' }));
   }
+}
   return (
     <div className="min-h-screen bg-gray-50">
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
@@ -684,21 +688,22 @@ const getTotalPrice = () => {
         Delivery Time Slot
       </label>
       {availableTimeSlots.length > 0 ? (
-        <div className="grid grid-cols-2 gap-2">
-          {availableTimeSlots.map((slot) => (
-            <button
-              key={slot.id}
-              onClick={() => handleTimeSlotSelect(slot.range)}
-              className={`px-4 py-2 rounded-lg text-sm transition-colors ${
-                selectedTimeSlot === slot.range
-                  ? 'bg-orange-500 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {slot.range}
-            </button>
-          ))}
-        </div>
+       <div className="grid grid-cols-2 gap-2">
+  {availableTimeSlots.map((slot) => (
+    <button
+      key={slot.id}
+      type="button" 
+      onClick={(e) => handleTimeSlotSelect(e, slot.range)}
+      className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+        selectedTimeSlot === slot.range
+          ? 'bg-orange-500 text-white'
+          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+      }`}
+    >
+      {slot.range}
+    </button>
+  ))}
+</div>
       ) : (
         <div className="text-center p-4 bg-orange-50 rounded-lg text-orange-600">
           No delivery slots available for today. Please try again tomorrow.

@@ -16,6 +16,7 @@ export interface CartItem {
   addedAt: Date;
 }
 
+
 export interface User extends Document {
   username: string;
   email: string;
@@ -27,7 +28,62 @@ export interface User extends Document {
   comparePassword(candidatePassword: string): Promise<boolean>;
   role?: string;
   otpVerified?: boolean;
+  freshPlan: any
 }
+
+const freshPlanItemSchema=new Schema({
+  product:{
+    type: Schema.Types.ObjectId,
+    ref:"Product",
+    required:true,
+  },
+  customization: {
+    size: { type: String, required: true },
+    quantity: { type: String, required: true },
+    ice: { type: String },
+    sugar: { type: String },
+    dilution: { type: String },
+    finalPrice: { type: Number, required: true },
+  },
+  quantity:{
+    type:Number,
+    required:true,
+    min:1,
+  },
+  timeSlot:{
+    type:String,
+    required:true,
+  }
+})
+
+
+const freshPlanSchema=new Schema({
+  isActive:{
+    type:Boolean,
+    default:false,
+  },
+  days:{
+    type:Number,
+    min:3,
+    max:50,
+    required:true
+  },
+  startDate:{
+    type:Date,
+    required:true,
+  },
+  schedule:[{
+    date:{
+      type:Date,
+      required:true,
+    },
+    items:[freshPlanItemSchema]
+  }],
+  createdAt:{
+    type:Date,
+    default: Date.now
+  }
+});
 
 const cartItemSchema = new Schema<CartItem>({
   product: {
@@ -85,6 +141,10 @@ const userSchema = new Schema<User>({
     },
   ],
   otpVerified: { type: Boolean, default: false },
+  freshPlan:{
+    type:freshPlanSchema,
+    default:null
+  }
 });
 
 // Update `updatedAt` before save
