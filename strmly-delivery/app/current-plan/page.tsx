@@ -6,6 +6,8 @@ import { ChevronDown, ChevronUp, Clock, CalendarDays, Package, ArrowLeft } from 
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import ProductCustomization, { ProductCustomization as CustomizationType } from '@/app/components/product/ProductCustomization';
+
 
 interface Customization {
   size: string;
@@ -19,10 +21,13 @@ interface Customization {
 interface Product {
   _id: string;
   name: string;
-  description?: string;
+  description: string;
   price: number;
-  category: string;
+  category: 'juices' | 'shakes';
   image: string;
+  stock: number;
+  smallPrice?: number;
+  mediumPrice?: number;
 }
 
 interface PlanItem {
