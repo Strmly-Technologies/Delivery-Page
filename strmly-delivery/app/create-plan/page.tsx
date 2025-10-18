@@ -71,7 +71,27 @@ export default function FreshPlanPage() {
   const [customization, setCustomization] = useState<CustomizationType | null>(null);
   const [finalPrice, setFinalPrice] = useState(0);
   
-
+  useEffect(()=>{
+    //fetchPlan();
+  },[])
+  const fetchPlan=async()=>{
+    const data=await fetch('/api/freshPlan',
+       { method:'GET',
+        credentials:'include'
+       }
+    );
+    const currentPlan=await data.json();
+    console.log("current plan",currentPlan);
+    const today=new Date();
+    const planStartDate=new Date(currentPlan.plan.startDate);
+    const endDate=addDays(planStartDate,currentPlan.plan.days-1);
+    console.log("end date",endDate);
+    if(isAfter(today,endDate)){
+        return;
+    }else{
+        router.push('/current-plan');
+    }
+  }
   // Check if we can start today based on current time
   useEffect(() => {
     const now = new Date();
@@ -184,6 +204,11 @@ export default function FreshPlanPage() {
     setSelectedProduct(null);
     setCustomization(null);
   };
+  const removeItemFromDay = (dayIndex: number, itemIndex: number) => {
+  const updatedSchedule = [...schedule];
+  updatedSchedule[dayIndex].items.splice(itemIndex, 1);
+  setSchedule(updatedSchedule);
+};
   
   const handleConfirmPlan = async () => {
   try {
@@ -219,7 +244,7 @@ export default function FreshPlanPage() {
     }
     
     // On success, redirect to current plan page
-    router.push('/current-plan');
+    router.push('/checkout?type=freshplan');
     
   } catch (error) {
     console.error("Error creating plan:", error);
@@ -428,7 +453,7 @@ const renderProductCustomizationModal = () => {
           <div className="py-4 flex items-center justify-between">
             <div className="flex items-center">
               <Link 
-                href="/"
+                href="/freshplan"
                 className="p-2 rounded-lg hover:bg-gray-100 mr-2"
               >
                 <ArrowLeft className="w-5 h-5 text-gray-700" />
@@ -624,38 +649,49 @@ const renderProductCustomizationModal = () => {
                 </button>
               </div>
               
-              {/* Items List */}
-              {day.items.length > 0 ? (
+                {/* Items List */}
+                {day.items.length > 0 ? (
                 <div className="space-y-2">
-                  <p className="text-xs text-gray-500">Items ({day.items.length})</p>
-                  <div className="max-h-40 overflow-y-auto pr-1 space-y-2">
+                    <p className="text-xs text-gray-500">Items ({day.items.length})</p>
+                    <div className="max-h-40 overflow-y-auto pr-1 space-y-2">
                     {day.items.map((item, itemIndex) => (
-                      <div 
+                        <div 
                         key={itemIndex}
-                        className="flex items-center bg-gray-50 rounded-lg p-2"
-                      >
+                        className="flex items-center bg-gray-50 rounded-lg p-2 relative group"
+                        >
                         <div className="w-10 h-10 relative rounded overflow-hidden mr-2">
-                          <Image
+                            <Image
                             src={item.product.image}
                             alt={item.product.name}
                             fill
                             className="object-cover"
-                          />
+                            />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium truncate text-black">{item.product.name}</p>
-                          <p className="text-xs text-black">{item.customization.size} • ₹{item.customization.finalPrice}</p>
+                            <p className="text-xs font-medium truncate text-black">{item.product.name}</p>
+                            <p className="text-xs text-black">{item.customization.size} • ₹{item.customization.finalPrice}</p>
                         </div>
-                      </div>
+                        
+                        {/* Remove button - appears on hover */}
+                        <button
+                            onClick={(e) => {
+                            e.stopPropagation();
+                            removeItemFromDay(index, itemIndex);
+                            }}
+                            className="absolute right-1 top-1 w-5 h-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            aria-label="Remove item"
+                        >
+                            <X className="w-3 h-3" />
+                        </button>
+                        </div>
                     ))}
-                  </div>
+                    </div>
                 </div>
-              ) : (
+                ) : (
                 <div className="h-20 flex items-center justify-center">
-                  <p className="text-xs text-gray-400">No items added yet</p>
+                    <p className="text-xs text-gray-400">No items added yet</p>
                 </div>
-              )}
-              
+                )}
               <button 
                 onClick={() => handleAddItem(index)}
                 className="w-full flex items-center justify-center p-2 border border-dashed border-orange-300 rounded-lg hover:bg-orange-50 transition-colors"

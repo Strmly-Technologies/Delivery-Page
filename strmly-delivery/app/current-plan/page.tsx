@@ -51,6 +51,7 @@ interface FreshPlan {
   schedule: DailySchedule[];
   createdAt: string;
   _id: string;
+  paymentComplete: boolean;
 }
 
 interface PlanResponse {
@@ -64,6 +65,7 @@ export default function CurrentPlanPage() {
   const [loading, setLoading] = useState(true);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [paymentComplete, setPaymentComplete] = useState(false);
 
   useEffect(() => {
     fetchPlan();
@@ -74,9 +76,29 @@ export default function CurrentPlanPage() {
       setLoading(true);
       const response = await fetch('/api/freshPlan');
       const data: PlanResponse = await response.json();
+
+      //check if plan has expired
+      const currentDate = new Date();
+        if (data.plan) {
+            const planEndDate = new Date(data.plan.startDate);
+            planEndDate.setDate(planEndDate.getDate() + data.plan.days-1);
+            if (currentDate > planEndDate) {
+            const res = await fetch('/api/freshPlan', {
+                method: 'DELETE'
+            });
+            if (res.ok) {
+                setPlan(null);
+                setError('No active subscription plan found');
+                setLoading(false);
+                return;
+            }
+        }
+        }
       
       if (data.success && data.plan) {
+        console.log("fetched plan",data);
         setPlan(data.plan);
+        setPaymentComplete(data.plan.paymentComplete || false);
       } else {
         setError('No active subscription plan found');
       }
@@ -140,7 +162,7 @@ export default function CurrentPlanPage() {
         <div className="max-w-lg mx-auto px-4">
           <div className="py-4 flex items-center">
             <button 
-              onClick={() => router.push('/dashboard')}
+              onClick={() => router.push('/freshplan')}
               className="p-2 rounded-lg hover:bg-gray-100 mr-2"
             >
               <ArrowLeft className="w-5 h-5 text-black" />
@@ -267,6 +289,28 @@ export default function CurrentPlanPage() {
             );
           })}
         </div>
+        {!paymentComplete && (
+        <div className=''>
+            <div className="mt-6 text-center">
+          <Link 
+            href="/freshplan/edit" 
+            className="inline-block px-6 py-3 bg-orange-500 text-white font-medium rounded-lg hover:bg-orange-600 shadow-md transition-colors"
+          >
+            Edit Plan
+          </Link>
+        </div>
+            <div className="mt-6 text-center">
+          <Link 
+            href="/checkout?type=freshplan" 
+            className="inline-block px-6 py-3 bg-orange-500 text-white font-medium rounded-lg hover:bg-orange-600 shadow-md transition-colors"
+          >
+            Complete Payment
+          </Link>
+        </div>
+
+        </div>
+        
+        )}
       </div>
     </div>
   );

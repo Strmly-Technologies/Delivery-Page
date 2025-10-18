@@ -3,6 +3,8 @@ import { verifyAuth } from "@/lib/serverAuth";
 import UserModel from "@/model/User";
 import { error } from "console";
 import { NextRequest,NextResponse } from "next/server";
+import "@/model/Product";
+
 
 
 
@@ -78,4 +80,41 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+
+export async function DELETE(request: NextRequest) {
+    try {
+        await dbConnect();
+        const decodedToken = await verifyAuth(request);
+        const userId = decodedToken.userId;
+        
+        const updatedUser = await UserModel.findByIdAndUpdate(
+            userId,
+            {
+                $set: {
+                    freshPlan: null
+                }
+            },
+            { new: true }
+        );
+        if (!updatedUser) {
+            return NextResponse.json(
+                { error: 'Failed to cancel plan' },
+                { status: 400 }
+            );
+        }
+
+        return NextResponse.json({
+            success: true,
+            message: 'FreshPlan cancelled successfully'
+        });
+
+    } catch (error) {
+        console.error('Cancel FreshPlan error:', error);
+        return NextResponse.json(
+            { error: 'Failed to cancel plan' },
+            { status: 500 }
+        );
+    }
 }

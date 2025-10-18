@@ -82,6 +82,10 @@ const freshPlanSchema=new Schema({
   createdAt:{
     type:Date,
     default: Date.now
+  },
+  paymentComplete:{
+    type:Boolean,
+    default:false,
   }
 });
 
