@@ -471,22 +471,32 @@ export default function CheckoutPage() {
     
     // Create order - different payload based on checkout type
     const orderPayload = checkoutType === 'quicksip' 
-      ? {
-          customerDetails,
-          cartItems,
-          totalAmount: getTotalPrice(),
-          deliveryCharge,
-          customisablePrices,
-          deliveryTimeSlot: selectedTimeSlot
-        }
-      : {
-          customerDetails,
-          planItems, 
-          totalAmount: getTotalPrice(),
-          deliveryCharge,
-          checkoutType: 'freshplan',
-          completeCheckout: true 
-        };
+  ? {
+      customerDetails,
+      cartItems,
+      totalAmount: getTotalPrice(),
+      deliveryCharge,
+      customisablePrices,
+      deliveryTimeSlot: selectedTimeSlot
+    }
+  : {
+      customerDetails,
+      planItems, 
+      totalAmount: getTotalPrice(),
+      deliveryCharge,
+      checkoutType: 'freshplan',
+      completeCheckout: true,
+      planDays: freshPlan?.schedule.map(day => ({
+        date: day.date,
+        items: day.items.map(item => ({
+          product: item.product._id,
+          quantity: item.quantity,
+          price: item.customization.finalPrice,
+          customization: item.customization,
+          timeSlot: item.timeSlot
+        }))
+      }))
+    };
       
       const orderResponse = await fetch('/api/orders', {
         method: 'POST',

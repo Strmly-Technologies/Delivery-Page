@@ -77,10 +77,11 @@ export async function POST(request: NextRequest) {
     const planItems = requestBody.planItems || [];
     const customisablePrices = requestBody.customisablePrices || [];
     const planDayId = requestBody.planDayId;
+    const planDays = requestBody.planDays || []; // New field for day-wise data
     
     // Validate required fields
     if (!customerDetails || 
-        (!cartItems.length && !planItems.length) || 
+        (!cartItems.length && !planItems.length && !planDays.length) || 
         !totalAmount) {
       return NextResponse.json(
         { error: 'Missing required fields' },
@@ -93,6 +94,7 @@ export async function POST(request: NextRequest) {
     // Create order items based on checkout type
     let orderItems;
     let orderType;
+    let planRelated = {};
 
     if (checkoutType === 'quicksip') {
       // Process QuickSip order (cart-based)
@@ -105,17 +107,57 @@ export async function POST(request: NextRequest) {
       orderType = 'quicksip';
     } else {
       // Process FreshPlan order
-      planItems.forEach((item: PlanItem) => {
-        console.log("plan item", item.timeSlot);
-      });
+      if (completeCheckout && planDays.length > 0) {
+        // Complete plan checkout with day-wise data
+        orderItems = []; // Empty since we're using daySchedule instead
+        
+        // Format the day schedule data for storage
+        const daySchedule = planDays.map((day: any) => ({
+          date: new Date(day.date),
+          items: day.items.map((item: PlanItem) => {
+            // Ensure we have a valid product reference
+            let productId;
+            
+            // Handle different formats of product data that might be passed
+            if (typeof item.product === 'string') {
+              productId = item.product;
+            } else if (item.product._id) {
+              productId = item.product._id;
+            } else {
+              console.error('Invalid product data:', item.product);
+              // If we can't get a valid ID, this will cause validation errors
+            }
+    
+    return {
+      product: productId, // Make sure we're storing the ID, not the whole object
+      quantity: item.quantity,
+      price: item.customization.finalPrice,
+      customization: { ...item.customization },
+      timeSlot: item.timeSlot
+    };
+  })
+}));
+        
+        planRelated = {
+          isCompletePlanCheckout: true,
+          daySchedule
+        };
+      } else {
+        // Single day checkout
+        orderItems = planItems.map((item: PlanItem) => ({
+          product: item.product._id,
+          quantity: item.quantity,
+          price: item.customization.finalPrice,
+          customization: { ...item.customization },
+          timeSlot: item.timeSlot
+        }));
+        
+        planRelated = {
+          planDayId,
+          isCompletePlanCheckout: false
+        };
+      }
       
-      orderItems = planItems.map((item: PlanItem) => ({
-        product: item.product._id,
-        quantity: item.quantity,
-        price: item.customization.finalPrice,
-        customization: { ...item.customization },
-        timeSlot: item.timeSlot
-      }));
       orderType = 'freshplan';
     }
 
@@ -130,10 +172,15 @@ export async function POST(request: NextRequest) {
       }
     }));
 
+    // Combine all items (except for complete FreshPlan checkout which uses daySchedule)
+    const finalOrderItems = orderType === 'freshplan' 
+      ? [...additionalItems]
+      : [...orderItems, ...additionalItems];
+
     // Create the order
     const order = await OrderModel.create({
       user: userId,
-      products: [...orderItems, ...additionalItems],
+      products: finalOrderItems,
       totalAmount,
       deliveryCharge,
       deliveryTimeSlot: checkoutType === 'quicksip' ? deliveryTimeSlot : null,
@@ -141,10 +188,7 @@ export async function POST(request: NextRequest) {
       paymentStatus: 'pending',
       customerDetails,
       orderType,
-      planRelated: checkoutType === 'freshplan' ? {
-        planDayId,
-        isCompletePlanCheckout: completeCheckout
-      } : undefined
+      planRelated
     });
 
     // Update FreshPlan status if this is a complete checkout

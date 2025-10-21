@@ -40,6 +40,16 @@ export interface Order extends Document {
   planRelated?: {
     planDayId?: mongoose.Types.ObjectId;
     isCompletePlanCheckout?: boolean;
+    daySchedule?: {
+      date: Date;
+      items: {
+        product: mongoose.Types.ObjectId;
+        quantity: number;
+        price: number;
+        customization: ProductCustomization;
+        timeSlot: string;
+      }[];
+    }[];
   };
 }
 
@@ -102,7 +112,27 @@ const orderSchema: Schema<Order> = new Schema({
     isCompletePlanCheckout: {
       type: Boolean,
       default: false
-    }
+    },
+    daySchedule: [{
+    date: Date,
+    items: [{
+      product: {
+        type: Schema.Types.ObjectId,
+        ref: 'Product'
+      },
+      quantity: Number,
+      price: Number,
+      customization: {
+        size: String,
+        quantity: String,
+        ice: String,
+        sugar: String,
+        dilution: String,
+        finalPrice: Number
+      },
+      timeSlot: String
+    }]
+  }]
   }
 });
 
