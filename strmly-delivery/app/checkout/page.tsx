@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Info } from 'lucide-react';
 import DeliveryInfoModal from '../components/delivery/DeliveryInfoModal';
 import { Home, ShoppingBag, CalendarDays, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
@@ -79,7 +79,7 @@ interface FreshPlan {
   _id: string;
 }
 
-export default function CheckoutPage() {
+ function CheckoutPage() {
   const searchParams = useSearchParams();
   const checkoutType = searchParams.get('type') || 'quicksip';
   const selectedDayId = searchParams.get('dayId');
@@ -1077,5 +1077,13 @@ export default function CheckoutPage() {
         totalPrice={getItemsTotal()}
       />
     </div>
+  );
+}
+
+export default function Checkout() {
+  return (
+    <Suspense fallback={<div>Loading orders...</div>}>
+      <CheckoutPage />
+    </Suspense>
   );
 }

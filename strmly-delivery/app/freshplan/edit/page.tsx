@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { format } from 'date-fns';
 import { Clock, Plus, X, ArrowLeft, Save, Trash2 } from 'lucide-react';
@@ -55,7 +55,7 @@ interface FreshPlan {
   paymentComplete?: boolean;
 }
 
-export default function EditFreshPlanPage() {
+function EditFreshPlanPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -715,5 +715,13 @@ export default function EditFreshPlanPage() {
       {renderProductCustomizationModal()}
       {renderTimePickerModal()}
     </div>
+  );
+}
+
+export default function EditFreshPlan() {
+  return (
+    <Suspense fallback={<div>Loading orders...</div>}>
+      <EditFreshPlanPage />
+    </Suspense>
   );
 }
