@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { format } from 'date-fns';
 import { Clock, Plus, X, ArrowLeft, Save, Trash2 } from 'lucide-react';
 import { TIME_SLOTS } from '@/constants/timeSlots';
@@ -57,6 +57,7 @@ interface FreshPlan {
 
 export default function EditFreshPlanPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [plan, setPlan] = useState<FreshPlan | null>(null);
@@ -71,6 +72,7 @@ export default function EditFreshPlanPage() {
   const [finalPrice, setFinalPrice] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const planId=searchParams.get('planId');
 
   useEffect(() => {
     fetchPlan();
@@ -85,7 +87,7 @@ export default function EditFreshPlanPage() {
   const fetchPlan = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/freshPlan');
+      const response = await fetch(`/api/freshPlan/edit/${planId}`);
       const data = await response.json();
       
       if (!data.success || !data.plan) {
@@ -217,6 +219,7 @@ export default function EditFreshPlanPage() {
       }
       
       const updatedPlan = {
+        planId:planId,
         days: plan.days,
         startDate: plan.startDate,
         schedule: schedule.map(day => ({

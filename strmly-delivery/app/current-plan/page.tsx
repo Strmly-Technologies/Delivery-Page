@@ -1,13 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { format } from 'date-fns';
-import { ChevronDown, ChevronUp, Clock, CalendarDays, Package, ArrowLeft } from 'lucide-react';
+import { format, addDays, isAfter, isBefore } from 'date-fns';
+import { ChevronDown, ChevronUp, Clock, CalendarDays, Package, ArrowLeft, Calendar, ChevronRight, CalendarCheck } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import ProductCustomization, { ProductCustomization as CustomizationType } from '@/app/components/product/ProductCustomization';
-
 
 interface Customization {
   size: string;
@@ -21,13 +19,9 @@ interface Customization {
 interface Product {
   _id: string;
   name: string;
-  description: string;
   price: number;
-  category: 'juices' | 'shakes';
   image: string;
-  stock: number;
-  smallPrice?: number;
-  mediumPrice?: number;
+  category: string;
 }
 
 interface PlanItem {
@@ -35,13 +29,12 @@ interface PlanItem {
   customization: Customization;
   quantity: number;
   timeSlot: string;
-  _id: string;
 }
 
 interface DailySchedule {
   date: string;
-  items: PlanItem[];
   _id: string;
+  items: PlanItem[];
 }
 
 interface FreshPlan {
@@ -50,65 +43,82 @@ interface FreshPlan {
   startDate: string;
   schedule: DailySchedule[];
   createdAt: string;
-  _id: string;
   paymentComplete: boolean;
+  _id: string;
 }
 
 interface PlanResponse {
   success: boolean;
   plan: FreshPlan | null;
+  upcomingPlans: FreshPlan[];
+  hasPlans: boolean;
+  error?: string;
 }
 
 export default function CurrentPlanPage() {
   const router = useRouter();
-  const [plan, setPlan] = useState<FreshPlan | null>(null);
+  const [currentPlan, setCurrentPlan] = useState<FreshPlan | null>(null);
+  const [upcomingPlans, setUpcomingPlans] = useState<FreshPlan[]>([]);
+  const [completedPlans, setCompletedPlans] = useState<FreshPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [paymentComplete, setPaymentComplete] = useState(false);
+  
+  // For upcoming and completed plans
+  const [expandedPlanDays, setExpandedPlanDays] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    fetchPlan();
+    fetchPlans();
+    fetchCompletedPlans()
   }, []);
+  
+  const fetchPlans = async () => {
+  try {
+    setLoading(true);
+    const date=new Date().toISOString();
+    const response = await fetch(`/api/freshPlan/${date}`);
+    const data: PlanResponse = await response.json();
 
-  const fetchPlan = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/freshPlan');
-      const data: PlanResponse = await response.json();
-
-      //check if plan has expired
-      const currentDate = new Date();
-        if (data.plan) {
-            const planEndDate = new Date(data.plan.startDate);
-            planEndDate.setDate(planEndDate.getDate() + data.plan.days-1);
-            if (currentDate > planEndDate) {
-            const res = await fetch('/api/freshPlan', {
-                method: 'DELETE'
-            });
-            if (res.ok) {
-                setPlan(null);
-                setError('No active subscription plan found');
-                setLoading(false);
-                return;
-            }
-        }
-        }
-      
-      if (data.success && data.plan) {
-        console.log("fetched plan",data);
-        setPlan(data.plan);
-        setPaymentComplete(data.plan.paymentComplete || false);
-      } else {
-        setError('No active subscription plan found');
-      }
-    } catch (error) {
-      console.error('Error fetching plan:', error);
-      setError('Failed to load your subscription plan');
-    } finally {
-      setLoading(false);
+    if (!data.success) {
+      setError(data.error || 'Failed to fetch plans');
+      return;
     }
-  };
+
+    // Set current active plan - check for payment status
+    if (data.plan) {
+      setCurrentPlan(data.plan);
+      console.log("✓ Current plan payment status:", data.plan);
+      setPaymentComplete(data.plan.paymentComplete || false);
+    }
+    
+    // Set upcoming plans (exclude the current one which is already set above)
+    const filteredUpcomingPlans = data.upcomingPlans || [];
+    setUpcomingPlans(filteredUpcomingPlans);
+    
+    // Fetch completed plans
+    await fetchCompletedPlans();
+  } catch (error) {
+    console.error('Error fetching plans:', error);
+    setError('Failed to load your subscription plans');
+  } finally {
+    setLoading(false);
+  }
+};
+
+const fetchCompletedPlans = async () => {
+  try {
+    // Use your actual completed plans endpoint
+    const response = await fetch('/api/freshPlan/complete');
+    const data = await response.json();
+    
+    if (data.success) {
+      setCompletedPlans(data.plans || []);
+    }
+  } catch (error) {
+    console.error('Error fetching completed plans:', error);
+  }
+};
 
   const toggleDay = (dayId: string) => {
     if (expandedDay === dayId) {
@@ -117,45 +127,74 @@ export default function CurrentPlanPage() {
       setExpandedDay(dayId);
     }
   };
+  
+  const togglePlanDay = (planId: string, dayId: string) => {
+    const key = `${planId}-${dayId}`;
+    setExpandedPlanDays(prev => ({
+      ...prev,
+      [key]: prev[key] ? '' : dayId
+    }));
+  };
 
   const calculateDayTotal = (items: PlanItem[]) => {
     return items.reduce((total, item) => total + item.customization.finalPrice, 0);
   };
+  
+  const cancelPlan = async (planId: string) => {
+    if (!confirm('Are you sure you want to cancel this plan?')) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/freshPlan?planId=${planId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        // Refresh plans after cancellation
+        fetchPlans();
+      } else {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to cancel plan');
+      }
+    } catch (error) {
+      console.error('Error cancelling plan:', error);
+      alert(error instanceof Error ? error.message : 'Failed to cancel plan');
+    }
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-        <div className="w-12 h-12 rounded-full border-4 border-t-orange-500 border-gray-200 animate-spin"></div>
-        <p className="mt-4 text-gray-600">Loading your subscription plan...</p>
-      </div>
-    );
-  }
-
-  if (error || !plan) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow p-8 max-w-md w-full">
-          <div className="flex flex-col items-center text-center">
-            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
-              <Package className="w-8 h-8 text-orange-500" />
-            </div>
-            <h1 className="text-xl font-bold text-gray-900 mb-2">No Active Plan</h1>
-            <p className="text-gray-600 mb-6">You don't have an active FreshPlan subscription</p>
-            <Link 
-              href="/freshplan" 
-              className="px-6 py-3 bg-orange-500 text-black font-medium rounded-lg hover:bg-orange-600 shadow-md transition-colors"
-            >
-              Create New Plan
-            </Link>
-          </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading your plan...</p>
         </div>
       </div>
     );
   }
 
-  const startDate = new Date(plan.startDate);
+  if (error || (!currentPlan && upcomingPlans.length === 0)) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-white p-8 rounded-2xl shadow-md max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Calendar className="w-8 h-8 text-orange-500" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">No Active Plans</h2>
+          <p className="text-gray-600 mb-6">You don't have any active or upcoming FreshPlan subscriptions.</p>
+          <Link 
+            href="/freshplan" 
+            className="px-6 py-3 bg-orange-500 text-white font-medium rounded-lg hover:bg-orange-600 shadow-md transition-colors inline-block"
+          >
+            Explore FreshPlan
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
-  return (
+ return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-10">
@@ -163,154 +202,223 @@ export default function CurrentPlanPage() {
           <div className="py-4 flex items-center">
             <button 
               onClick={() => router.push('/freshplan')}
-              className="p-2 rounded-lg hover:bg-gray-100 mr-2"
+              className="p-2 rounded-lg hover:bg-gray-100 mr-2 transition-colors"
             >
               <ArrowLeft className="w-5 h-5 text-black" />
             </button>
-            <h1 className="text-xl text-black font-bold">Current Plan</h1>
+            <h1 className="text-xl text-black font-bold">My Plans</h1>
           </div>
         </div>
       </header>
 
-      {/* Plan Summary */}
-      <div className="max-w-lg mx-auto px-4 pt-6 pb-3">
-        <div className="bg-gradient-to-r from-orange-500 to-orange-400 rounded-xl shadow-lg p-5 text-white">
-          <h2 className="text-lg font-bold">FreshPlan Subscription</h2>
-          <div className="flex items-center mt-2 space-x-2 opacity-90">
-            <CalendarDays className="w-4 h-4" />
-            <p className="text-sm">
-              {plan.days} Days • Started on {format(startDate, 'MMM d, yyyy')}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Days List */}
-      <div className="max-w-lg mx-auto px-4 pb-8">
-        <div className="space-y-3">
-          {plan.schedule.map((day, index) => {
-            const dayDate = new Date(day.date);
-            const dayTotal = calculateDayTotal(day.items);
-            const isExpanded = expandedDay === day._id;
-            const isToday = new Date().toDateString() === dayDate.toDateString();
-            const isPast = dayDate < new Date(new Date().setHours(0, 0, 0, 0));
-
-            return (
-              <div 
-                key={day._id}
-                className={`bg-white rounded-xl shadow-sm overflow-hidden transition-all duration-300 ${
-                  isExpanded ? 'shadow-md' : ''
-                }`}
-              >
-                {/* Day Header - Always visible */}
-                <div 
-                  onClick={() => toggleDay(day._id)}
-                  className={`p-4 flex items-center justify-between cursor-pointer ${
-                    isPast ? 'bg-gray-50' : isToday ? 'bg-orange-50' : 'bg-white'
-                  }`}
-                >
-                  <div className="flex items-center">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${
-                      isPast ? 'bg-gray-200 text-gray-600' : 
-                      isToday ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-600'
-                    }`}>
-                      <span className="font-bold">{index + 1}</span>
-                    </div>
-                    <div>
-                      <h3 className={`font-semibold ${
-                        isPast ? 'text-gray-500' : 'text-gray-900'
-                      }`}>
-                        {format(dayDate, 'EEEE')}
-                        {isToday && <span className="ml-2 text-xs bg-orange-500 text-white py-0.5 px-2 rounded-full">Today</span>}
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        {format(dayDate, 'MMM d')} • {day.items[0]?.timeSlot}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="text-right mr-3">
-                      <p className={`font-semibold ${
-                        isPast ? 'text-gray-500' : 'text-gray-900'
-                      }`}>
-                        ₹{dayTotal}
-                      </p>
-                      <p className="text-xs text-gray-500">{day.items.length} items</p>
-                    </div>
-                    {isExpanded ? 
-                      <ChevronUp className="w-5 h-5 text-gray-400" /> : 
-                      <ChevronDown className="w-5 h-5 text-gray-400" />
-                    }
-                  </div>
-                </div>
-
-                {/* Expanded Content - Visible when expanded */}
-                {isExpanded && (
-                  <div className="border-t border-gray-100 p-4 space-y-4 bg-white">
-                    <div className="flex items-center mb-3">
-                      <Clock className="w-4 h-4 text-gray-500 mr-1" />
-                      <span className="text-sm text-gray-600">
-                        Delivery Time: <span className="font-medium">{day.items[0]?.timeSlot}</span>
-                      </span>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      {day.items.map((item) => (
-                        <div key={item._id} className="flex items-center space-x-3">
-                          <div className="relative w-16 h-16 flex-shrink-0">
-                            <Image
-                              src={item.product.image}
-                              alt={item.product.name}
-                              fill
-                              className="object-cover rounded-lg"
-                            />
+      <div className="max-w-lg mx-auto px-4 py-6">
+      
+        {upcomingPlans.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center mb-4">
+              <CalendarCheck className="w-5 h-5 text-orange-500 mr-2" />
+              <h2 className="text-lg text-black font-semibold">My Plans</h2>
+            </div>
+            
+            <div className="space-y-4">
+              {upcomingPlans.map((plan, planIndex) => {
+                const planStartDate = new Date(plan.startDate);
+                const planEndDate = addDays(planStartDate, plan.days - 1);
+                
+                return (
+                  <div 
+                    key={planIndex} 
+                    className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl shadow-lg overflow-hidden"
+                  >
+                    <div className="p-5">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="flex items-center">
+                            <h3 className="text-lg font-bold text-white">FreshPlan #{planIndex + 1}</h3>
+                            {!plan.paymentComplete && (
+                              <span className="ml-2 bg-yellow-400 text-yellow-800 text-xs px-2 py-0.5 rounded-full font-medium">
+                                Payment Pending
+                              </span>
+                            )}
                           </div>
-                          <div className="flex-1">
-                            <h4 className="font-medium text-gray-900">{item.product.name}</h4>
-                            <p className="text-sm text-gray-500">
-                              {item.customization.size} • {item.customization.quantity}
-                              {item.customization.ice && ` • ${item.customization.ice}`}
-                              {item.customization.sugar && ` • ${item.customization.sugar}`}
-                            </p>
-                            <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
-                          </div>
-                          <p className="font-medium text-gray-900">₹{item.customization.finalPrice}</p>
+                          <p className="text-orange-100 text-sm flex items-center mt-1">
+                            <Calendar className="w-3.5 h-3.5 mr-1.5" />
+                            {plan.days} Days • {format(planStartDate, 'MMM d')} - {format(planEndDate, 'MMM d, yyyy')}
+                          </p>
                         </div>
-                      ))}
-                    </div>
-                    
-                    <div className="flex justify-between pt-3 border-t border-gray-100">
-                      <span className="font-medium text-gray-700">Day Total</span>
-                      <span className="font-bold text-gray-900">₹{dayTotal}</span>
+                        
+                      </div>
+                      
+                      {/* Days preview */}
+                      <div className="mt-4 space-y-2">
+                        {plan.schedule.slice(0, 3).map((day, dayIndex) => (
+                          <div 
+                            key={dayIndex}
+                            className="bg-white/15 hover:bg-white/20 rounded-lg p-2.5 cursor-pointer transition-colors"
+                            onClick={() => togglePlanDay(plan._id, day._id)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center mr-3 shadow-inner">
+                                  <span className="text-sm font-bold text-white">
+                                    {format(new Date(day.date), 'd')}
+                                  </span>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-semibold text-white">
+                                    {format(new Date(day.date), 'EEEE')}
+                                  </p>
+                                  <p className="text-xs text-orange-100 flex items-center">
+                                    <Package className="w-3 h-3 mr-1" />
+                                    {day.items.length} {day.items.length === 1 ? 'item' : 'items'}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="bg-white/10 rounded-full p-1">
+                                {expandedPlanDays[`${plan._id}-${day._id}`] ? (
+                                  <ChevronUp className="w-4 h-4 text-white" />
+                                ) : (
+                                  <ChevronDown className="w-4 h-4 text-white" />
+                                )}
+                              </div>
+                            </div>
+                            
+                            {expandedPlanDays[`${plan._id}-${day._id}`] && (
+                              <div className="mt-3 space-y-2 ">
+                                {day.items.map((item, itemIndex) => (
+                                  <div 
+                                    key={itemIndex} 
+                                    className="flex items-center bg-white/10 p-2.5 rounded-lg"
+                                  >
+                                    <div className="relative w-10 h-10 flex-shrink-0 rounded-md overflow-hidden shadow-sm">
+                                      <Image 
+                                        src={item.product.image} 
+                                        alt={item.product.name}
+                                        fill
+                                        className="object-cover"
+                                      />
+                                    </div>
+                                    <div className="ml-3 flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-white truncate">
+                                        {item.product.name}
+                                      </p>
+                                      <div className="flex items-center text-xs text-orange-200 mt-0.5">
+                                        <Clock className="w-3 h-3 mr-1" />
+                                        <span>{item.timeSlot}</span>
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="text-sm font-semibold text-white">
+                                        ₹{item.customization.finalPrice}
+                                      </p>
+                                      {item.customization.size && (
+                                        <p className="text-xs text-orange-200">
+                                          {item.customization.size}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                                <div className="flex justify-end pt-1 border-t border-white/10">
+                                  <p className="text-sm font-semibold text-white">
+                                    Total: ₹{calculateDayTotal(day.items)}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        
+                        {plan.schedule.length > 3 && (
+                          <div className="flex items-center justify-center text-xs text-orange-100 py-2 bg-white/10 rounded-lg">
+                            <span>+{plan.schedule.length - 3} more days</span>
+                            <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                          </div>
+                        )}
+                      </div>
+                      
+                      {!plan.paymentComplete && (
+                        <div className="mt-4 grid grid-cols-2 gap-3">
+                          <Link
+                            href={`/checkout?type=freshplan&planId=${plan._id}`}
+                            className="bg-white text-orange-600 text-center py-2.5 rounded-lg text-sm font-medium hover:bg-orange-50 transition-colors shadow"
+                          >
+                            Complete Payment
+                          </Link>
+                          <Link
+                            href={`/freshplan/edit?planId=${plan._id}`}
+                            className="bg-white/20 text-white text-center py-2.5 rounded-lg text-sm font-medium hover:bg-white/30 transition-colors border border-white/30"
+                          >
+                            Edit Plan
+                          </Link>
+                        </div>
+                      )} 
                     </div>
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        {!paymentComplete && (
-        <div className=''>
-            <div className="mt-6 text-center">
-          <Link 
-            href="/freshplan/edit" 
-            className="inline-block px-6 py-3 bg-orange-500 text-white font-medium rounded-lg hover:bg-orange-600 shadow-md transition-colors"
-          >
-            Edit Plan
-          </Link>
-        </div>
-            <div className="mt-6 text-center">
-          <Link 
-            href="/checkout?type=freshplan" 
-            className="inline-block px-6 py-3 bg-orange-500 text-white font-medium rounded-lg hover:bg-orange-600 shadow-md transition-colors"
-          >
-            Complete Payment
-          </Link>
-        </div>
-
-        </div>
-        
+                );
+              })}
+            </div>
+          </div>
         )}
+        
+        {/* Completed Plans */}
+        {completedPlans.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center mb-4">
+              <CalendarDays className="w-5 h-5 text-gray-600 mr-2" />
+              <h2 className="text-lg font-semibold text-gray-800">Past Plans</h2>
+            </div>
+            <div className="space-y-3">
+              {completedPlans.map((plan, planIndex) => {
+                const planStartDate = new Date(plan.startDate);
+                const planEndDate = addDays(planStartDate, plan.days - 1);
+                
+                return (
+                  <div 
+                    key={planIndex} 
+                    className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-4 border border-gray-100"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="font-medium text-gray-900 flex items-center">
+                          <Calendar className="w-4 h-4 text-orange-500 mr-1.5" />
+                          {format(planStartDate, 'MMM d')} - {format(planEndDate, 'MMM d, yyyy')}
+                        </h3>
+                        <p className="text-sm text-gray-500 flex items-center mt-1">
+                          <CalendarDays className="w-3.5 h-3.5 text-gray-400 mr-1.5" />
+                          {plan.days} days • {plan.schedule.length} deliveries
+                        </p>
+                      </div>
+                      <Link
+                        href={`/order-history?planId=${plan._id}`}
+                        className="flex items-center text-orange-500 hover:text-orange-600 text-sm font-medium bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        View Details
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        
+        {/* Create New Plan Button */}
+        <div className="mt-8 flex flex-col items-center">
+          <Link 
+            href="/create-plan" 
+            className="inline-block px-8 py-3.5 bg-orange-500 text-white font-medium rounded-xl hover:bg-orange-600 shadow-md transition-colors"
+          >
+            Create New Plan
+          </Link>
+          {currentPlan && (
+            <p className="mt-3 text-sm text-gray-500 flex items-center">
+              <CalendarDays className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
+              Your current plan ends on {format(addDays(new Date(currentPlan.startDate), currentPlan.days - 1), 'MMMM d, yyyy')}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

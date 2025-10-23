@@ -65,6 +65,7 @@ export async function POST(request: NextRequest) {
     const requestBody = await request.json();
     const { 
       customerDetails, 
+      planId,
       totalAmount, 
       deliveryCharge,
       deliveryTimeSlot,
@@ -202,6 +203,26 @@ export async function POST(request: NextRequest) {
           } 
         }
       );
+
+      const user= await UserModel.findById(userId);
+      const freshplans= user?.freshPlans || [];
+      if(freshplans.length>0){
+        for(let i=0;i<freshplans.length;i++){
+          if(freshplans[i]._id.toString()===planId){
+            freshplans[i].paymentComplete=true;
+            break;
+          }
+        }
+        await UserModel.findByIdAndUpdate(
+          userId,
+          {
+            $set: {
+              freshPlans:freshplans
+            }
+          }
+        );  
+      }
+
     }
 
     return NextResponse.json({

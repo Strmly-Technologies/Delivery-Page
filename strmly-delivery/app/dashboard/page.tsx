@@ -403,7 +403,7 @@ const fetchCartCount = async () => {
           </div>
           <div>
             <h3 className="font-semibold text-gray-900">QuickSip Delivery</h3>
-            <p className="text-sm text-gray-600">Free Delivery on orders above ₹150</p>
+            <p className="text-sm text-gray-600">Free Delivery on orders above ₹99</p>
           </div>
         </div>
       )}

@@ -23,8 +23,8 @@ interface DeliveryInfoModalProps {
 export default function DeliveryInfoModal({ isOpen, onClose, settings, totalPrice = 0 }: DeliveryInfoModalProps) {
   if (!isOpen || !settings) return null;
   
-  const amountToFreeDelivery = Math.max(0, 150 - totalPrice);
-  const isEligibleForFreeDelivery = totalPrice >= 150;
+  const amountToFreeDelivery = Math.max(0, 99 - totalPrice);
+  const isEligibleForFreeDelivery = totalPrice >= 99;
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -54,7 +54,7 @@ export default function DeliveryInfoModal({ isOpen, onClose, settings, totalPric
           ) : (
             <div className="text-center">
               <p className="font-medium">Add ₹{amountToFreeDelivery.toFixed(0)} more to get FREE delivery</p>
-              <p className="text-xs mt-1 opacity-80">Orders above ₹150 qualify for free delivery</p>
+              <p className="text-xs mt-1 opacity-80">Orders above ₹99 qualify for free delivery</p>
             </div>
           )}
         </div>

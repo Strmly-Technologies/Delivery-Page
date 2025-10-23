@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import { verifyAuth } from '@/lib/serverAuth';
 import OrderModel from '@/model/Order';
+import { startOfDay, endOfDay } from 'date-fns';
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,6 +21,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const orderType = searchParams.get('orderType');
+    const date = searchParams.get('date');
     
     // Build query
     let query: any = {};
@@ -30,6 +32,15 @@ export async function GET(request: NextRequest) {
     
     if (orderType && ['quicksip', 'freshplan'].includes(orderType)) {
       query.orderType = orderType;
+    }
+    
+    // Add date filtering
+    if (date) {
+      const selectedDate = new Date(date);
+      query.createdAt = {
+        $gte: startOfDay(selectedDate),
+        $lte: endOfDay(selectedDate)
+      };
     }
     
     const orders = await OrderModel.find(query)

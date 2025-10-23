@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { format, addDays, isToday, isTomorrow, isAfter } from 'date-fns';
-import { ChevronRight, Calendar, Clock, Plus, X, ArrowLeft, Minus } from 'lucide-react';
+import { format, addDays, isToday, isTomorrow, isAfter, isBefore } from 'date-fns';
+import { ChevronRight, Calendar, Clock, Plus, X, ArrowLeft, Minus, AlertCircle } from 'lucide-react';
 import { TIME_SLOTS } from '@/constants/timeSlots';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -64,34 +64,56 @@ export default function FreshPlanPage() {
   const [animate, setAnimate] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState<number | null>(null);
   const [canStartToday, setCanStartToday] = useState(false);
-   const [activeDayIndex, setActiveDayIndex] = useState<number | null>(null);
+  const [activeDayIndex, setActiveDayIndex] = useState<number | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [productLoading, setProductLoading] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [customization, setCustomization] = useState<CustomizationType | null>(null);
   const [finalPrice, setFinalPrice] = useState(0);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   
-  useEffect(()=>{
-    //fetchPlan();
-  },[])
-  const fetchPlan=async()=>{
-    const data=await fetch('/api/freshPlan',
-       { method:'GET',
-        credentials:'include'
-       }
-    );
-    const currentPlan=await data.json();
-    console.log("current plan",currentPlan);
-    const today=new Date();
-    const planStartDate=new Date(currentPlan.plan.startDate);
-    const endDate=addDays(planStartDate,currentPlan.plan.days-1);
-    console.log("end date",endDate);
-    if(isAfter(today,endDate)){
-        return;
-    }else{
-        router.push('/current-plan');
+  // New state variables for sequential plans
+  const [earliestStartDate, setEarliestStartDate] = useState<Date | null>(null);
+  const [hasExistingPlans, setHasExistingPlans] = useState(false);
+
+  useEffect(() => {
+    checkExistingPlans();
+  }, []);
+
+  const checkExistingPlans = async () => {
+    try {
+      const response = await fetch('/api/freshPlan');
+      const data = await response.json();
+      
+      if (data.success) {
+        setHasExistingPlans(data.hasPlans);
+        
+        // If earliest start date is provided and it's in the future, use it
+        if (data.earliestStartDate) {
+          const earliestDate = new Date(data.earliestStartDate);
+          if (isAfter(earliestDate, new Date())) {
+            setEarliestStartDate(earliestDate);
+            setStartDate(earliestDate); // Auto-select earliest allowed date
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking existing plans:', error);
     }
-  }
+  };
+
+  // Check if we can start today based on current time
+  useEffect(() => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    
+    // Can start today if it's before 6pm and there's no earliest date restriction
+    const canStartTodayByTime = currentHour < 18;
+    const canStartTodayByPlans = !earliestStartDate || !isAfter(earliestStartDate, new Date());
+    
+    setCanStartToday(canStartTodayByTime && canStartTodayByPlans);
+  }, [earliestStartDate]);
+
   // Check if we can start today based on current time
   useEffect(() => {
     const now = new Date();
@@ -210,47 +232,55 @@ export default function FreshPlanPage() {
   setSchedule(updatedSchedule);
 };
   
-  const handleConfirmPlan = async () => {
-  try {
-    // Prepare schedule data for submission
-    const planData = {
-      days: duration,
-      startDate: startDate.toISOString(),
-      schedule: schedule.map(day => ({
-        date: day.date.toISOString(),
-        items: day.items.map(item => ({
-          product: item.product._id,
-          quantity: item.quantity,
-          timeSlot: item.timeSlot,
-          customization: item.customization
+ const handleConfirmPlan = async () => {
+    try {
+      // Prepare schedule data for submission
+      const planData = {
+        days: duration,
+        startDate: startDate.toISOString(),
+        schedule: schedule.map(day => ({
+          date: day.date.toISOString(),
+          items: day.items.map(item => ({
+            product: item.product._id,
+            quantity: item.quantity,
+            timeSlot: item.timeSlot,
+            customization: item.customization
+          }))
         }))
-      }))
-    };
-    
-    console.log("Submitting plan:", planData);
-    
-    const response = await fetch('/api/freshPlan', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(planData)
-    });
-    
-    const data = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to create plan');
+      };
+      
+      const response = await fetch('/api/freshPlan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(planData)
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        // Handle specific error for unavailable start date
+        if (data.earliestStartDate) {
+          const newEarliestDate = new Date(data.earliestStartDate);
+          setEarliestStartDate(newEarliestDate);
+          setStartDate(newEarliestDate);
+          setCurrentStep('start-date');
+          throw new Error(`Plan must start after ${format(newEarliestDate, 'MMMM d')}. We've updated your start date.`);
+        } else {
+          throw new Error(data.error || 'Failed to create plan');
+        }
+      }
+      console.log("Plan created with ID:", data.planId);
+      // On success, redirect to checkout
+      router.push('/checkout?type=freshplan&planId='+data.planId);
+      
+    } catch (error) {
+      console.error("Error creating plan:", error);
+      alert(error instanceof Error ? error.message : "Failed to create plan. Please try again.");
     }
-    
-    // On success, redirect to current plan page
-    router.push('/checkout?type=freshplan');
-    
-  } catch (error) {
-    console.error("Error creating plan:", error);
-    alert("Failed to create plan. Please try again.");
-  }
-};
+  };
+
   const addProductToDay = () => {
     if (!selectedProduct || !customization || activeDayIndex === null) return;
     
@@ -268,6 +298,189 @@ export default function FreshPlanPage() {
     
     // Reset selection
     closeProductCustomization();
+  };
+
+
+  const renderStartDateSelection = () => {
+    return (
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold mb-2">When do you want to start?</h3>
+        
+        {earliestStartDate && isAfter(earliestStartDate, addDays(new Date(), 1)) && (
+          <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg flex items-start">
+            <AlertCircle className="w-5 h-5 text-orange-500 mt-0.5 mr-3 flex-shrink-0" />
+            <div>
+              <p className="text-sm text-gray-800">
+                You have an existing plan that ends on {format(addDays(earliestStartDate, -1), 'EEEE, MMMM d')}.
+              </p>
+              <p className="text-sm text-gray-800 font-medium mt-1">
+                Your new plan can start from {format(earliestStartDate, 'MMMM d')} onwards.
+              </p>
+            </div>
+          </div>
+        )}
+        
+        <div className="grid grid-cols-2 gap-4">
+          {canStartToday && !earliestStartDate && (
+            <button
+              onClick={() => setStartDate(new Date())}
+              disabled={earliestStartDate! && isAfter(earliestStartDate, new Date())}
+              className={`p-5 flex items-center justify-between rounded-xl ${
+                isToday(startDate) 
+                  ? 'bg-orange-500 text-white shadow-lg ring-2 ring-orange-300' 
+                  : earliestStartDate && isAfter(earliestStartDate, new Date())
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : 'bg-white text-gray-800 shadow-md hover:shadow-lg'
+              } transition-all`}
+            >
+              <div className="flex items-center">
+                <Calendar className="w-6 h-6 mr-3 opacity-80" />
+                <div className="text-left">
+                  <p className="font-semibold">Today</p>
+                  <p className="text-sm opacity-80">{format(new Date(), 'EEEE, MMMM d')}</p>
+                </div>
+              </div>
+              {isToday(startDate) && (
+                <div className="w-4 h-4 rounded-full bg-white bg-opacity-30"></div>
+              )}
+            </button>
+          )}
+          
+          <button
+            onClick={() => {
+              const tomorrow = addDays(new Date(), 1);
+              // Only set to tomorrow if it's not before earliest allowed date
+              if (!earliestStartDate || !isAfter(earliestStartDate, tomorrow)) {
+                setStartDate(tomorrow);
+              }
+            }}
+            disabled={earliestStartDate! && isAfter(earliestStartDate, addDays(new Date(), 1))}
+            className={`p-5 flex items-center justify-between rounded-xl ${
+              isTomorrow(startDate) 
+                ? 'bg-orange-500 text-white shadow-lg ring-2 ring-orange-300' 
+                : earliestStartDate && isAfter(earliestStartDate, addDays(new Date(), 1))
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-white text-gray-800 shadow-md hover:shadow-lg'
+            } transition-all ${(!canStartToday || (earliestStartDate && isAfter(earliestStartDate, new Date()))) ? 'col-span-2' : ''}`}
+          >
+            <div className="flex items-center">
+              <Calendar className="w-6 h-6 mr-3 opacity-80" />
+              <div className="text-left">
+                <p className="font-semibold">Tomorrow</p>
+                <p className="text-sm opacity-80">{format(addDays(new Date(), 1), 'EEEE, MMMM d')}</p>
+              </div>
+            </div>
+            {isTomorrow(startDate) && (
+              <div className="w-4 h-4 rounded-full bg-white bg-opacity-30"></div>
+            )}
+          </button>
+          
+          {/* Custom date button */}
+          <button
+            onClick={() => setShowDatePicker(true)}
+            className={`p-5 flex items-center justify-between rounded-xl ${
+              !isToday(startDate) && !isTomorrow(startDate)
+                ? 'bg-orange-500 text-white shadow-lg ring-2 ring-orange-300'
+                : 'bg-white text-gray-800 shadow-md hover:shadow-lg'
+            } transition-all col-span-2`}
+          >
+            <div className="flex items-center">
+              <Calendar className="w-6 h-6 mr-3 opacity-80" />
+              <div className="text-left">
+                <p className="font-semibold">Custom Date</p>
+                {!isToday(startDate) && !isTomorrow(startDate) && (
+                  <p className="text-sm opacity-80">{format(startDate, 'EEEE, MMMM d')}</p>
+                )}
+                {(isToday(startDate) || isTomorrow(startDate)) && (
+                  <p className="text-sm opacity-80">Select another date</p>
+                )}
+              </div>
+            </div>
+            {!isToday(startDate) && !isTomorrow(startDate) && (
+              <div className="w-4 h-4 rounded-full bg-white bg-opacity-30"></div>
+            )}
+          </button>
+        </div>
+        
+        <div className="text-center text-sm text-gray-600 mt-6">
+          Your plan will run for {duration} days starting {format(startDate, 'MMMM d, yyyy')}
+        </div>
+        
+        {/* Date Picker Modal */}
+        {showDatePicker && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Select Start Date</h3>
+                <button 
+                  onClick={() => setShowDatePicker(false)}
+                  className="p-2 rounded-full hover:bg-gray-100"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="mb-4">
+                {earliestStartDate && isAfter(earliestStartDate, addDays(new Date(), 1)) && (
+                  <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                    <p className="text-sm text-gray-800">
+                      Earliest available date: <span className="font-medium">{format(earliestStartDate, 'MMMM d, yyyy')}</span>
+                    </p>
+                  </div>
+                )}
+                
+                <div className="grid grid-cols-7 gap-1">
+                  {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+                    <div key={day} className="text-center text-xs font-medium text-gray-500 py-2">
+                      {day}
+                    </div>
+                  ))}
+                  
+                  {/* Generate calendar - simplified version, you may want to use a library */}
+                  {/* This is just a placeholder for the UI */}
+                  {Array.from({ length: 35 }).map((_, i) => {
+                    const date = addDays(new Date(new Date().setDate(1)), i - new Date(new Date().setDate(1)).getDay());
+                    const isDisabled = earliestStartDate ? isBefore(date, earliestStartDate) : isBefore(date, new Date());
+                    const isSelected = date.toDateString() === startDate.toDateString();
+                    const isCurrentMonth = date.getMonth() === new Date().getMonth();
+                    
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          if (!isDisabled) {
+                            setStartDate(date);
+                            setShowDatePicker(false);
+                          }
+                        }}
+                        disabled={isDisabled}
+                        className={`
+                          h-10 w-full rounded-full flex items-center justify-center text-sm
+                          ${isSelected ? 'bg-orange-500 text-white' : 'hover:bg-orange-100'}
+                          ${!isCurrentMonth ? 'text-gray-400' : 'text-gray-800'}
+                          ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                        `}
+                      >
+                        {date.getDate()}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setShowDatePicker(false)}
+                  className="px-4 py-2 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600"
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
   
   // Updated renderProductSelectionModal function with a more modern UI
@@ -446,38 +659,29 @@ const renderProductCustomizationModal = () => {
 };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 pb-16">
+   <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100">
       {/* Header */}
-      <header className="bg-white/95 backdrop-blur-sm shadow-sm sticky top-0 z-30">
+      <header className="bg-white/95 backdrop-blur-sm shadow-sm sticky top-0 z-10">
         <div className="max-w-md mx-auto px-4">
           <div className="py-4 flex items-center justify-between">
             <div className="flex items-center">
-              <Link 
-                href="/freshplan"
-                className="p-2 rounded-lg hover:bg-gray-100 mr-2"
+              <button 
+                onClick={() => router.push('/freshplan')}
+                className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center mr-3 transition-colors"
               >
-                <ArrowLeft className="w-5 h-5 text-gray-700" />
-              </Link>
+                <ArrowLeft className="w-5 h-5 text-black" />
+              </button>
               <h1 className="text-xl font-bold text-black">Create FreshPlan</h1>
             </div>
-            <div className="flex items-center space-x-1">
-              {STEPS.map((step, index) => (
-                <div 
-                  key={step.id}
-                  className={`w-2 h-2 rounded-full ${
-                    currentStep === step.id 
-                      ? 'bg-orange-500' 
-                      : 'bg-gray-300'
-                  }`}
-                />
-              ))}
+            <div>
+              <span className="text-xs font-medium text-gray-500">Step {STEPS.findIndex(s => s.id === currentStep) + 1} of {STEPS.length}</span>
             </div>
           </div>
         </div>
       </header>
 
       {/* Content */}
-      <div className="max-w-md mx-auto px-4 pt-6 overflow-hidden">
+      <div className="max-w-md mx-auto px-4 pt-6 pb-16 overflow-hidden">
         <div 
           className={`transition-all duration-300 ${
             animate ? 'opacity-0 transform translate-x-full' : 'opacity-100'
@@ -495,24 +699,23 @@ const renderProductCustomizationModal = () => {
                 <div className="flex flex-col items-center justify-center">
                   <div className="text-center mb-3">
                     <p className="text-sm text-gray-500">Select number of days</p>
-                    <p className="text-xs text-gray-400">(3-30 days)</p>
                   </div>
                   
-                  <div className="flex items-center justify-center space-x-6">
-                    <button 
-                      onClick={decrementDuration}
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setDuration(prev => Math.max(MIN_DURATION, prev - 1))}
                       disabled={duration <= MIN_DURATION}
                       className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       <Minus className="w-6 h-6" />
                     </button>
                     
-                    <div className="w-24 h-24 rounded-full bg-orange-500 shadow-lg flex items-center justify-center text-white">
-                      <span className="text-4xl font-bold">{duration}</span>
+                    <div className="w-24 h-24 rounded-full bg-orange-500 text-white flex items-center justify-center text-4xl font-bold shadow-lg">
+                      {duration}
                     </div>
                     
-                    <button 
-                      onClick={incrementDuration}
+                    <button
+                      onClick={() => setDuration(prev => Math.min(MAX_DURATION, prev + 1))}
                       disabled={duration >= MAX_DURATION}
                       className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
@@ -548,53 +751,7 @@ const renderProductCustomizationModal = () => {
                 <p className="text-gray-600 mt-1">When would you like your plan to start?</p>
               </div>
               
-              <div className="flex flex-col space-y-4">
-                {canStartToday && (
-                  <button
-                    onClick={() => setStartDate(new Date())}
-                    className={`p-5 flex items-center justify-between rounded-xl ${
-                      isToday(startDate) 
-                        ? 'bg-orange-500 text-white shadow-lg ring-2 ring-orange-300' 
-                        : 'bg-white text-gray-800 shadow-md hover:shadow-lg'
-                    } transition-all`}
-                  >
-                    <div className="flex items-center">
-                      <Calendar className="w-6 h-6 mr-3 opacity-80" />
-                      <div className="text-left">
-                        <p className="font-semibold">Today</p>
-                        <p className="text-sm opacity-80">{format(new Date(), 'EEEE, MMMM d')}</p>
-                      </div>
-                    </div>
-                    {isToday(startDate) && (
-                      <div className="w-4 h-4 rounded-full bg-white bg-opacity-30"></div>
-                    )}
-                  </button>
-                )}
-                
-                <button
-                  onClick={() => setStartDate(addDays(new Date(), 1))}
-                  className={`p-5 flex items-center justify-between rounded-xl ${
-                    isTomorrow(startDate) 
-                      ? 'bg-orange-500 text-white shadow-lg ring-2 ring-orange-300' 
-                      : 'bg-white text-gray-800 shadow-md hover:shadow-lg'
-                  } transition-all`}
-                >
-                  <div className="flex items-center">
-                    <Calendar className="w-6 h-6 mr-3 opacity-80" />
-                    <div className="text-left">
-                      <p className="font-semibold">Tomorrow</p>
-                      <p className="text-sm opacity-80">{format(addDays(new Date(), 1), 'EEEE, MMMM d')}</p>
-                    </div>
-                  </div>
-                  {isTomorrow(startDate) && (
-                    <div className="w-4 h-4 rounded-full bg-white bg-opacity-30"></div>
-                  )}
-                </button>
-
-                <div className="text-center text-sm text-gray-600 mt-6 mb-4">
-                  Plan will run for {duration} days starting from {format(startDate, 'MMM d')}
-                </div>
-              </div>
+              {renderStartDateSelection()}
               
               <div className="flex space-x-4">
                 <button

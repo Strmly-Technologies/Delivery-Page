@@ -7,8 +7,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { 
   BarChart3, Package2, ShoppingCart, Settings, Search, Eye, RefreshCw, 
-  Phone, ChevronDown, ChevronUp, SlidersHorizontal, Calendar, Clock, Filter
+  Phone, ChevronDown, ChevronUp, SlidersHorizontal, Calendar, Clock, Filter,
+  X, CalendarIcon
 } from 'lucide-react';
+import { format, parse, isValid } from 'date-fns';
 
 interface OrderProduct {
   product: {
@@ -75,6 +77,11 @@ function OrdersList() {
   const [expandedOrderIds, setExpandedOrderIds] = useState<Set<string>>(new Set());
   const [expandedPlanDays, setExpandedPlanDays] = useState<Record<string, string>>({});
   
+  // Date filter states
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [dateInput, setDateInput] = useState<string>('');
+  
   const router = useRouter();
   const searchParams = useSearchParams();
   const statusParam = searchParams.get('status');
@@ -116,14 +123,14 @@ function OrdersList() {
 
   useEffect(() => {
     fetchOrders();
-  }, [filter, orderTypeFilter]);
+  }, [filter, orderTypeFilter, selectedDate]);
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
       const token = await window.cookieStore.get('authToken').then((cookie) => cookie?.value);
       
-      // Build query with both status and orderType filters
+      // Build query with filters
       let url = '/api/admin/orders';
       const queryParams = [];
       
@@ -133,6 +140,10 @@ function OrdersList() {
       
       if (orderTypeFilter !== 'all') {
         queryParams.push(`orderType=${orderTypeFilter}`);
+      }
+      
+      if (selectedDate) {
+        queryParams.push(`date=${selectedDate}`);
       }
       
       if (queryParams.length > 0) {
@@ -259,12 +270,43 @@ function OrdersList() {
     return statusColors[status] || 'bg-gray-100 text-gray-800';
   };
 
+  // Handle date selection
+  const handleDateSelect = () => {
+    if (dateInput) {
+      const parsedDate = parse(dateInput, 'yyyy-MM-dd', new Date());
+      
+      if (isValid(parsedDate)) {
+        setSelectedDate(dateInput);
+        setShowDatePicker(false);
+      }
+    }
+  };
+
+  const clearDateFilter = () => {
+    setSelectedDate('');
+    setDateInput('');
+  };
+
   // Filter orders based on search query
   const filteredOrders = orders.filter(order => 
     order.customerDetails.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     order._id.toLowerCase().includes(searchQuery.toLowerCase()) ||
     order.customerDetails.phone.includes(searchQuery)
   );
+
+  // Format customization for display
+  const formatCustomization = (customization: any) => {
+    if (!customization) return '';
+    
+    const parts = [];
+    if (customization.size) parts.push(customization.size);
+    if (customization.quantity) parts.push(customization.quantity);
+    if (customization.ice) parts.push(customization.ice);
+    if (customization.sugar) parts.push(customization.sugar);
+    if (customization.dilution) parts.push(customization.dilution);
+    
+    return parts.join(' • ');
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 flex">
@@ -328,6 +370,85 @@ function OrdersList() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
+            </div>
+
+            {/* Date Filter */}
+            <div className="relative">
+              <div className="flex mb-2 items-center justify-between">
+                <label className="text-xs font-medium text-black uppercase tracking-wider">Date Filter</label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setShowDatePicker(true)}
+                  className={`px-3 py-2 rounded-md text-sm font-medium flex items-center ${
+                    selectedDate ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  <CalendarIcon className="w-4 h-4 mr-2" />
+                  {selectedDate ? format(new Date(selectedDate), 'dd MMM yyyy') : 'Select Date'}
+                </button>
+                
+                {selectedDate && (
+                  <button
+                    onClick={clearDateFilter}
+                    className="p-2 rounded-md text-gray-500 hover:bg-gray-100"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              
+              {/* Date Picker Modal */}
+              {showDatePicker && (
+  <div className="fixed inset-0 text-black  bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50">
+    <div className="bg-white rounded-xl p-6 shadow-xl w-96 border border-gray-100">
+      <div className="flex justify-between items-center mb-5">
+        <h3 className="text-lg font-semibold text-gray-800">Select Date</h3>
+        <button 
+          onClick={() => setShowDatePicker(false)}
+          className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+        >
+          <X className="w-5 h-5 text-gray-500" />
+        </button>
+      </div>
+      
+      <div className="mb-6 text-black">
+        <label className="block text-sm font-medium text-gray-700 mb-2">Filter orders by date</label>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <CalendarIcon className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="date"
+            value={dateInput}
+            onChange={(e) => setDateInput(e.target.value)}
+            className="w-full pl-10 text-black p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all"
+          />
+        </div>
+        <p className="mt-2 text-sm text-gray-500">
+          Only orders created on this date will be shown
+        </p>
+      </div>
+      
+      <div className="flex justify-end space-x-3">
+        <button
+          onClick={() => setShowDatePicker(false)}
+          className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleDateSelect}
+          disabled={!dateInput}
+          className={`px-6 py-2.5 bg-orange-500 text-white rounded-lg font-medium shadow-sm hover:bg-orange-600 transition-colors flex items-center ${!dateInput ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          <Filter className="w-4 h-4 mr-2" />
+          Apply Filter
+        </button>
+      </div>
+    </div>
+  </div>
+)}
             </div>
 
             <div>
@@ -419,6 +540,46 @@ function OrdersList() {
             </div>
           </div>
         </div>
+
+        {/* Active Filter Display */}
+        {(selectedDate || filter !== 'all' || orderTypeFilter !== 'all') && (
+          <div className="mb-4 flex flex-wrap gap-2">
+            <div className="text-sm text-gray-600">Active filters:</div>
+            {selectedDate && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-indigo-100 text-indigo-800">
+                Date: {format(new Date(selectedDate), 'dd MMM yyyy')}
+                <button 
+                  onClick={clearDateFilter}
+                  className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full text-indigo-400 hover:bg-indigo-200 hover:text-indigo-600"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {filter !== 'all' && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-yellow-100 text-yellow-800">
+                Status: {filter.charAt(0).toUpperCase() + filter.slice(1).replace(/-/g, ' ')}
+                <button 
+                  onClick={() => setFilter('all')}
+                  className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full text-yellow-400 hover:bg-yellow-200 hover:text-yellow-600"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {orderTypeFilter !== 'all' && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-green-100 text-green-800">
+                Type: {orderTypeFilter === 'quicksip' ? 'QuickSip' : 'FreshPlan'}
+                <button 
+                  onClick={() => setOrderTypeFilter('all')}
+                  className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full text-green-400 hover:bg-green-200 hover:text-green-600"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Orders */}
         <div className="bg-white shadow-md rounded-lg overflow-hidden">
@@ -536,9 +697,7 @@ function OrdersList() {
                                               <p className="font-medium">{item.product?.name || 'Custom Item'}</p>
                                               {item.customization && (
                                                 <p className="text-xs text-gray-500">
-                                                  {item.customization.size} • {item.customization.quantity}
-                                                  {item.customization.ice && ` • ${item.customization.ice}`}
-                                                  {item.customization.sugar && ` • ${item.customization.sugar}`}
+                                                  {formatCustomization(item.customization)}
                                                 </p>
                                               )}
                                             </div>
@@ -620,6 +779,12 @@ function OrdersList() {
                                                             <Clock className="h-3 w-3 mr-1" />
                                                             <span>{item.timeSlot}</span>
                                                           </div>
+                                                          {/* Show customization details */}
+                                                          {item.customization && (
+                                                            <p className="text-xs text-gray-500">
+                                                              {formatCustomization(item.customization)}
+                                                            </p>
+                                                          )}
                                                         </div>
                                                       </div>
                                                       <div className="text-right">
@@ -653,7 +818,15 @@ function OrdersList() {
                                                   />
                                                 </div>
                                               )}
-                                              <p>{item.product?.name || 'Custom Item'}</p>
+                                              <div>
+                                                <p className="font-medium">{item.product?.name || 'Custom Item'}</p>
+                                                {/* Show customization details */}
+                                                {item.customization && (
+                                                  <p className="text-xs text-gray-500">
+                                                    {formatCustomization(item.customization)}
+                                                  </p>
+                                                )}
+                                              </div>
                                             </div>
                                             <div className="text-right">
                                               <p>x{item.quantity}</p>
@@ -728,7 +901,9 @@ function OrdersList() {
               </div>
               <h3 className="mt-2 text-sm font-medium text-gray-900">No orders found</h3>
               <p className="mt-1 text-sm text-gray-500">
-                {searchQuery ? 'Try a different search term' : filter !== 'all' ? `No ${filter} orders at the moment.` : 'There are no orders yet.'}
+                {searchQuery ? 'Try a different search term' : 
+                 selectedDate ? `No orders found for ${format(new Date(selectedDate), 'MMM d, yyyy')}` :
+                 filter !== 'all' ? `No ${filter} orders at the moment.` : 'There are no orders yet.'}
               </p>
             </div>
           )}

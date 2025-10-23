@@ -83,6 +83,8 @@ export default function CheckoutPage() {
   const searchParams = useSearchParams();
   const checkoutType = searchParams.get('type') || 'quicksip';
   const selectedDayId = searchParams.get('dayId');
+  const planId=searchParams.get('planId');
+  console.log("Checkout type:", checkoutType, "Plan ID:", planId);
   
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [planItems, setPlanItems] = useState<PlanItem[]>([]);
@@ -137,6 +139,7 @@ export default function CheckoutPage() {
       await initializeLocationFromStorage(cartData, pricesData, settingsData);
     } else if (checkoutType === 'freshplan') {
       // FreshPlan checkout flow - fetch plan details
+      console.log("Initialising freshplan checkout for plan ID:", planId);
       const planData = await fetchFreshPlan();
       
       const settingsData = await fetchDeliverySettings();
@@ -228,7 +231,7 @@ export default function CheckoutPage() {
       const calculatedCharge = calculateDeliveryCharge(distance, DELIVERY_RANGES.CHARGES);
       setCalculatedDeliveryCharge(calculatedCharge);
       
-      if (itemsTotal >= 150) {
+      if (itemsTotal >= 99) {
         setDeliveryCharge(0);
         console.log("✓ Free delivery applied - items total is ₹" + itemsTotal);
       } else {
@@ -294,7 +297,7 @@ export default function CheckoutPage() {
       const calculatedCharge = calculateDeliveryCharge(distance, DELIVERY_RANGES.CHARGES);
       setCalculatedDeliveryCharge(calculatedCharge);
       
-      if (itemsTotal >= 150) {
+      if (itemsTotal >= 99) {
         setDeliveryCharge(0);
         console.log("✓ Free delivery applied - plan items total is ₹" + itemsTotal);
       } else {
@@ -363,7 +366,8 @@ export default function CheckoutPage() {
   
   const fetchFreshPlan = async () => {
     try {
-      const response = await fetch('/api/freshPlan');
+      console.log("Fetching fresh plan with ID:", planId);
+      const response = await fetch(`/api/freshPlan/plan/${planId}`);
       const data = await response.json();
       
       if (data.success && data.plan) {
@@ -482,6 +486,7 @@ export default function CheckoutPage() {
   : {
       customerDetails,
       planItems, 
+      planId,
       totalAmount: getTotalPrice(),
       deliveryCharge,
       checkoutType: 'freshplan',
@@ -658,7 +663,7 @@ export default function CheckoutPage() {
     setCalculatedDeliveryCharge(calculatedCharge);
     
     const itemsTotal = getItemsTotal();
-    if (itemsTotal >= 150) {
+    if (itemsTotal >= 99) {
       setDeliveryCharge(0);
     } else {
       setDeliveryCharge(calculatedCharge);
@@ -874,7 +879,7 @@ export default function CheckoutPage() {
                       onClick={() => setShowDeliveryInfo(true)}
                       className=" text-black hover:text-gray-700 focus:outline-none ml-1"
                     >
-                      {getTotalPrice() >= 150 ? (<Info className="w-4 h-4" />): ( <p className='text-red-700 text-sm underline cursor-pointer'>(Remove it) </p>)}
+                      {getTotalPrice() >= 99 ? (<Info className="w-4 h-4" />): ( <p className='text-red-700 text-sm underline cursor-pointer'>(Remove it) </p>)}
                       
                     </button>
                   </div>
@@ -1057,7 +1062,7 @@ export default function CheckoutPage() {
                 </div>
                 {deliveryCharge === 0 && calculatedDeliveryCharge > 0 && (
                   <p className="text-xs text-green-600 text-right mt-1">
-                    Free delivery on orders above ₹150!
+                    Free delivery on orders above ₹99!
                   </p>
                 )}
               </div>

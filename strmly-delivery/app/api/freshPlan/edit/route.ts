@@ -9,41 +9,85 @@ export async function PUT(req: NextRequest) {
     const decodedToken = await verifyAuth(req);
     const userId = decodedToken.userId;
 
-    const { days, startDate, schedule } = await req.json();
+    const { planId, days, startDate, schedule } = await req.json();
     
-    // Find user first to validate they have a plan
+    if (!planId) {
+      return NextResponse.json({ error: 'No plan ID provided' }, { status: 400 });
+    }
+    
+    // Find user first to validate
     const user = await UserModel.findById(userId);
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
     
-    if (!user || !user.freshPlan || !user.freshPlan.isActive) {
+    // Check if plan exists and payment is not complete
+    const planIndex = user.freshPlans?.findIndex(p => p._id.toString() === planId);
+    let existingPlan;
+    
+    if (planIndex !== undefined && planIndex >= 0) {
+      existingPlan = user.freshPlans && user?.freshPlans[planIndex];
+    } else if (user.freshPlan && user.freshPlan._id.toString() === planId) {
+      existingPlan = user.freshPlan;
+    }
+    
+    if (!existingPlan) {
+      return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
+    }
+    
+    if (existingPlan.paymentComplete) {
       return NextResponse.json(
-        { error: 'No active plan found' },
+        { error: 'Cannot edit a plan with completed payment' }, 
+        { status: 400 }
+      );
+    }
+    
+    // Update the plan in freshPlans array if it exists there
+    if (planIndex !== undefined && planIndex >= 0) {
+      const updateQuery = {
+        [`freshPlans.${planIndex}.schedule`]: schedule
+      };
+      
+      const updatedUser = await UserModel.findByIdAndUpdate(
+        userId,
+        { $set: updateQuery },
+        { new: true }
+      );
+      
+      if (!updatedUser) {
+        return NextResponse.json(
+          { error: 'Failed to update plan' },
+          { status: 400 }
+        );
+      }
+      
+      // If this is also the freshPlan (for backward compatibility), update that too
+      if (user.freshPlan && user.freshPlan._id.toString() === planId) {
+        await UserModel.findByIdAndUpdate(
+          userId,
+          { $set: { 'freshPlan.schedule': schedule } },
+          { new: true }
+        );
+      }
+    } 
+    // If not in freshPlans array but is the freshPlan (old model)
+    else if (user.freshPlan && user.freshPlan._id.toString() === planId) {
+      const updatedUser = await UserModel.findByIdAndUpdate(
+        userId,
+        { $set: { 'freshPlan.schedule': schedule } },
+        { new: true }
+      );
+      
+      if (!updatedUser) {
+        return NextResponse.json(
+          { error: 'Failed to update plan' },
+          { status: 400 }
+        );
+      }
+    } else {
+      return NextResponse.json(
+        { error: 'Plan not found' },
         { status: 404 }
-      );
-    }
-    
-    // Don't allow editing if payment is complete
-    if (user.freshPlan.paymentComplete) {
-      return NextResponse.json(
-        { error: 'Cannot edit plan after payment is complete' },
-        { status: 400 }
-      );
-    }
-    
-    // Update the plan
-    const updatedUser = await UserModel.findByIdAndUpdate(
-      userId,
-      {
-        $set: {
-          'freshPlan.schedule': schedule
-        }
-      },
-      { new: true }
-    );
-
-    if (!updatedUser) {
-      return NextResponse.json(
-        { error: 'Failed to update plan' },
-        { status: 400 }
       );
     }
 
