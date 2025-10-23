@@ -15,11 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Juice Rani",
   description: "Deliver freshly prepared juice in 10mins",
-  icons:{
-    icon:[
-      {url:'/favicon.ico', sizes:'any'},
-    ]
-  }
+  icons: {
+    icon: "/favicon.ico?v=2",
+  },
 };
 
 export default function RootLayout({
