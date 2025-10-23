@@ -1,11 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Zap, Calendar } from 'lucide-react';
+import OtpModal from './components/login/otpModal';
 
 export default function Home() {
   const [selectedOption, setSelectedOption] = useState<'quick' | 'scheduled' | null>(null);
+   const [isAuthenticated, setIsAuthenticated] = useState(false);
+   const [showOtpModal, setShowOtpModal] = useState(false);
   const router = useRouter();
 
   const handleSelection = (option: 'quick' | 'scheduled') => {
@@ -17,6 +20,29 @@ export default function Home() {
       router.push('/freshplan');
     }
   };
+
+    useEffect(() => {
+      const currentUser=localStorage.getItem('user');
+      if(currentUser){
+        setIsAuthenticated(true);
+      }
+    }, []);
+
+  const handleFreshPlanClick = (e: React.MouseEvent) => {
+  e.preventDefault();
+
+  if (!isAuthenticated) {
+    setShowOtpModal(true);
+  } else {
+    router.push('/freshplan');
+  }
+};
+
+    const handleVerificationComplete = () => {
+      setIsAuthenticated(true);
+      setShowOtpModal(false);
+      router.push('/freshplan');
+    };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100">
@@ -61,7 +87,7 @@ export default function Home() {
 
         {/* FreshPlan Card */}
         <button
-          onClick={() => handleSelection('scheduled')}
+          onClick={handleFreshPlanClick}
           className={`w-full p-6 rounded-2xl transition-all duration-300 ${
             selectedOption === 'scheduled'
               ? 'bg-orange-500 text-white scale-105 shadow-xl'
@@ -90,7 +116,11 @@ export default function Home() {
           </div>
         </button>
       </div>
-
+              <OtpModal
+                    isOpen={showOtpModal}
+                    onClose={() => setShowOtpModal(false)}
+                    onVerificationComplete={handleVerificationComplete}
+                  />
       {/* Bottom Text */}
       <div className="text-center mt-8 text-gray-500 text-sm px-4">
         Select your preferred delivery option to continue

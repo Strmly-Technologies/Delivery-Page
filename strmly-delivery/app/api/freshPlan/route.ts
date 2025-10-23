@@ -14,7 +14,9 @@ export async function POST(req: NextRequest) {
     const userId = decodedToken.userId;
 
     const { days, startDate, schedule } = await req.json();
-    const planStartDate = new Date(startDate);
+    // add one day to startDate to account for timezone issues
+    
+    const planStartDate = addDays(new Date(startDate), 1);
 
     const user = await UserModel.findById(userId);
     if (!user) {
@@ -36,6 +38,8 @@ export async function POST(req: NextRequest) {
         });
 
         const earliestAllowedStartDate = addDays(latestEndDate, 1);
+        console.log("Earliest Allowed Start Date:", earliestAllowedStartDate);
+        console.log("Requested Plan Start Date:", planStartDate);
         if (isAfter(earliestAllowedStartDate, planStartDate)) {
           return NextResponse.json(
             {

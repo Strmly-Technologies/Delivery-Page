@@ -75,6 +75,10 @@ export default function FreshPlanPage() {
   // New state variables for sequential plans
   const [earliestStartDate, setEarliestStartDate] = useState<Date | null>(null);
   const [hasExistingPlans, setHasExistingPlans] = useState(false);
+  
+  // Calendar navigation states
+  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
+  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
 
   useEffect(() => {
     checkExistingPlans();
@@ -91,9 +95,13 @@ export default function FreshPlanPage() {
         // If earliest start date is provided and it's in the future, use it
         if (data.earliestStartDate) {
           const earliestDate = new Date(data.earliestStartDate);
+          console.log("Earliest Start Date from API:", earliestDate);
+          // subtract one day to account for timezone issues
+          const adjustedEarliestDate = addDays(earliestDate, -1);
+          console.log("Adjusted Earliest Start Date:", adjustedEarliestDate);
           if (isAfter(earliestDate, new Date())) {
-            setEarliestStartDate(earliestDate);
-            setStartDate(earliestDate); // Auto-select earliest allowed date
+            setEarliestStartDate(adjustedEarliestDate);
+            setStartDate(adjustedEarliestDate); // Auto-select earliest allowed date
           }
         }
       }
@@ -304,7 +312,7 @@ export default function FreshPlanPage() {
   const renderStartDateSelection = () => {
     return (
       <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-2">When do you want to start?</h3>
+        <h3 className="text-lg font-semibold mb-2 text-black">When do you want to start?</h3>
         
         {earliestStartDate && isAfter(earliestStartDate, addDays(new Date(), 1)) && (
           <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg flex items-start">
@@ -375,31 +383,37 @@ export default function FreshPlanPage() {
             )}
           </button>
           
-          {/* Custom date button */}
-          <button
-            onClick={() => setShowDatePicker(true)}
-            className={`p-5 flex items-center justify-between rounded-xl ${
-              !isToday(startDate) && !isTomorrow(startDate)
-                ? 'bg-orange-500 text-white shadow-lg ring-2 ring-orange-300'
-                : 'bg-white text-gray-800 shadow-md hover:shadow-lg'
-            } transition-all col-span-2`}
-          >
-            <div className="flex items-center">
-              <Calendar className="w-6 h-6 mr-3 opacity-80" />
-              <div className="text-left">
-                <p className="font-semibold">Custom Date</p>
-                {!isToday(startDate) && !isTomorrow(startDate) && (
-                  <p className="text-sm opacity-80">{format(startDate, 'EEEE, MMMM d')}</p>
-                )}
-                {(isToday(startDate) || isTomorrow(startDate)) && (
-                  <p className="text-sm opacity-80">Select another date</p>
-                )}
+          {/* Custom date button - only show if there are existing plans */}
+          {hasExistingPlans && (
+            <button
+              onClick={() => {
+                setCalendarMonth(earliestStartDate ? earliestStartDate.getMonth() : new Date().getMonth());
+                setCalendarYear(earliestStartDate ? earliestStartDate.getFullYear() : new Date().getFullYear());
+                setShowDatePicker(true);
+              }}
+              className={`p-5 flex items-center justify-between rounded-xl ${
+                !isToday(startDate) && !isTomorrow(startDate)
+                  ? 'bg-orange-500 text-white shadow-lg ring-2 ring-orange-300'
+                  : 'bg-white text-gray-800 shadow-md hover:shadow-lg'
+              } transition-all col-span-2`}
+            >
+              <div className="flex items-center">
+                <Calendar className="w-6 h-6 mr-3 opacity-80" />
+                <div className="text-left">
+                  <p className="font-semibold">Custom Date</p>
+                  {!isToday(startDate) && !isTomorrow(startDate) && (
+                    <p className="text-sm opacity-80">{format(startDate, 'EEEE, MMMM d')}</p>
+                  )}
+                  {(isToday(startDate) || isTomorrow(startDate)) && (
+                    <p className="text-sm opacity-80">Select another date</p>
+                  )}
+                </div>
               </div>
-            </div>
-            {!isToday(startDate) && !isTomorrow(startDate) && (
-              <div className="w-4 h-4 rounded-full bg-white bg-opacity-30"></div>
-            )}
-          </button>
+              {!isToday(startDate) && !isTomorrow(startDate) && (
+                <div className="w-4 h-4 rounded-full bg-white bg-opacity-30"></div>
+              )}
+            </button>
+          )}
         </div>
         
         <div className="text-center text-sm text-gray-600 mt-6">
@@ -408,70 +422,168 @@ export default function FreshPlanPage() {
         
         {/* Date Picker Modal */}
         {showDatePicker && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center">
-            <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Select Start Date</h3>
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl w-full max-w-md mx-4 shadow-2xl">
+              {/* Header */}
+              <div className="flex justify-between items-center p-5 border-b border-gray-200">
+                <h3 className="text-xl font-bold text-black">Select Start Date</h3>
                 <button 
                   onClick={() => setShowDatePicker(false)}
-                  className="p-2 rounded-full hover:bg-gray-100"
+                  className="p-2 rounded-full hover:bg-gray-100 transition-colors"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-5 h-5 text-black" />
                 </button>
               </div>
               
-              <div className="mb-4">
+              <div className="p-5">
+                {/* Info Message */}
                 {earliestStartDate && isAfter(earliestStartDate, addDays(new Date(), 1)) && (
                   <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                    <p className="text-sm text-gray-800">
-                      Earliest available date: <span className="font-medium">{format(earliestStartDate, 'MMMM d, yyyy')}</span>
+                    <p className="text-sm text-black">
+                      Earliest available date: <span className="font-semibold">{format(earliestStartDate, 'MMMM d, yyyy')}</span>
                     </p>
                   </div>
                 )}
                 
-                <div className="grid grid-cols-7 gap-1">
-                  {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-                    <div key={day} className="text-center text-xs font-medium text-gray-500 py-2">
+                {/* Month/Year Navigation */}
+                <div className="flex items-center justify-between mb-4">
+                  <button
+                    onClick={() => {
+                      if (calendarMonth === 0) {
+                        setCalendarMonth(11);
+                        setCalendarYear(calendarYear - 1);
+                      } else {
+                        setCalendarMonth(calendarMonth - 1);
+                      }
+                    }}
+                    className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <ChevronRight className="w-5 h-5 text-black rotate-180" />
+                  </button>
+                  
+                  <div className="text-center">
+                    <h4 className="text-lg font-bold text-black">
+                      {format(new Date(calendarYear, calendarMonth), 'MMMM yyyy')}
+                    </h4>
+                  </div>
+                  
+                  <button
+                    onClick={() => {
+                      if (calendarMonth === 11) {
+                        setCalendarMonth(0);
+                        setCalendarYear(calendarYear + 1);
+                      } else {
+                        setCalendarMonth(calendarMonth + 1);
+                      }
+                    }}
+                    className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <ChevronRight className="w-5 h-5 text-black" />
+                  </button>
+                </div>
+                
+                {/* Calendar Grid */}
+                <div className="grid grid-cols-7 gap-2">
+                  {/* Day Headers */}
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                    <div key={day} className="text-center text-xs font-semibold text-black py-2">
                       {day}
                     </div>
                   ))}
                   
-                  {/* Generate calendar - simplified version, you may want to use a library */}
-                  {/* This is just a placeholder for the UI */}
-                  {Array.from({ length: 35 }).map((_, i) => {
-                    const date = addDays(new Date(new Date().setDate(1)), i - new Date(new Date().setDate(1)).getDay());
-                    const isDisabled = earliestStartDate ? isBefore(date, earliestStartDate) : isBefore(date, new Date());
-                    const isSelected = date.toDateString() === startDate.toDateString();
-                    const isCurrentMonth = date.getMonth() === new Date().getMonth();
+                  {/* Calendar Days */}
+                  {(() => {
+                    const firstDayOfMonth = new Date(calendarYear, calendarMonth, 1);
+                    const lastDayOfMonth = new Date(calendarYear, calendarMonth + 1, 0);
+                    const startingDayOfWeek = firstDayOfMonth.getDay();
+                    const daysInMonth = lastDayOfMonth.getDate();
                     
-                    return (
-                      <button
-                        key={i}
-                        onClick={() => {
-                          if (!isDisabled) {
-                            setStartDate(date);
-                            setShowDatePicker(false);
-                          }
-                        }}
-                        disabled={isDisabled}
-                        className={`
-                          h-10 w-full rounded-full flex items-center justify-center text-sm
-                          ${isSelected ? 'bg-orange-500 text-white' : 'hover:bg-orange-100'}
-                          ${!isCurrentMonth ? 'text-gray-400' : 'text-gray-800'}
-                          ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                        `}
-                      >
-                        {date.getDate()}
-                      </button>
-                    );
-                  })}
+                    const calendarDays = [];
+                    
+                    // Previous month's days
+                    for (let i = 0; i < startingDayOfWeek; i++) {
+                      const prevMonthDate = addDays(firstDayOfMonth, -(startingDayOfWeek - i));
+                      const isDisabled = earliestStartDate 
+                        ? isBefore(prevMonthDate, earliestStartDate) 
+                        : isBefore(prevMonthDate, addDays(new Date(), 1));
+                      
+                      calendarDays.push(
+                        <button
+                          key={`prev-${i}`}
+                          disabled
+                          className="h-10 w-full rounded-lg flex items-center justify-center text-sm text-gray-300 cursor-not-allowed"
+                        >
+                          {prevMonthDate.getDate()}
+                        </button>
+                      );
+                    }
+                    
+                    // Current month's days
+                    for (let day = 1; day <= daysInMonth; day++) {
+                      const currentDate = new Date(calendarYear, calendarMonth, day);
+                      const normalize = (date:any) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                      const isDisabled = earliestStartDate 
+                        ? isBefore(normalize(currentDate), normalize(earliestStartDate))
+                        : isBefore(normalize(currentDate), normalize(new Date()));
+                      const isSelected = currentDate.toDateString() === startDate.toDateString();
+                      const isToday = currentDate.toDateString() === new Date().toDateString();
+                      
+                      calendarDays.push(
+                        <button
+                          key={day}
+                          onClick={() => {
+                            if (!isDisabled) {
+                              setStartDate(currentDate);
+                              setShowDatePicker(false);
+                            }
+                          }}
+                          disabled={isDisabled}
+                          className={`
+                            h-10 w-full rounded-lg flex items-center justify-center text-sm font-medium
+                            transition-all duration-200
+                            ${isSelected 
+                              ? 'bg-orange-500 text-white shadow-md scale-105' 
+                              : isToday
+                                ? 'bg-orange-100 text-orange-600 border-2 border-orange-300'
+                                : 'text-black hover:bg-orange-50'
+                            }
+                            ${isDisabled ? 'opacity-40 cursor-not-allowed hover:bg-transparent' : 'cursor-pointer'}
+                          `}
+                        >
+                          {day}
+                        </button>
+                      );
+                    }
+                    
+                    // Next month's days to fill the grid
+                    const remainingDays = 42 - calendarDays.length;
+                    for (let i = 1; i <= remainingDays; i++) {
+                      const nextMonthDate = new Date(calendarYear, calendarMonth + 1, i);
+                      
+                      calendarDays.push(
+                        <button
+                          key={`next-${i}`}
+                          disabled
+                          className="h-10 w-full rounded-lg flex items-center justify-center text-sm text-gray-300 cursor-not-allowed"
+                        >
+                          {i}
+                        </button>
+                      );
+                    }
+                    
+                    return calendarDays;
+                  })()}
                 </div>
               </div>
               
-              <div className="flex justify-end">
+              {/* Footer */}
+              <div className="flex justify-between items-center p-5 border-t border-gray-200">
+                <p className="text-sm text-gray-600">
+                  {startDate && format(startDate, 'MMMM d, yyyy')}
+                </p>
                 <button
                   onClick={() => setShowDatePicker(false)}
-                  className="px-4 py-2 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600"
+                  className="px-6 py-2.5 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors shadow-sm"
                 >
                   Confirm
                 </button>
@@ -482,7 +594,7 @@ export default function FreshPlanPage() {
       </div>
     );
   };
-  
+
   // Updated renderProductSelectionModal function with a more modern UI
 const renderProductSelectionModal = () => {
   if (activeDayIndex === null) return null;
