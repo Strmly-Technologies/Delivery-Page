@@ -33,8 +33,9 @@ export async function GET(request: NextRequest,
       }
     }
 
-   const userDateParam=await params.date;
-    const userDate = userDateParam ? new Date(userDateParam) : new Date();
+    const userDateParam = await params.date;
+    const userDate = new Date(userDateParam ? userDateParam : new Date());
+    userDate.setHours(0, 0, 0, 0);
 
     let currentPlan = null;
     const upcomingPlans: any[] = [];
@@ -50,13 +51,14 @@ export async function GET(request: NextRequest,
 
       for (const plan of sortedPlans) {
         const start = new Date(plan.startDate);
+        start.setHours(0, 0, 0, 0);
         const end = addDays(start, plan.days - 1);
+        end.setHours(0, 0, 0, 0);
 
-        // Find the plan whose date range includes today's date
-        if (isBefore(start, userDate) || isEqual(start, userDate)) {
-          if (isAfter(end, userDate) || isEqual(end, userDate)) {
-            currentPlan = plan;
-          }
+        // Find the plan whose date range includes the user date
+        if ((isBefore(start, userDate) || isEqual(start, userDate)) &&
+            (isAfter(end, userDate) || isEqual(end, userDate))) {
+          currentPlan = plan;
         }
 
         // Collect all plans that start *after* user-sent date

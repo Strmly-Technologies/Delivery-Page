@@ -32,7 +32,7 @@ export default function FreshPlanPage() {
     <div className="py-4 flex items-center justify-between">
       <div className="flex items-center">
         <button 
-          onClick={() => router.push('/dashboard')}
+          onClick={() => router.push('/')}
           className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center mr-3 transition-colors"
         >
           <ArrowLeft className="w-5 h-5 text-black" />

@@ -3,7 +3,7 @@ import { verifyAuth } from "@/lib/serverAuth";
 import UserModel from "@/model/User";
 import { NextRequest, NextResponse } from "next/server";
 import "@/model/Product";
-import { addDays, isAfter, isBefore, isEqual } from "date-fns";
+import { add, addDays, isAfter, isBefore, isEqual } from "date-fns";
 import mongoose from "mongoose";
 
 
@@ -14,9 +14,9 @@ export async function POST(req: NextRequest) {
     const userId = decodedToken.userId;
 
     const { days, startDate, schedule } = await req.json();
-    // add one day to startDate to account for timezone issues
-    
-    const planStartDate = addDays(new Date(startDate), 1);
+    // Normalize the date to start of day
+    const planStartDate = new Date(startDate);
+    planStartDate.setHours(0, 0, 0, 0);
 
     const user = await UserModel.findById(userId);
     if (!user) {
@@ -24,23 +24,31 @@ export async function POST(req: NextRequest) {
     }
 
     // Check for active or overlapping plans
-    if (user.freshPlans&& user?.freshPlans?.length > 0) {
-      const activePlans = user?.freshPlans.filter((plan) => {
-        const planEndDate = addDays(new Date(plan.startDate), plan.days - 1);
-        return isAfter(planEndDate, new Date());
+    if (user.freshPlans && user.freshPlans.length > 0) {
+      const activePlans = user.freshPlans.filter((plan) => {
+        const planEnd = addDays(new Date(plan.startDate), plan.days - 1);
+        planEnd.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return isAfter(planEnd, today) || isEqual(planEnd, today);
       });
 
       if (activePlans.length > 0) {
         let latestEndDate = new Date(0);
         activePlans.forEach((plan) => {
           const endDate = addDays(new Date(plan.startDate), plan.days - 1);
+          endDate.setHours(0, 0, 0, 0);
           if (isAfter(endDate, latestEndDate)) latestEndDate = endDate;
         });
 
+        // Next plan can start the day after the latest plan ends
         const earliestAllowedStartDate = addDays(latestEndDate, 1);
+        earliestAllowedStartDate.setHours(0, 0, 0, 0);
+        
         console.log("Earliest Allowed Start Date:", earliestAllowedStartDate);
         console.log("Requested Plan Start Date:", planStartDate);
-        if (isAfter(earliestAllowedStartDate, planStartDate)) {
+        
+        if (isBefore(planStartDate, earliestAllowedStartDate)) {
           return NextResponse.json(
             {
               error: "New plan must start after your existing plan ends",
@@ -54,7 +62,7 @@ export async function POST(req: NextRequest) {
 
     // Create new plan subdocument
     const newPlan = {
-      _id: new mongoose.Types.ObjectId(), // Generate a manual ObjectId
+      _id: new mongoose.Types.ObjectId(),
       isActive: true,
       days,
       startDate: planStartDate,
@@ -247,19 +255,40 @@ export async function GET(request: NextRequest) {
     }
 
     const freshPlans = user.freshPlans || [];
-    // sort plans by start date
+    
+    if (freshPlans.length === 0) {
+      return NextResponse.json({
+        success: true,
+        hasPlans: false,
+        earliestStartDate: null
+      });
+    }
+    
+    // Sort plans by start date
     freshPlans.sort((a, b) => 
       new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
     );
-    const earliestStartDate = freshPlans.length > 0 ? addDays(freshPlans[freshPlans.length-1].startDate,freshPlans[freshPlans.length-1].days) : null;
+    
+    // Get the last plan
+    const lastPlan = freshPlans[freshPlans.length - 1];
+    
+    // Calculate when the last plan ends
+    const lastPlanEndDate = addDays(new Date(lastPlan.startDate), lastPlan.days - 1);
+    lastPlanEndDate.setHours(0, 0, 0, 0);
+    
+    // Next plan can start the day after
+    const earliestStartDate = addDays(lastPlanEndDate, 1);
+    earliestStartDate.setHours(0, 0, 0, 0);
+    
+    console.log("Last plan ends on:", lastPlanEndDate);
+    console.log("Earliest start date for next plan:", earliestStartDate);
     
     return NextResponse.json({
       success: true,
       hasPlans: true,
-      earliestStartDate
+      earliestStartDate: earliestStartDate.toISOString()
     });
-  }
-    catch (error) {
+  } catch (error) {
     console.error("Check FreshPlan existence error:", error);
     return NextResponse.json(
       { error: "Failed to check plans" },

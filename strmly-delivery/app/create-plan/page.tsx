@@ -96,12 +96,9 @@ export default function FreshPlanPage() {
         if (data.earliestStartDate) {
           const earliestDate = new Date(data.earliestStartDate);
           console.log("Earliest Start Date from API:", earliestDate);
-          // subtract one day to account for timezone issues
-          const adjustedEarliestDate = addDays(earliestDate, -1);
-          console.log("Adjusted Earliest Start Date:", adjustedEarliestDate);
           if (isAfter(earliestDate, new Date())) {
-            setEarliestStartDate(adjustedEarliestDate);
-            setStartDate(adjustedEarliestDate); // Auto-select earliest allowed date
+            setEarliestStartDate(earliestDate);
+            setStartDate(earliestDate); // Auto-select earliest allowed date
           }
         }
       }

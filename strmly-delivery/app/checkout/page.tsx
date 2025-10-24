@@ -731,7 +731,7 @@ interface FreshPlan {
           
           <div className="flex items-center space-x-4">
             <div className="group relative">
-              <Link href='/cart' className="text-gray-700">
+              <Link href={checkoutType==='quicksip'?'/cart':'/current-plan'} className="text-gray-700">
                 <button className="text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors">
                   <ShoppingBag className="w-5 h-5" />
                 </button>
@@ -742,7 +742,7 @@ interface FreshPlan {
             </div>
             
             <div className="group relative">
-              <Link href='/dashboard' className="text-gray-700">
+              <Link href={checkoutType==='quicksip'?'/dashboard':'/freshplan'} className="text-gray-700">
                 <button className="text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors">
                   <Home className="w-5 h-5" />
                 </button>
