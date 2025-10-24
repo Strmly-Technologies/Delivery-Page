@@ -7,6 +7,18 @@
   --secondary: #FFD166;
   --accent: #06D6A0;
 }
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out forwards;
+}
 
 @theme inline {
   --color-background: var(--background);

@@ -17,9 +17,9 @@ export async function POST(request: NextRequest) {
     }
     
     const userId = decodedToken.userId;
-    const { name, description, price, category, imageUrl, isAvailable, smallPrice,mediumPrice, largePrice } = await request.json();
+    const { name, description, price, category, imageUrl, isAvailable, smallPrice,mediumPrice } = await request.json();
     
-    console.log('Product data:', { name, description, price, category, imageUrl, isAvailable , smallPrice, mediumPrice, largePrice});
+    console.log('Product data:', { name, description, price, category, imageUrl, isAvailable , smallPrice, mediumPrice});
     
     // Validation
     if (!name || !description || !price || !category || !imageUrl ) {
@@ -50,7 +50,6 @@ export async function POST(request: NextRequest) {
       createdBy: userId,
         smallPrice:Number(smallPrice) || 0,
         mediumPrice:Number(mediumPrice) || 0,
-        largePrice:Number(largePrice) || 0,
     });
     
     await newProduct.save();

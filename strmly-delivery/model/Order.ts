@@ -14,6 +14,7 @@ interface OrderProduct {
   quantity: number;
   price: number;
   customization: ProductCustomization;
+  timeSlot?: string;
 }
 
 export interface Order extends Document {
@@ -30,10 +31,26 @@ export interface Order extends Document {
   createdAt: Date;
   updatedAt: Date;
   deliveryCharge?: number;
+  deliveryTimeSlot?: string;
   customisablePrices?: {
     category: string;
     price: number;
   }[];
+  orderType: 'quicksip' | 'freshplan';
+  planRelated?: {
+    planDayId?: mongoose.Types.ObjectId;
+    isCompletePlanCheckout?: boolean;
+    daySchedule?: {
+      date: Date;
+      items: {
+        product: mongoose.Types.ObjectId;
+        quantity: number;
+        price: number;
+        customization: ProductCustomization;
+        timeSlot: string;
+      }[];
+    }[];
+  };
 }
 
 const productCustomizationSchema = new Schema<ProductCustomization>(
@@ -53,7 +70,8 @@ const orderProductSchema = new Schema<OrderProduct>(
     product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
     quantity: { type: Number, required: true, min: 1 },
     price: { type: Number, required: true },
-    customization: { type: productCustomizationSchema, required: true }
+    customization: { type: productCustomizationSchema, required: true },
+    timeSlot: { type: String }
   },
   { _id: false }
 );
@@ -79,7 +97,43 @@ const orderSchema: Schema<Order> = new Schema({
   customisablePrices: [{
     category: { type: String },
     price: { type: Number }
+  }],
+  deliveryTimeSlot: { type: String },
+  orderType: {
+    type: String,
+    enum: ['quicksip', 'freshplan'],
+    default: 'quicksip'
+  },
+  planRelated: {
+    planDayId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User.freshPlan.schedule'
+    },
+    isCompletePlanCheckout: {
+      type: Boolean,
+      default: false
+    },
+    daySchedule: [{
+    date: Date,
+    items: [{
+      product: {
+        type: Schema.Types.ObjectId,
+        ref: 'Product'
+      },
+      quantity: Number,
+      price: Number,
+      customization: {
+        size: String,
+        quantity: String,
+        ice: String,
+        sugar: String,
+        dilution: String,
+        finalPrice: Number
+      },
+      timeSlot: String
+    }]
   }]
+  }
 });
 
 orderSchema.pre('save', function (next) {

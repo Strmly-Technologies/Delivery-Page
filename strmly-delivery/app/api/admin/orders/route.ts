@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import { verifyAuth } from '@/lib/serverAuth';
 import OrderModel from '@/model/Order';
+import { startOfDay, endOfDay } from 'date-fns';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,28 +20,44 @@ export async function GET(request: NextRequest) {
     // Get filter parameters
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
+    const orderType = searchParams.get('orderType');
+    const date = searchParams.get('date');
     
     // Build query
-    let query = {};
+    let query: any = {};
+    
     if (status && ['pending', 'accepted', 'out-for-delivery', 'delivered', 'cancelled'].includes(status)) {
-      query = { status };
+      query.status = status;
+    }
+    
+    if (orderType && ['quicksip', 'freshplan'].includes(orderType)) {
+      query.orderType = orderType;
+    }
+    
+    // Add date filtering
+    if (date) {
+      const selectedDate = new Date(date);
+      query.createdAt = {
+        $gte: startOfDay(selectedDate),
+        $lte: endOfDay(selectedDate)
+      };
     }
     
     const orders = await OrderModel.find(query)
       .populate('user', 'username email')
-      .populate('products.product', 'name price imageUrl')
+      .populate('products.product', 'name price image category')
+      .populate({
+        path: 'planRelated.daySchedule.items.product',
+        select: 'name price image category'
+      })
       .sort({ createdAt: -1 });
 
-    
     return NextResponse.json({
       success: true,
       orders
     });
-
-    
-    
   } catch (error) {
-    console.error('Admin get orders error:', error);
+    console.error('Error fetching admin orders:', error);
     return NextResponse.json(
       { error: 'Failed to fetch orders' },
       { status: 500 }

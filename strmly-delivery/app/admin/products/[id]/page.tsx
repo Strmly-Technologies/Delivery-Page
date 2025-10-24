@@ -137,7 +137,6 @@ function ProductDetailContent() {
                   category={product.category} 
                   smallPrice={product.price} 
                   mediumPrice={product.price + 20}
-                  largePrice={product.price + 40}
                   onCustomizationChange={handleCustomizationChange}
                 />
               ) : (

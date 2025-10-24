@@ -16,6 +16,7 @@ export interface CartItem {
   addedAt: Date;
 }
 
+
 export interface User extends Document {
   username: string;
   email: string;
@@ -27,7 +28,88 @@ export interface User extends Document {
   comparePassword(candidatePassword: string): Promise<boolean>;
   role?: string;
   otpVerified?: boolean;
+  freshPlan: any
+  freshPlans?:Array<{
+    _id: any;
+    isActive:boolean;
+    days:number;
+    startDate:Date;
+    schedule:Array<{
+      _id: any;
+      date:Date;
+      items:Array<{
+        _id: any;
+        product:mongoose.Types.ObjectId;
+        customization: any;
+        quantity:number;
+        timeSlot:string;
+      }>;
+    }>;
+    createdAt:Date;
+    paymentComplete:boolean;
+  }>
 }
+
+const freshPlanItemSchema = new Schema({
+  product: {
+    type: Schema.Types.ObjectId,
+    ref: "Product",  // Make sure this reference is correct
+    required: true
+  },
+  customization: {
+    size: { type: String, required: true },
+    quantity: { type: String, required: true },
+    ice: { type: String },
+    sugar: { type: String },
+    dilution: { type: String },
+    finalPrice: { type: Number, required: true },
+  },
+  quantity: {
+    type: Number,
+    required: true,
+    min: 1,
+  },
+  timeSlot: {
+    type: String,
+    required: true,
+  }
+});
+
+// Define freshPlanDaySchema
+const freshPlanDaySchema = new Schema({
+  date: {
+    type: Date,
+    required: true,
+  },
+  items: [freshPlanItemSchema]
+});
+
+// Define freshPlanSchema
+const freshPlanSchema = new Schema({
+  isActive: {
+    type: Boolean,
+    default: false,
+  },
+  days: {
+    type: Number,
+    min: 3,
+    max: 50,
+    required: true
+  },
+  startDate: {
+    type: Date,
+    required: true,
+  },
+  schedule: [freshPlanDaySchema],
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  paymentComplete: {
+    type: Boolean,
+    default: false,
+  }
+});
 
 const cartItemSchema = new Schema<CartItem>({
   product: {
@@ -85,6 +167,11 @@ const userSchema = new Schema<User>({
     },
   ],
   otpVerified: { type: Boolean, default: false },
+  freshPlan:{
+    type:freshPlanSchema,
+    default:null
+  },
+  freshPlans:[freshPlanSchema]
 });
 
 // Update `updatedAt` before save

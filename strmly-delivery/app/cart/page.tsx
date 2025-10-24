@@ -94,8 +94,9 @@ export default function CartPage() {
     }
   }, []);
 
-  const handleCheckoutClick = (e: React.MouseEvent) => {
+const handleCheckoutClick = (e: React.MouseEvent) => {
   e.preventDefault();
+
   if (!isAuthenticated) {
     setShowOtpModal(true);
   } else {
@@ -369,18 +370,21 @@ export default function CartPage() {
                         onVerificationComplete={handleVerificationComplete}
                       />
                 </div>
-
-               <Link
-                  href="/checkout"
+              
+              <div>
+                <button
                   onClick={handleCheckoutClick}
-                  className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-4 px-4 rounded-xl hover:from-orange-600 hover:to-orange-700 transition duration-200 font-bold text-center block shadow-md hover:shadow-lg mb-3"
+                  className={`w-full py-4 px-4 rounded-xl font-bold text-center block shadow-md transition duration-200 ${
+                      ' py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 hover:shadow-lg'
+                  }`}
                 >
                   Proceed to Checkout
-                </Link>
+                </button>
+              </div>
                 
                 <Link
                   href="/dashboard"
-                  className="w-full border-2 border-gray-200 text-gray-700 py-3 px-4 rounded-xl hover:bg-gray-50 transition duration-200 text-center block font-semibold"
+                  className="w-full border-2 mt-4 border-gray-200 text-gray-700 py-3 px-4 rounded-xl hover:bg-gray-50 transition duration-200 text-center block font-semibold"
                 >
                   Add More Items
                 </Link>

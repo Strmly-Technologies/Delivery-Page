@@ -7,6 +7,9 @@ const protectedRoutes = [
   '/checkout',
   '/orders',
   '/order-confirmation',
+  '/freshplan',
+  '/create-plan',
+  '/current-plan',
 ];
 
 // Define admin routes
@@ -15,6 +18,9 @@ const adminRoutes = [
   '/admin/orders',
   '/admin/products/add',
   '/admin/users',
+  '/admin/email',
+  '/admin/others',
+  '/admin/delivery'
 ];
 
 // Define authentication exempt routes
@@ -22,9 +28,6 @@ const authRoutes = ['/login', '/signup', '/admin/login'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  if (pathname === '/') {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
-  }
   if(pathname==='/signup' || pathname==='/login'){
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
@@ -62,7 +65,7 @@ export async function middleware(request: NextRequest) {
     // Then handle protected routes
     if (isProtectedRoute || isAdminRoute) {
       if (!authToken) {
-        const url = new URL(isAdminRoute ? '/admin/login' : '/login', request.url);
+        const url = new URL(isAdminRoute ? '/admin/login' : '/', request.url);
         url.searchParams.set('returnUrl', pathname);
         return NextResponse.redirect(url);
       }
@@ -72,7 +75,7 @@ export async function middleware(request: NextRequest) {
         const { payload } = await jwtVerify(authToken, secret);
 
         if (isAdminRoute && payload.role !== 'admin') {
-          return NextResponse.redirect(new URL('/login', request.url));
+          return NextResponse.redirect(new URL('/admin/login', request.url));
         }
 
         // If we get here, the token is valid and the user has proper permissions

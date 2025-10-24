@@ -13,7 +13,6 @@ interface ProductCustomizationProps {
   category: string;
   smallPrice: number;
   mediumPrice: number;
-  largePrice: number;
   onCustomizationChange: (customization: ProductCustomization, finalPrice: number) => void;
 }
 
@@ -31,7 +30,6 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
   category,
   smallPrice,
   mediumPrice,
-  largePrice,
   onCustomizationChange
 }) => {
   const isJuice = category.toLowerCase() === 'juices';
@@ -39,9 +37,8 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
 
   // Size options with corresponding quantities and price adjustments
   const sizeOptions: SizeOption[] = [
-    { name: 'Regular', quantity: '250mL', priceAdjustment: smallPrice },
-    { name: 'Large', quantity: '350mL', priceAdjustment: mediumPrice },
-    { name: 'Jumbo', quantity: '500mL', priceAdjustment: largePrice },
+    { name: 'Regular', quantity: '300mL', priceAdjustment: smallPrice },
+    { name: 'Large', quantity: '500mL', priceAdjustment: mediumPrice },
   ];
 
   const iceOptions = ['No Ice', 'Less Ice', 'Normal Ice', 'More Ice'];
@@ -88,7 +85,7 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
       {/* Size Selection */}
      <div>
         <h3 className="text-sm font-medium text-gray-900 mb-3">Size</h3>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           {sizeOptions.map((option) => {
             const isChecked = selectedSize.name === option.name;
             return (
