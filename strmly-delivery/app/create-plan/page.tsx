@@ -72,6 +72,14 @@ export default function FreshPlanPage() {
   const [finalPrice, setFinalPrice] = useState(0);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
+  const [allDaysHaveItems, setAllDaysHaveItems] = useState(false);
+
+  useEffect(() => {
+    if (schedule.length > 0) {
+      const allHaveItems = schedule.every(day => day.items.length > 0);
+      setAllDaysHaveItems(allHaveItems);
+    }
+  }, [schedule]);
 
 
 
@@ -310,7 +318,7 @@ export default function FreshPlanPage() {
   };
 
 
-  const renderStartDateSelection = () => {
+ const renderStartDateSelection = () => {
     return (
       <div className="mb-6">
         <h3 className="text-lg font-semibold mb-2 text-black">When do you want to start?</h3>
@@ -384,16 +392,12 @@ export default function FreshPlanPage() {
             )}
           </button>
           
-          {/* Custom date button - only show if there are existing plans */}
-          {hasExistingPlans && (
+          {/* Custom date button - only show if there are existing plans with future end date */}
+          {earliestStartDate && isAfter(earliestStartDate, addDays(new Date(), 1)) && (
             <button
-              onClick={() => {
-                setCalendarMonth(earliestStartDate ? earliestStartDate.getMonth() : new Date().getMonth());
-                setCalendarYear(earliestStartDate ? earliestStartDate.getFullYear() : new Date().getFullYear());
-                setShowDatePicker(true);
-              }}
+              onClick={() => setStartDate(earliestStartDate)}
               className={`p-5 flex items-center justify-between rounded-xl ${
-                !isToday(startDate) && !isTomorrow(startDate)
+                startDate.toDateString() === earliestStartDate.toDateString()
                   ? 'bg-orange-500 text-white shadow-lg ring-2 ring-orange-300'
                   : 'bg-white text-gray-800 shadow-md hover:shadow-lg'
               } transition-all col-span-2`}
@@ -401,16 +405,11 @@ export default function FreshPlanPage() {
               <div className="flex items-center">
                 <Calendar className="w-6 h-6 mr-3 opacity-80" />
                 <div className="text-left">
-                  <p className="font-semibold">Custom Date</p>
-                  {!isToday(startDate) && !isTomorrow(startDate) && (
-                    <p className="text-sm opacity-80">{format(startDate, 'EEEE, MMMM d')}</p>
-                  )}
-                  {(isToday(startDate) || isTomorrow(startDate)) && (
-                    <p className="text-sm opacity-80">Select another date</p>
-                  )}
+                  <p className="font-semibold">After Current Plan</p>
+                  <p className="text-sm opacity-80">{format(earliestStartDate, 'EEEE, MMMM d, yyyy')}</p>
                 </div>
               </div>
-              {!isToday(startDate) && !isTomorrow(startDate) && (
+              {startDate.toDateString() === earliestStartDate.toDateString() && (
                 <div className="w-4 h-4 rounded-full bg-white bg-opacity-30"></div>
               )}
             </button>
@@ -420,178 +419,6 @@ export default function FreshPlanPage() {
         <div className="text-center text-sm text-gray-600 mt-6">
           Your plan will run for {duration} days starting {format(startDate, 'MMMM d, yyyy')}
         </div>
-        
-        {/* Date Picker Modal */}
-        {showDatePicker && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl w-full max-w-md mx-4 shadow-2xl">
-              {/* Header */}
-              <div className="flex justify-between items-center p-5 border-b border-gray-200">
-                <h3 className="text-xl font-bold text-black">Select Start Date</h3>
-                <button 
-                  onClick={() => setShowDatePicker(false)}
-                  className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-                >
-                  <X className="w-5 h-5 text-black" />
-                </button>
-              </div>
-              
-              <div className="p-5">
-                {/* Info Message */}
-                {earliestStartDate && isAfter(earliestStartDate, addDays(new Date(), 1)) && (
-                  <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                    <p className="text-sm text-black">
-                      Earliest available date: <span className="font-semibold">{format(earliestStartDate, 'MMMM d, yyyy')}</span>
-                    </p>
-                  </div>
-                )}
-                
-                {/* Month/Year Navigation */}
-                <div className="flex items-center justify-between mb-4">
-                  <button
-                    onClick={() => {
-                      if (calendarMonth === 0) {
-                        setCalendarMonth(11);
-                        setCalendarYear(calendarYear - 1);
-                      } else {
-                        setCalendarMonth(calendarMonth - 1);
-                      }
-                    }}
-                    className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    <ChevronRight className="w-5 h-5 text-black rotate-180" />
-                  </button>
-                  
-                  <div className="text-center">
-                    <h4 className="text-lg font-bold text-black">
-                      {format(new Date(calendarYear, calendarMonth), 'MMMM yyyy')}
-                    </h4>
-                  </div>
-                  
-                  <button
-                    onClick={() => {
-                      if (calendarMonth === 11) {
-                        setCalendarMonth(0);
-                        setCalendarYear(calendarYear + 1);
-                      } else {
-                        setCalendarMonth(calendarMonth + 1);
-                      }
-                    }}
-                    className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    <ChevronRight className="w-5 h-5 text-black" />
-                  </button>
-                </div>
-                
-                {/* Calendar Grid */}
-                <div className="grid grid-cols-7 gap-2">
-                  {/* Day Headers */}
-                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                    <div key={day} className="text-center text-xs font-semibold text-black py-2">
-                      {day}
-                    </div>
-                  ))}
-                  
-                  {/* Calendar Days */}
-                  {(() => {
-                    const firstDayOfMonth = new Date(calendarYear, calendarMonth, 1);
-                    const lastDayOfMonth = new Date(calendarYear, calendarMonth + 1, 0);
-                    const startingDayOfWeek = firstDayOfMonth.getDay();
-                    const daysInMonth = lastDayOfMonth.getDate();
-                    
-                    const calendarDays = [];
-                    
-                    // Previous month's days
-                    for (let i = 0; i < startingDayOfWeek; i++) {
-                      const prevMonthDate = addDays(firstDayOfMonth, -(startingDayOfWeek - i));
-                      const isDisabled = earliestStartDate 
-                        ? isBefore(prevMonthDate, earliestStartDate) 
-                        : isBefore(prevMonthDate, addDays(new Date(), 1));
-                      
-                      calendarDays.push(
-                        <button
-                          key={`prev-${i}`}
-                          disabled
-                          className="h-10 w-full rounded-lg flex items-center justify-center text-sm text-gray-300 cursor-not-allowed"
-                        >
-                          {prevMonthDate.getDate()}
-                        </button>
-                      );
-                    }
-                    
-                    // Current month's days
-                    for (let day = 1; day <= daysInMonth; day++) {
-                      const currentDate = new Date(calendarYear, calendarMonth, day);
-                      const normalize = (date:any) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
-                      const isDisabled = earliestStartDate 
-                        ? isBefore(normalize(currentDate), normalize(earliestStartDate))
-                        : isBefore(normalize(currentDate), normalize(new Date()));
-                      const isSelected = currentDate.toDateString() === startDate.toDateString();
-                      const isToday = currentDate.toDateString() === new Date().toDateString();
-                      
-                      calendarDays.push(
-                        <button
-                          key={day}
-                          onClick={() => {
-                            if (!isDisabled) {
-                              setStartDate(currentDate);
-                              setShowDatePicker(false);
-                            }
-                          }}
-                          disabled={isDisabled}
-                          className={`
-                            h-10 w-full rounded-lg flex items-center justify-center text-sm font-medium
-                            transition-all duration-200
-                            ${isSelected 
-                              ? 'bg-orange-500 text-white shadow-md scale-105' 
-                              : isToday
-                                ? 'bg-orange-100 text-orange-600 border-2 border-orange-300'
-                                : 'text-black hover:bg-orange-50'
-                            }
-                            ${isDisabled ? 'opacity-40 cursor-not-allowed hover:bg-transparent' : 'cursor-pointer'}
-                          `}
-                        >
-                          {day}
-                        </button>
-                      );
-                    }
-                    
-                    // Next month's days to fill the grid
-                    const remainingDays = 42 - calendarDays.length;
-                    for (let i = 1; i <= remainingDays; i++) {
-                      const nextMonthDate = new Date(calendarYear, calendarMonth + 1, i);
-                      
-                      calendarDays.push(
-                        <button
-                          key={`next-${i}`}
-                          disabled
-                          className="h-10 w-full rounded-lg flex items-center justify-center text-sm text-gray-300 cursor-not-allowed"
-                        >
-                          {i}
-                        </button>
-                      );
-                    }
-                    
-                    return calendarDays;
-                  })()}
-                </div>
-              </div>
-              
-              {/* Footer */}
-              <div className="flex justify-between items-center p-5 border-t border-gray-200">
-                <p className="text-sm text-gray-600">
-                  {startDate && format(startDate, 'MMMM d, yyyy')}
-                </p>
-                <button
-                  onClick={() => setShowDatePicker(false)}
-                  className="px-6 py-2.5 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors shadow-sm"
-                >
-                  Confirm
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     );
   };
@@ -922,117 +749,167 @@ const renderProductCustomizationModal = () => {
 
           {/* Step 3: Schedule Configuration */}
           {currentStep === 'schedule' && (
-  <div className="space-y-6">
-    <div className="text-center mb-6">
-      <h2 className="text-2xl font-bold text-gray-900">Set Delivery Schedule</h2>
-      <p className="text-gray-600 mt-1">Choose delivery time for each day</p>
-    </div>
-    
-    <div className="relative overflow-x-auto pb-4 -mx-4 px-4">
-      <div className="flex space-x-4">
-        {schedule.map((day, index) => (
-          <div 
-            key={index}
-            className="flex-shrink-0 w-64 bg-white rounded-xl shadow-md overflow-hidden"
-          >
-            <div className="bg-orange-500 text-white py-2 px-4">
-              <p className="font-semibold">Day {index + 1}</p>
-              <p className="text-xs opacity-90">{format(day.date, 'EEEE, MMM d')}</p>
-            </div>
-            
-            <div className="p-4 space-y-4">
-              <div>
-                <p className="text-xs text-black mb-1">Delivery Time</p>
-                <button
-                  onClick={() => setShowTimePicker(index)}
-                  className="flex items-center justify-between w-full p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  <span className="flex items-center">
-                    <Clock className="w-4 h-4 mr-2 text-orange-500" />
-                    <span className="text-sm text-black">{day.timeSlot}</span>
-                  </span>
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
-                </button>
-              </div>
-              
-                {/* Items List */}
-                {day.items.length > 0 ? (
-                <div className="space-y-2">
-                    <p className="text-xs text-gray-500">Items ({day.items.length})</p>
-                    <div className="max-h-40 overflow-y-auto pr-1 space-y-2">
-                    {day.items.map((item, itemIndex) => (
-                        <div 
-                        key={itemIndex}
-                        className="flex items-center bg-gray-50 rounded-lg p-2 relative group"
-                        >
-                        <div className="w-10 h-10 relative rounded overflow-hidden mr-2">
-                            <Image
-                            src={item.product.image}
-                            alt={item.product.name}
-                            fill
-                            className="object-cover"
-                            />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium truncate text-black">{item.product.name}</p>
-                            <p className="text-xs text-black">{item.customization.size} • ₹{item.customization.finalPrice}</p>
-                        </div>
-                        
-                        {/* Remove button - appears on hover */}
-                        <button
-                            onClick={(e) => {
-                            e.stopPropagation();
-                            removeItemFromDay(index, itemIndex);
-                            }}
-                            className="absolute right-1 top-1 w-5 h-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                            aria-label="Remove item"
-                        >
-                            <X className="w-3 h-3" />
-                        </button>
-                        </div>
-                    ))}
-                    </div>
-                </div>
-                ) : (
-                <div className="h-20 flex items-center justify-center">
-                    <p className="text-xs text-gray-400">No items added yet</p>
-                </div>
-                )}
-              <button 
-                onClick={() => handleAddItem(index)}
-                className="w-full flex items-center justify-center p-2 border border-dashed border-orange-300 rounded-lg hover:bg-orange-50 transition-colors"
-              >
-                <Plus className="w-4 h-4 mr-1 text-orange-500" />
-                <span className="text-sm text-orange-500">Add Item</span>
-              </button>
-            </div>
+      <div className="space-y-6">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Set Delivery Schedule</h2>
+          <p className="text-gray-600 mt-1">Choose delivery time for each day</p>
+        </div>
+        
+        {/* Progress indicator */}
+        <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700">Schedule Progress</span>
+            <span className="text-sm font-semibold text-orange-600">
+              {schedule.filter(day => day.items.length > 0).length}/{schedule.length} days
+            </span>
           </div>
-        ))}
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div 
+              className="bg-gradient-to-r from-orange-500 to-orange-400 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${(schedule.filter(day => day.items.length > 0).length / schedule.length) * 100}%` }}
+            />
+          </div>
+          {!allDaysHaveItems && (
+            <p className="text-xs text-gray-500 mt-2">
+              Add at least one item to each day to continue
+            </p>
+          )}
+        </div>
+        
+        <div className="relative overflow-x-auto pb-4 -mx-4 px-4">
+          <div className="flex space-x-4">
+            {schedule.map((day, index) => {
+              const hasItems = day.items.length > 0;
+              
+              return (
+                <div 
+                  key={index}
+                  className={`flex-shrink-0 w-64 bg-white rounded-xl shadow-md overflow-hidden ${
+                    !hasItems ? 'ring-2 ring-red-300' : ''
+                  }`}
+                >
+                  <div className={`py-2 px-4 ${hasItems ? 'bg-orange-500' : 'bg-red-400'} text-white`}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold">Day {index + 1}</p>
+                        <p className="text-xs opacity-90">{format(day.date, 'EEEE, MMM d')}</p>
+                      </div>
+                      {!hasItems && (
+                        <div className="w-6 h-6 rounded-full bg-white/30 flex items-center justify-center">
+                          <AlertCircle className="w-4 h-4 text-white" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 space-y-4">
+                    <div>
+                      <p className="text-xs text-black mb-1">Delivery Time</p>
+                      <button
+                        onClick={() => setShowTimePicker(index)}
+                        className="flex items-center justify-between w-full p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                      >
+                        <span className="flex items-center">
+                          <Clock className="w-4 h-4 mr-2 text-orange-500" />
+                          <span className="text-sm text-black">{day.timeSlot}</span>
+                        </span>
+                        <ChevronRight className="w-4 h-4 text-gray-400" />
+                      </button>
+                    </div>
+                    
+                    {/* Items List */}
+                    {day.items.length > 0 ? (
+                      <div className="space-y-2">
+                        <p className="text-xs text-gray-500">Items ({day.items.length})</p>
+                        <div className="max-h-40 overflow-y-auto pr-1 space-y-2">
+                          {day.items.map((item, itemIndex) => (
+                            <div 
+                              key={itemIndex}
+                              className="flex items-center bg-gray-50 rounded-lg p-2 relative group"
+                            >
+                              <div className="w-10 h-10 relative rounded overflow-hidden mr-2">
+                                <Image
+                                  src={item.product.image}
+                                  alt={item.product.name}
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium truncate text-black">{item.product.name}</p>
+                                <p className="text-xs text-black">{item.customization.size} • ₹{item.customization.finalPrice}</p>
+                              </div>
+                              
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeItemFromDay(index, itemIndex);
+                                }}
+                                className="absolute right-1 top-1 w-5 h-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                aria-label="Remove item"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="h-20 flex flex-col items-center justify-center bg-red-50 rounded-lg border border-red-200">
+                        <AlertCircle className="w-5 h-5 text-red-500 mb-1" />
+                        <p className="text-xs text-red-600 font-medium">No items added</p>
+                      </div>
+                    )}
+                    
+                    <button 
+                      onClick={() => handleAddItem(index)}
+                      className="w-full flex items-center justify-center p-2 border border-dashed border-orange-300 rounded-lg hover:bg-orange-50 transition-colors"
+                    >
+                      <Plus className="w-4 h-4 mr-1 text-orange-500" />
+                      <span className="text-sm text-orange-500">Add Item</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        
+        <div className="pt-4">
+          {!allDaysHaveItems && (
+            <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg flex items-start">
+              <AlertCircle className="w-5 h-5 text-orange-500 mt-0.5 mr-3 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-gray-800">Complete your schedule</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  Please add at least one item to each day before confirming your plan.
+                </p>
+              </div>
+            </div>
+          )}
+          
+          <div className="flex space-x-4">
+            <button
+              onClick={handlePreviousStep}
+              className="flex-1 py-4 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
+            >
+              Back
+            </button>
+            <button
+              onClick={handleConfirmPlan}
+              disabled={!allDaysHaveItems}
+              className={`flex-1 py-4 rounded-xl font-semibold shadow-md transition-all ${
+                allDaysHaveItems
+                  ? 'bg-gradient-to-r from-orange-500 to-orange-400 text-white hover:shadow-lg'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              Confirm Schedule
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
-    
-    <div className="pt-4">
-      <p className="text-center text-sm text-gray-600 mb-4">
-        You can modify your schedule anytime
-      </p>
-      
-      <div className="flex space-x-4">
-        <button
-          onClick={handlePreviousStep}
-          className="flex-1 py-4 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
-        >
-          Back
-        </button>
-        <button
-          onClick={handleConfirmPlan}
-          className="flex-1 py-4 bg-gradient-to-r from-orange-500 to-orange-400 text-white rounded-xl font-semibold shadow-md"
-        >
-          Confirm Schedule
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+    )}
         </div>
       </div>
 

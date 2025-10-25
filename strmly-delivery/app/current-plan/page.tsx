@@ -64,40 +64,29 @@ export default function CurrentPlanPage() {
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [paymentComplete, setPaymentComplete] = useState(false);
-  
-  // For upcoming and completed plans
   const [expandedPlanDays, setExpandedPlanDays] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchPlans();
-    fetchCompletedPlans()
   }, []);
   
   const fetchPlans = async () => {
   try {
     setLoading(true);
-    const date=new Date().toISOString();
+    const date = new Date().toISOString();
     const response = await fetch(`/api/freshPlan/${date}`);
-    const data: PlanResponse = await response.json();
-
+    const data = await response.json();
+    
     if (!data.success) {
       setError(data.error || 'Failed to fetch plans');
       return;
     }
 
-    // Set current active plan - check for payment status
-    if (data.plan) {
-      setCurrentPlan(data.plan);
-      console.log("✓ Current plan payment status:", data.plan);
-      setPaymentComplete(data.plan.paymentComplete || false);
+    // Set all plans from the response
+    if (data.plans && data.plans.length > 0) {
+      setUpcomingPlans(data.plans);
     }
     
-    // Set upcoming plans (exclude the current one which is already set above)
-    const filteredUpcomingPlans = data.upcomingPlans || [];
-    setUpcomingPlans(filteredUpcomingPlans);
-    
-    // Fetch completed plans
-    await fetchCompletedPlans();
   } catch (error) {
     console.error('Error fetching plans:', error);
     setError('Failed to load your subscription plans');
@@ -337,22 +326,44 @@ const fetchCompletedPlans = async () => {
                         )}
                       </div>
                       
-                      {!plan.paymentComplete && (
-                        <div className="mt-4 grid grid-cols-2 gap-3">
-                          <Link
-                            href={`/checkout?type=freshplan&planId=${plan._id}`}
-                            className="bg-white text-orange-600 text-center py-2.5 rounded-lg text-sm font-medium hover:bg-orange-50 transition-colors shadow"
-                          >
-                            Complete Payment
-                          </Link>
-                          <Link
-                            href={`/freshplan/edit?planId=${plan._id}`}
-                            className="bg-white/20 text-white text-center py-2.5 rounded-lg text-sm font-medium hover:bg-white/30 transition-colors border border-white/30"
-                          >
-                            Edit Plan
-                          </Link>
-                        </div>
-                      )} 
+
+                {!plan.paymentComplete  && (
+                  <div className="mt-4 space-y-2">
+                    <div className="grid grid-cols-2 gap-3">
+                      <Link
+                        href={`/checkout?type=freshplan&planId=${plan._id}`}
+                        className="bg-white text-orange-600 text-center py-2.5 rounded-lg text-sm font-medium hover:bg-orange-50 transition-colors shadow"
+                      >
+                        Complete Payment
+                      </Link>
+                      <Link
+                        href={`/freshplan/edit?planId=${plan._id}`}
+                        className="bg-white/20 text-white text-center py-2.5 rounded-lg text-sm font-medium hover:bg-white/30 transition-colors border border-white/30"
+                      >
+                        Edit Plan
+                      </Link>
+                    </div>
+                    <button
+                      onClick={() => cancelPlan(plan._id)}
+                      className="w-full cursor-pointer py-2.5 rounded-lg text-sm font-medium bg-red-500/90 hover:bg-red-500 text-white transition-colors shadow flex items-center justify-center"
+                    >
+                      <svg 
+                        className="w-4 h-4 mr-1.5" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          strokeWidth={2} 
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" 
+                        />
+                      </svg>
+                      Cancel Plan
+                    </button>
+                  </div>
+                )}
                     </div>
                   </div>
                 );
