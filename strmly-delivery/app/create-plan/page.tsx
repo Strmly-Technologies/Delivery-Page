@@ -71,6 +71,10 @@ export default function FreshPlanPage() {
   const [customization, setCustomization] = useState<CustomizationType | null>(null);
   const [finalPrice, setFinalPrice] = useState(0);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
+
+
+
   
   // New state variables for sequential plans
   const [earliestStartDate, setEarliestStartDate] = useState<Date | null>(null);
@@ -811,13 +815,49 @@ const renderProductCustomizationModal = () => {
                   </div>
                   
                   <div className="flex items-center gap-4">
-                    <button
-                      onClick={() => setDuration(prev => Math.max(MIN_DURATION, prev - 1))}
-                      disabled={duration <= MIN_DURATION}
-                      className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      <Minus className="w-6 h-6" />
-                    </button>
+                            <button
+                  onClick={() => {
+                    if (duration <= MIN_DURATION) {
+                      setShowPopup(true);
+                      return;
+                    }
+                    setDuration(prev => prev - 1);
+                  }}
+                  className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 hover:bg-gray-200 transition-colors"
+                >
+                  <Minus className="w-6 h-6" />
+                </button>
+
+                  {showPopup && (
+  <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 px-4">
+    <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden animate-scale-in">
+      {/* Header with icon */}
+      <div className="bg-gradient-to-r from-orange-500 to-orange-400 p-6 text-center">
+        <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+          <AlertCircle className="w-8 h-8 text-white" />
+        </div>
+        <h3 className="text-xl font-bold text-white">Minimum Duration Required</h3>
+      </div>
+      
+      {/* Content */}
+      <div className="p-6 text-center">
+        <p className="text-gray-700 text-base leading-relaxed">
+          FreshPlan requires a minimum duration of <span className="font-bold text-orange-600">{MIN_DURATION} days</span> to ensure the best experience and value.
+        </p>
+      </div>
+      
+      {/* Footer */}
+      <div className="p-6 pt-0">
+        <button
+          onClick={() => setShowPopup(false)}
+          className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-orange-400 text-white rounded-xl font-semibold shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+        >
+          Got it!
+        </button>
+      </div>
+    </div>
+  </div>
+)}
                     
                     <div className="w-24 h-24 rounded-full bg-orange-500 text-white flex items-center justify-center text-4xl font-bold shadow-lg">
                       {duration}
