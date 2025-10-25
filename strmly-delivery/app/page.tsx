@@ -76,7 +76,7 @@ export default function Home() {
               <p className={`text-sm ${
                 selectedOption === 'quick' ? 'text-orange-100' : 'text-gray-600'
               }`}>
-                Get your fresh juices delivered instantly within 10 minutes
+                Get your fresh juices delivered instantly at your doorstep
               </p>
             </div>
             <ArrowRight className={`w-5 h-5 ${

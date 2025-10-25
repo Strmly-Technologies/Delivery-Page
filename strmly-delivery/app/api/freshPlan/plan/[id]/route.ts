@@ -3,6 +3,7 @@ import { verifyAuth } from "@/lib/serverAuth";
 import UserModel from "@/model/User";
 import mongoose from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
+import Product from "@/model/Product";
 
 export  async function GET(
   request: NextRequest,
@@ -29,7 +30,7 @@ export  async function GET(
     if (plan.schedule) {
       for (const day of plan.schedule) {
         for (const item of day.items) {
-          const product = await mongoose.model("Product").findById(item.product).lean();
+          const product = await Product.findById(item.product).lean();
           (item as any).product = product;
         }
       }
