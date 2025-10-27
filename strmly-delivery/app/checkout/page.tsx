@@ -662,7 +662,19 @@ interface FreshPlan {
                   }
                 });
               }
-              
+
+              // send email after order placement
+              const response = await fetch('/api/email/order-confirmation', {
+                method: 'POST',
+                credentials: 'include',
+                body: JSON.stringify({ orderId: orderData.orderId, type: checkoutType}),
+              }
+              )
+              if(response.ok){
+                console.log("Order confirmation email sent");
+              }else{
+                console.error("Failed to send order confirmation email");
+              }
               router.push(`/order-confirmation?orderId=${orderData.orderId}`);
             } else {
               alert('Payment verification failed. Please contact support.');
