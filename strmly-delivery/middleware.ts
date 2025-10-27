@@ -9,7 +9,7 @@ const protectedRoutes = [
   '/order-confirmation',
   '/freshplan',
   '/create-plan',
-  '/current-plan',
+  '/my-plans',
 ];
 
 // Define admin routes

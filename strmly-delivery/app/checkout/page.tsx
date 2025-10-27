@@ -235,7 +235,7 @@ interface FreshPlan {
       if (planData) {
         // Get all items from all days in the plan
         if(planData.paymentComplete===true){
-          router.push('/current-plan');
+          router.push('/my-plans');
         }
         const allPlanItems: PlanItem[] = [];
         planData.schedule.forEach((day:any) => {
@@ -819,7 +819,7 @@ interface FreshPlan {
           
           <div className="flex items-center space-x-4">
             <div className="group relative">
-              <Link href={checkoutType==='quicksip'?'/cart':'/current-plan'} className="text-gray-700">
+              <Link href={checkoutType==='quicksip'?'/cart':'/my-plans'} className="text-gray-700">
                 <button className="text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors">
                   <ShoppingBag className="w-5 h-5" />
                 </button>

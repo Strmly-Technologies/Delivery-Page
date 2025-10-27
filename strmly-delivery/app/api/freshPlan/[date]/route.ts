@@ -45,10 +45,13 @@ export async function GET(request: NextRequest,
       const allPlans = [...user.freshPlans].sort(
         (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
       );
+      const filteredPlans = allPlans.filter((plan: any) => {
+        return !plan.paymentComplete;
+      });
 
       return NextResponse.json({
         success: true,
-        plans: allPlans, // Return all plans
+        plans: filteredPlans, 
         hasPlans,
       });
     }
