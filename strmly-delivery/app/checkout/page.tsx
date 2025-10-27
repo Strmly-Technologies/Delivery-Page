@@ -947,38 +947,49 @@ interface FreshPlan {
                   )}
                 </div>
                 
-                 {checkoutType === 'quicksip' ? (
-                  <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <label htmlFor="timeSlot" className="block text-sm font-medium text-gray-700">
-                      Delivery Time Slot
-                    </label>
-                    {errors.timeSlot && <p className="text-sm text-red-600">{errors.timeSlot}</p>}
-                  </div>
-                  {availableTimeSlots.length > 0 ? (
-                    <div className="grid grid-cols-2 gap-2">
-                      {availableTimeSlots.map((slot) => (
-                        <button
-                          key={slot.id}
-                          type="button"
-                          onClick={(e) => handleTimeSlotSelect(e, slot.range)}
-                          className={`px-4 py-2 rounded-lg text-sm transition-colors ${
-                            selectedTimeSlot === slot.range
-                              ? 'bg-orange-500 text-white'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
-                        >
-                          {slot.range}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center p-4 bg-orange-50 rounded-lg text-orange-600">
-                      No delivery slots available for today. Please try again tomorrow.
-                    </div>
-                  )}
-                </div>
-                 ) : null}
+              {checkoutType === 'quicksip' ? (
+  <div>
+    <div className="flex justify-between items-center mb-2">
+      <label htmlFor="timeSlot" className="block text-sm font-medium text-gray-700">
+        Delivery Time Slot *
+      </label>
+      {errors.timeSlot && <p className="text-sm text-red-600">{errors.timeSlot}</p>}
+    </div>
+    
+    {availableTimeSlots && availableTimeSlots.length === 0 ? (
+      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+        <p className="text-sm text-red-600">
+          No time slots available for today. Please try again tomorrow or contact support.
+        </p>
+      </div>
+    ) : (
+      <div className="grid grid-cols-2 gap-3">
+        {TIME_SLOTS.map((slot) => {
+          const isDisabled = !availableTimeSlots.includes(slot);
+          const isSelected = selectedTimeSlot === slot.range;
+          
+          return (
+            <button
+              key={slot.range}
+              type="button"
+              onClick={(e) => handleTimeSlotSelect(e, slot.range)}
+              disabled={isDisabled}
+              className={`px-4 py-3 rounded-lg border text-sm font-medium focus:outline-none transition-colors ${
+                isDisabled
+                  ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                  : isSelected
+                    ? 'bg-orange-500 text-white border-orange-500 hover:bg-orange-600'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              {slot.range}
+            </button>
+          );
+        })}
+      </div>
+    )}
+  </div>
+) : null}
 
                 
                 <div className="flex items-center justify-between border-t border-b border-gray-200 py-4 mt-4">
