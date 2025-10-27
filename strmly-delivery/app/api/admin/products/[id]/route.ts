@@ -52,7 +52,6 @@ export async function PUT(
   try {
     await dbConnect();
     
-    // Verify authentication and admin role
     const decodedToken = await verifyAuth(request);
     if (decodedToken.role !== 'admin') {
       return NextResponse.json(
@@ -60,20 +59,31 @@ export async function PUT(
         { status: 403 }
       );
     }
-    
-    const { name, description, price, category, image,smallPrice,mediumPrice } = await request.json();
-    
-    // Basic validation
-    if (!name || !description || !price || !category || !image) {
+
+    const { id } = params;
+    const body = await request.json();
+    const { 
+      name, 
+      description, 
+      price, 
+      category, 
+      image, 
+      smallPrice, 
+      mediumPrice,
+      regularNutrients,
+      largeNutrients
+    } = body;
+
+    // Validation
+    if (!name || !description || !category || !image) {
       return NextResponse.json(
-        { error: 'All fields are required' },
+        { error: 'All required fields must be provided' },
         { status: 400 }
       );
     }
-    
-    // Find and update the product
+
     const updatedProduct = await ProductModel.findByIdAndUpdate(
-      params.id,
+      id,
       {
         name,
         description,
@@ -82,23 +92,26 @@ export async function PUT(
         image,
         smallPrice,
         mediumPrice,
+        regularNutrients: regularNutrients || [],
+        largeNutrients: largeNutrients || [],
         updatedAt: new Date()
       },
       { new: true, runValidators: true }
     );
-    
+
     if (!updatedProduct) {
       return NextResponse.json(
         { error: 'Product not found' },
         { status: 404 }
       );
     }
-    
+
     return NextResponse.json({
       success: true,
-      product: updatedProduct
+      product: updatedProduct,
+      message: 'Product updated successfully'
     });
-    
+
   } catch (error) {
     console.error('Update product error:', error);
     return NextResponse.json(
@@ -107,6 +120,7 @@ export async function PUT(
     );
   }
 }
+
 
 // Delete a product
 export async function DELETE(

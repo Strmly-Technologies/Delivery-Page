@@ -1,5 +1,6 @@
 'use client';
 
+import { Apple, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
@@ -10,18 +11,43 @@ const AddProductPage = () => {
   const router = useRouter();
   
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    category: '',
-    stock: '0',
-    imageUrl: '',
-    isAvailable: true,
-    smallPrice: '',
-    mediumPrice: '',
-  });
+  name: '',
+  description: '',
+  category: '',
+  stock: '0',
+  imageUrl: '',
+  isAvailable: true,
+  smallPrice: '',
+  mediumPrice: '',
+  regularNutrients: [{ name: '', amount: '', unit: 'g' }],
+  largeNutrients: [{ name: '', amount: '', unit: 'g' }]
+});
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const addNutrient = (size: 'regular' | 'large') => {
+  const key = size === 'regular' ? 'regularNutrients' : 'largeNutrients';
+  setFormData(prev => ({
+    ...prev,
+    [key]: [...prev[key], { name: '', amount: '', unit: 'g' }]
+  }));
+};
+const removeNutrient = (size: 'regular' | 'large', index: number) => {
+  const key = size === 'regular' ? 'regularNutrients' : 'largeNutrients';
+  setFormData(prev => ({
+    ...prev,
+    [key]: prev[key].filter((_, i) => i !== index)
+  }));
+};
+const updateNutrient = (size: 'regular' | 'large', index: number, field: string, value: string) => {
+  const key = size === 'regular' ? 'regularNutrients' : 'largeNutrients';
+  setFormData(prev => ({
+    ...prev,
+    [key]: prev[key].map((nutrient, i) => 
+      i === index ? { ...nutrient, [field]: value } : nutrient
+    )
+  }));
+};
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -286,6 +312,154 @@ const AddProductPage = () => {
                       />
                       {errors.mediumPrice && <p className="mt-1 text-sm text-orange-600">{errors.mediumPrice}</p>}
                     </div>
+
+                    <div className="col-span-2 space-y-6 border-t border-gray-200 pt-6">
+  <h3 className="text-lg font-bold text-gray-900 flex items-center">
+    <Apple className="w-5 h-5 mr-2 text-orange-600" />
+    Nutritional Information
+    <span className="text-sm font-normal text-gray-500 ml-2">(Optional)</span>
+  </h3>
+
+  {/* Regular Size Nutrients */}
+  <div className="space-y-4">
+    <div className="flex items-center justify-between">
+      <h4 className="text-sm font-semibold text-gray-900">Regular Size (300mL)</h4>
+      <button
+        type="button"
+        onClick={() => addNutrient('regular')}
+        className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center"
+      >
+        <Plus className="w-4 h-4 mr-1" />
+        Add Nutrient
+      </button>
+    </div>
+    
+    {formData.regularNutrients.map((nutrient, index) => (
+      <div key={index} className="grid grid-cols-12 gap-3 items-end">
+        <div className="col-span-5">
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Nutrient Name
+          </label>
+          <input
+            type="text"
+            value={nutrient.name}
+            onChange={(e) => updateNutrient('regular', index, 'name', e.target.value)}
+            placeholder="e.g., Calories, Protein"
+            className="w-full px-3 py-2 text-sm border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+          />
+        </div>
+        <div className="col-span-3">
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Amount
+          </label>
+          <input
+            type="text"
+            value={nutrient.amount}
+            onChange={(e) => updateNutrient('regular', index, 'amount', e.target.value)}
+            placeholder="100"
+            className="w-full px-3 py-2 text-sm border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+          />
+        </div>
+        <div className="col-span-3">
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Unit
+          </label>
+          <select
+            value={nutrient.unit}
+            onChange={(e) => updateNutrient('regular', index, 'unit', e.target.value)}
+            className="w-full px-3 py-2 text-sm border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+          >
+            <option value="g">g</option>
+            <option value="mg">mg</option>
+            <option value="mcg">mcg</option>
+            <option value="kcal">kcal</option>
+            <option value="ml">ml</option>
+            <option value="%">%</option>
+          </select>
+        </div>
+        <div className="col-span-1">
+          <button
+            type="button"
+            onClick={() => removeNutrient('regular', index)}
+            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    ))}
+  </div>
+
+  {/* Large Size Nutrients */}
+  <div className="space-y-4">
+    <div className="flex items-center justify-between">
+      <h4 className="text-sm font-semibold text-gray-900">Large Size (500mL)</h4>
+      <button
+        type="button"
+        onClick={() => addNutrient('large')}
+        className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center"
+      >
+        <Plus className="w-4 h-4 mr-1" />
+        Add Nutrient
+      </button>
+    </div>
+    
+    {formData.largeNutrients.map((nutrient, index) => (
+      <div key={index} className="grid grid-cols-12 gap-3 items-end">
+        <div className="col-span-5">
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Nutrient Name
+          </label>
+          <input
+            type="text"
+            value={nutrient.name}
+            onChange={(e) => updateNutrient('large', index, 'name', e.target.value)}
+            placeholder="e.g., Calories, Protein"
+            className="w-full px-3 py-2 text-sm border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+          />
+        </div>
+        <div className="col-span-3">
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Amount
+          </label>
+          <input
+            type="text"
+            value={nutrient.amount}
+            onChange={(e) => updateNutrient('large', index, 'amount', e.target.value)}
+            placeholder="150"
+            className="w-full px-3 py-2 text-sm border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+          />
+        </div>
+        <div className="col-span-3">
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Unit
+          </label>
+          <select
+            value={nutrient.unit}
+            onChange={(e) => updateNutrient('large', index, 'unit', e.target.value)}
+            className="w-full px-3 py-2 text-sm border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+          >
+            <option value="g">g</option>
+            <option value="mg">mg</option>
+            <option value="mcg">mcg</option>
+            <option value="kcal">kcal</option>
+            <option value="ml">ml</option>
+            <option value="%">%</option>
+          </select>
+        </div>
+        <div className="col-span-1">
+          <button
+            type="button"
+            onClick={() => removeNutrient('large', index)}
+            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
 
                    
                   </div>
