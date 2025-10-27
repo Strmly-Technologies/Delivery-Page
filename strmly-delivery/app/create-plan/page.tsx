@@ -75,6 +75,7 @@ export default function FreshPlanPage() {
   const [showPopup, setShowPopup] = useState(false);
   const [allDaysHaveItems, setAllDaysHaveItems] = useState(false);
   const [todayTimeSlots,setTodayTimeSlots]=useState<TimeSlot[]>([]);
+  const [ProductsToAllDays,setProductsToAllDays]=useState<Boolean>(false);
 
   useEffect(() => {
     if (schedule.length > 0) {
@@ -210,11 +211,23 @@ export default function FreshPlanPage() {
   };
 
   const handleTimeSlotChange = (dayIndex: number, timeSlot: string) => {
-    const updatedSchedule = [...schedule];
-    updatedSchedule[dayIndex].timeSlot = timeSlot;
+  if(dayIndex === -1){
+    // Set time slot for all days
+    const updatedSchedule = schedule.map(day => ({
+      ...day,
+      timeSlot: timeSlot
+    }));
     setSchedule(updatedSchedule);
     setShowTimePicker(null);
-  };
+    return; // Exit early after setting all days
+  }
+  
+  // Set time slot for specific day
+  const updatedSchedule = [...schedule];
+  updatedSchedule[dayIndex].timeSlot = timeSlot;
+  setSchedule(updatedSchedule);
+  setShowTimePicker(null);
+};
 
   const incrementDuration = () => {
     if (duration < MAX_DURATION) {
@@ -229,6 +242,9 @@ export default function FreshPlanPage() {
   };
 
   const handleAddItem = (dayIndex: number) => {
+    if(dayIndex===-1){
+      setProductsToAllDays(true);
+    }
     setActiveDayIndex(dayIndex);
   };
   
@@ -254,6 +270,30 @@ export default function FreshPlanPage() {
   updatedSchedule[dayIndex].items.splice(itemIndex, 1);
   setSchedule(updatedSchedule);
 };
+
+const addProductToAllDays=()=>{
+  if(!selectedProduct || !customization){
+    return;
+  }
+  const updatedSchedule = schedule.map(day => {
+    const newDay={
+      ...day,
+      items:[...day.items,{
+        product: selectedProduct,
+        customization,
+        quantity: customization.orderQuantity || 1,
+        timeSlot: day.timeSlot,
+        _id: `temp-${Date.now()}`
+      }
+      ]
+    }
+    return newDay;
+  });
+  setSchedule(updatedSchedule);
+  closeProductCustomization();
+    
+
+}
   
  const handleConfirmPlan = async () => {
     try {
@@ -433,7 +473,7 @@ export default function FreshPlanPage() {
 const renderProductSelectionModal = () => {
   if (activeDayIndex === null) return null;
   
-  const day = schedule[activeDayIndex];
+  const day = activeDayIndex!==-1?schedule[activeDayIndex]:null;
   
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex flex-col">
@@ -589,7 +629,7 @@ const renderProductCustomizationModal = () => {
           <span className="text-xl font-bold text-black">₹{finalPrice}</span>
         </div>
         <button
-          onClick={addProductToDay}
+          onClick={!ProductsToAllDays?addProductToDay:addProductToAllDays}
           disabled={!customization}
           className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm ${
             customization
@@ -597,7 +637,7 @@ const renderProductCustomizationModal = () => {
               : 'bg-gray-200 text-black/50'
           } transition-colors`}
         >
-          {customization ? 'Add to Day ' + (activeDayIndex !== null ? activeDayIndex + 1 : '') : 'Select Options'}
+          {customization ? 'Add to Day ' + (activeDayIndex !== -1 ? activeDayIndex! + 1 : '') : 'Select Options'}
         </button>
       </div>
     </div>
@@ -894,6 +934,50 @@ const renderProductCustomizationModal = () => {
               </div>
             </div>
           )}
+
+         <div className="space-y-3 mb-6">
+  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Quick Actions</p>
+  
+  <div className="grid grid-cols-1 gap-3">
+    <button 
+      className="group relative overflow-hidden bg-gradient-to-r from-orange-500 to-orange-400 text-white rounded-xl p-4 shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+      onClick={() => setShowTimePicker(-1)}
+    >
+      <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+      <div className="relative flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+            <Clock className="w-5 h-5 text-white" />
+          </div>
+          <div className="text-left">
+            <p className="font-semibold text-sm">Set Time for All Days</p>
+            <p className="text-xs text-white/80">Apply same delivery time</p>
+          </div>
+        </div>
+        <ChevronRight className="w-5 h-5 text-white/80 group-hover:translate-x-1 transition-transform" />
+      </div>
+    </button>
+
+    <button 
+    onClick={()=>handleAddItem(-1)}
+      className="group relative overflow-hidden bg-white border-2 border-orange-200 text-gray-700 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-orange-300 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+    >
+      <div className="absolute inset-0 bg-orange-50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+      <div className="relative flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center group-hover:bg-orange-200 transition-colors">
+            <Plus className="w-5 h-5 text-orange-600" />
+          </div>
+          <div className="text-left">
+            <p className="font-semibold text-sm text-gray-800">Copy Items to All Days</p>
+            <p className="text-xs text-gray-500">Duplicate first day's items</p>
+          </div>
+        </div>
+        <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
+      </div>
+    </button>
+  </div>
+</div>
           
           <div className="flex space-x-4">
             <button
@@ -935,8 +1019,49 @@ const renderProductCustomizationModal = () => {
       </div>
       
       <div className="p-4 max-h-96 overflow-y-auto">
-        {/* Check if the selected day is today */}
-        {isToday(schedule[showTimePicker]?.date) ? (
+        {/* Setting time for all days when showTimePicker === -1 */}
+        {showTimePicker === -1 ? (
+          <div className="space-y-4">
+            <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg flex items-start">
+              <AlertCircle className="w-5 h-5 text-orange-500 mt-0.5 mr-3 flex-shrink-0" />
+              <div>
+                <p className="text-sm text-gray-800">
+                  You are setting the delivery time for all the days
+                </p>
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="text-sm font-medium text-black mb-2">Morning Slots</h4>
+              <div className="grid grid-cols-2 gap-2">
+                {TIME_SLOTS.filter(slot => slot.type === 'morning').map((slot) => (
+                  <button
+                    key={slot.id}
+                    onClick={() => handleTimeSlotChange(showTimePicker, slot.range)}
+                    className="p-3 rounded-lg text-left bg-gray-100 hover:bg-gray-200 text-gray-800"
+                  >
+                    <span className="font-medium">{slot.range}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="text-sm font-medium text-black mb-2">Evening Slots</h4>
+              <div className="grid grid-cols-2 gap-2">
+                {TIME_SLOTS.filter(slot => slot.type === 'evening').map((slot) => (
+                  <button
+                    key={slot.id}
+                    onClick={() => handleTimeSlotChange(showTimePicker, slot.range)}
+                    className="p-3 rounded-lg text-left bg-gray-100 hover:bg-gray-200 text-gray-800"
+                  >
+                    <span className="font-medium">{slot.range}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : isToday(schedule[showTimePicker]?.date) ? (
           // Show only available slots for today
           <div className="space-y-4">
             {todayTimeSlots.length > 0 ? (
