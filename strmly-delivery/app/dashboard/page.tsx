@@ -44,12 +44,44 @@ export default function BesomMobileUI() {
   const [finalPrice, setFinalPrice] = useState(0);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [cartItemCount, setCartItemCount] = useState(0);
+  const [productQuantities, setProductQuantities] = useState<Record<string, number>>({});
+
 
 useEffect(() => {
   if(!localStorage.getItem('latitude') && !localStorage.getItem('longitude')){
   getLocation();
   }
 }, []);
+
+const getProductQuantityInCart = (productId: string): number => {
+    return productQuantities[productId] || 0;
+  };
+
+
+  const updateProductQuantities = async () => {
+    try {
+      if (isAuthenticated) {
+        const response = await fetch('/api/cart', { credentials: 'include' });
+        const data = await response.json();
+        if (data.success) {
+          const quantities: Record<string, number> = {};
+          data.cart.forEach((item: any) => {
+            quantities[item.product._id] = (quantities[item.product._id] || 0) + 1;
+          });
+          setProductQuantities(quantities);
+        }
+      } else {
+        const localCartItems = localCart.getItems();
+        const quantities: Record<string, number> = {};
+        localCartItems.forEach((item: any) => {
+          quantities[item.productId] = (quantities[item.productId] || 0) + 1;
+        });
+        setProductQuantities(quantities);
+      }
+    } catch (error) {
+      console.error('Error updating product quantities:', error);
+    }
+  };
 
 const getLocation=async()=>{
   const position = await new Promise<GeolocationPosition>((resolve, reject) => {
@@ -155,24 +187,81 @@ const getLocation=async()=>{
 };
   
 const fetchCartCount = async () => {
-  try {
-    if (isAuthenticated) {
-      const response = await fetch('/api/cart', {
-        credentials: 'include'
-      });
-      const data = await response.json();
-      if (data.success) {
-        setCartItemCount(data.cart.length);
+    try {
+      if (isAuthenticated) {
+        const response = await fetch('/api/cart', { credentials: 'include' });
+        const data = await response.json();
+        if (data.success) {
+          setCartItemCount(data.cart.length);
+          // Update quantities
+          const quantities: Record<string, number> = {};
+          data.cart.forEach((item: any) => {
+            quantities[item.product._id] = (quantities[item.product._id] || 0) + 1;
+          });
+          setProductQuantities(quantities);
+        }
+      } else {
+        const localCartItems = localCart.getItems();
+        setCartItemCount(localCartItems.length);
+        const quantities: Record<string, number> = {};
+        localCartItems.forEach((item: any) => {
+          quantities[item.productId] = (quantities[item.productId] || 0) + 1;
+        });
+        setProductQuantities(quantities);
       }
-    } else {
-      const localCartItems = localCart.getItems();
-      setCartItemCount(localCartItems.length);
-      console.log('Local cart items for count:', localCartItems);
+    } catch (error) {
+      console.error('Error fetching cart count:', error);
     }
-  } catch (error) {
-    console.error('Error fetching cart count:', error);
-  }
-};
+  };
+    // Call updateProductQuantities on mount and when cart changes
+  useEffect(() => {
+    updateProductQuantities();
+  }, [isAuthenticated, cartItemCount]);
+
+  const quickAddToCart = async (productId: string) => {
+    setCartLoading(productId);
+    try {
+      if (isAuthenticated) {
+        const response = await fetch('/api/cart', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productId: productId,
+            quickAdd: true // Flag to use last customization
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          fetchCartCount();
+        }
+      } else {
+        // For local cart, we'll use default customization
+        const product = products.find(p => p._id === productId);
+        if (product) {
+          localCart.addItem({
+            productId: productId,
+            customization: {
+              size: 'Large',
+              quantity: '500mL',
+              finalPrice: product.mediumPrice || product.price,
+              orderQuantity: 1
+            },
+            price: product.mediumPrice || product.price,
+            quantity: 1,
+            addedAt: new Date().toISOString()
+          });
+          fetchCartCount();
+        }
+      }
+    } catch (error) {
+      console.error('Error quick adding to cart:', error);
+    } finally {
+      setCartLoading(null);
+    }
+  };
+
+  
 
   const fetchUIHeader=async()=>{
     try {
@@ -439,32 +528,49 @@ const fetchCartCount = async () => {
           {/* Products Grid */}
           <div className="space-y-5">
   {filteredProducts.map((product) => (
-    <div onClick={()=>openCustomizationModal(product)} key={product._id} className={`bg-gradient-to-br ${getCategoryColor(product.category)} rounded-3xl p-6 relative overflow-hidden shadow-lg`}>
-      <div className="flex justify-between items-center">
-        <div className="relative z-10">
-          <h3 className="text-white text-xl font-bold mb-1 w-56">{product.name}</h3>
-          <p className="text-white text-2xl font-bold mb-4">₹{product.price}</p>
-          <button
-            onClick={() => openCustomizationModal(product)}
-            className={`px-6 py-2 rounded-full text-sm font-semibold transition ${
-             'bg-white cursor-pointer text-gray-800 hover:bg-gray-100'
-            }`}
-          >
-            Add
-          </button>
-        </div>
-        <div className="relative">
-          <Image 
-            src={product.image}
-            alt={product.name}
-            width={100} 
-            height={100} 
-            className="transform rounded-lg hover:rotate-0 transition-transform duration-300 drop-shadow-xl"
-          />
-        </div>
+  <div 
+    onClick={() => openCustomizationModal(product)} 
+    key={product._id} 
+    className={`bg-gradient-to-br ${getCategoryColor(product.category)} rounded-3xl p-4 sm:p-6 relative overflow-hidden shadow-lg cursor-pointer`}
+  >
+    <div className="flex justify-between items-center gap-3">
+      <div className="relative z-10 flex-1 min-w-0">
+        <h3 className="text-white text-base sm:text-xl font-bold mb-1 line-clamp-2 pr-2">
+          {product.name}
+        </h3>
+        <p className="text-white text-xl sm:text-2xl font-bold mb-3 sm:mb-4">
+          ₹{product.price}
+        </p>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            openCustomizationModal(product);
+          }}
+          className="px-4 sm:px-6 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold transition bg-white cursor-pointer text-gray-800 hover:bg-gray-100 active:scale-95"
+        >
+          Add
+        </button>
+      </div>
+      
+          <div className="relative flex-shrink-0">
+      <div className="relative w-20 h-20 xs:w-24 xs:h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 lg:w-36 lg:h-36">
+        <Image
+          src={product.image}
+          alt={product.name}
+          fill
+          className="object-contain rounded-lg hover:scale-105 transition-transform duration-300 drop-shadow-xl"
+          sizes="(max-width: 640px) 100px, 
+                (max-width: 768px) 120px, 
+                (max-width: 1024px) 140px, 
+                160px"
+          priority
+        />
       </div>
     </div>
-  ))}
+
+    </div>
+  </div>
+))}
 </div>
 
           {filteredProducts.length === 0 && (
@@ -499,14 +605,18 @@ const fetchCartCount = async () => {
 
             {/* Header */}
             <div className="flex items-start justify-between px-5 py-3 border-b border-gray-100">
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-gray-900">{selectedProduct.name}</h3>
-                <p className="text-sm text-gray-500 mt-1">{selectedProduct.description}</p>
-              </div>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 -mt-1">
-                <X size={24} />
-              </button>
+          <div className="flex-1 pr-4">
+            <h3 className="text-lg font-bold text-gray-900">{selectedProduct.name}</h3>
+            <div className="mt-1 max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+              <p className="text-sm text-gray-500 leading-relaxed pr-2">
+                {selectedProduct.description}
+              </p>
             </div>
+          </div>
+          <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 flex-shrink-0">
+            <X size={24} />
+          </button>
+          </div>
 
             {/* Scrollable Customization Content */}
             <div className="flex-1 overflow-y-auto px-5">

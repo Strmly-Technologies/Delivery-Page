@@ -48,6 +48,12 @@ export interface User extends Document {
     createdAt:Date;
     paymentComplete:boolean;
   }>
+  savedAddresses?: Array<{
+    addressName: string;
+    deliveryAddress: string;
+    additionalAddressDetails?: string;
+    phoneNumber?: string;
+  }>;
 }
 
 const freshPlanItemSchema = new Schema({
@@ -171,7 +177,15 @@ const userSchema = new Schema<User>({
     type:freshPlanSchema,
     default:null
   },
-  freshPlans:[freshPlanSchema]
+  freshPlans:[freshPlanSchema],
+  savedAddresses: [
+    {
+      addressName: { type: String, required: true },
+      deliveryAddress:{type: String, required: true },
+      additionalAddressDetails: { type: String },
+      phoneNumber: { type: String }
+    }
+  ]
 });
 
 // Update `updatedAt` before save
