@@ -29,6 +29,7 @@ interface Customization {
   sugar?: string;
   dilution?: string;
   finalPrice: number;
+  fibre?:Boolean
   orderQuantity?: number;
 }
 
@@ -1073,6 +1074,7 @@ interface FreshPlan {
                           {item.customization.ice && ` • ${item.customization.ice}`}
                           {item.customization.sugar && ` • ${item.customization.sugar}`}
                           {item.customization.dilution && ` • ${item.customization.dilution}`}
+                          {item.customization.fibre!==undefined && item.customization.fibre?" With Fibre":" Without Fibre"}
                         </p>
                         <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                       </div>

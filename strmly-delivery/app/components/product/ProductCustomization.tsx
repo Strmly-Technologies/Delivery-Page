@@ -23,6 +23,7 @@ export interface ProductCustomization {
   ice?: string;
   sugar?: string;
   dilution?: string;
+  fibre?: boolean;
   finalPrice: number;
 }
 
@@ -44,6 +45,8 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
   const iceOptions = ['No Ice', 'Less Ice', 'Normal Ice', 'More Ice'];
   const sugarOptions = ['No Sugar', 'Less Sugar', 'Normal Sugar'];
   const dilutionOptions = ['Normal', 'Concentrated', 'Diluted'];
+  const fibreOptionDetails=["Thicker juice with natural pulp; richer in nutrients and keeps you full longer.", "Smooth, light, and easy to drink."]
+  const [fibreOption, setFibreOption] = useState(false);
 
   // Default selections
   const [selectedSize, setSelectedSize] = useState<SizeOption>(sizeOptions[1]); // Medium by default
@@ -69,16 +72,19 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
 
     if (isJuice) {
       customization.ice = selectedIce;
+      customization.fibre = fibreOption;
     }
 
     if (isShake) {
       customization.ice = selectedIce;
       customization.sugar = selectedSugar;
       customization.dilution = selectedDilution;
+      customization.fibre = fibreOption;
     }
 
+
    onCustomizationChange(customization, calculateFinalPrice());
-}, [selectedSize, selectedIce, selectedSugar, selectedDilution, orderQuantity]); 
+}, [selectedSize, selectedIce, selectedSugar, selectedDilution, orderQuantity,fibreOption]); 
 
   return (
     <div className="space-y-6 py-4">
@@ -119,6 +125,7 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
 
       {/* Ice Options - Available for both Juices and Shakes */}
       {(isJuice || isShake) && (
+        <>
         <div>
           <h3 className="text-sm font-medium text-gray-900 mb-3">Ice Preference</h3>
           <RadioGroup value={selectedIce} onChange={setSelectedIce}>
@@ -158,6 +165,63 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
             </div>
           </RadioGroup>
         </div>
+
+        {/* Fibre Option - Available for both Juices and Shakes */}
+        <div>
+          <h3 className="text-sm font-medium text-gray-900 mb-3">Fibre Preference</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setFibreOption(true)}
+              className={`${
+                fibreOption
+                  ? 'bg-orange-100 border-orange-500 text-orange-800 ring-2 ring-orange-500'
+                  : 'border bg-white border-gray-200 text-gray-900 hover:bg-gray-50'
+              }
+              relative flex flex-col cursor-pointer rounded-lg p-4 shadow-sm focus:outline-none transition-colors duration-200`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className={`font-semibold text-sm ${fibreOption ? 'text-orange-800' : 'text-gray-900'}`}>
+                  With Fibre
+                </span>
+                {fibreOption && (
+                  <svg className="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                )}
+              </div>
+              <p className={`text-xs text-left ${fibreOption ? 'text-orange-700' : 'text-gray-600'}`}>
+                {fibreOptionDetails[0]}
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setFibreOption(false)}
+              className={`${
+                !fibreOption
+                  ? 'bg-orange-100 border-orange-500 text-orange-800 ring-2 ring-orange-500'
+                  : 'border bg-white border-gray-200 text-gray-900 hover:bg-gray-50'
+              }
+              relative flex flex-col cursor-pointer rounded-lg p-4 shadow-sm focus:outline-none transition-colors duration-200`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className={`font-semibold text-sm ${!fibreOption ? 'text-orange-800' : 'text-gray-900'}`}>
+                  Without Fibre
+                </span>
+                {!fibreOption && (
+                  <svg className="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                )}
+              </div>
+              <p className={`text-xs text-left ${!fibreOption ? 'text-orange-700' : 'text-gray-600'}`}>
+                {fibreOptionDetails[1]}
+              </p>
+            </button>
+          </div>
+        </div>
+        </>
       )}
 
       {/* Sugar Options - Only for Shakes */}

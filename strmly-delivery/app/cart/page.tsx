@@ -14,6 +14,7 @@ interface ProductCustomization {
   ice?: string;
   sugar?: string;
   dilution?: string;
+  fibre?: boolean;
   finalPrice: number;
 }
 
@@ -310,6 +311,12 @@ const handleCheckoutClick = (e: React.MouseEvent) => {
                           <div className="flex items-center text-sm text-gray-600">
                             <span className="font-medium mr-2">Ice:</span>
                             <span className="text-gray-700">{item.customization.ice}</span>
+                          </div>
+                        )}
+                        {item.customization.fibre !== undefined && (
+                          <div className="flex items-center text-sm text-gray-600">
+                            <span className="font-medium mr-2">Fibre:</span>
+                            <span className="text-gray-700">{item.customization.fibre ? 'With Fibre' : 'Without Fibre'}</span>
                           </div>
                         )}
                         

@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document } from "mongoose";
 import bcrypt from "bcryptjs";
+import { fi } from "date-fns/locale";
 
 export interface CartItem {
   product: mongoose.Types.ObjectId;
@@ -10,6 +11,7 @@ export interface CartItem {
     sugar?: string;
     dilution?: string;
     finalPrice: number;
+    fibre?: boolean;
   };
   price: number;
   quantity: number;
@@ -68,6 +70,7 @@ const freshPlanItemSchema = new Schema({
     ice: { type: String },
     sugar: { type: String },
     dilution: { type: String },
+    fibre: { type: Boolean },
     finalPrice: { type: Number, required: true },
   },
   quantity: {
@@ -129,6 +132,7 @@ const cartItemSchema = new Schema<CartItem>({
     ice: { type: String },
     sugar: { type: String },
     dilution: { type: String },
+    fibre:{type: Boolean},
     finalPrice: { type: Number, required: true },
   },
   price: { type: Number, required: true },
