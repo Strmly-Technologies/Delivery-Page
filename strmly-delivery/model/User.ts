@@ -21,6 +21,7 @@ export interface CartItem {
 
 export interface User extends Document {
   username: string;
+  phone?:string
   email: string;
   password: string;
   createdAt: Date;
@@ -145,6 +146,11 @@ const userSchema = new Schema<User>({
     type: String,
     required: true,
     unique: true, // already creates index
+  },
+  phone:{
+    type:String,
+    unique:true,
+    sparse:true
   },
   email: {
     type: String,
