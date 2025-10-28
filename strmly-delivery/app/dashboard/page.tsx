@@ -859,80 +859,78 @@ export default function BesomMobileUI() {
             onClick={closeModal}
           />
 
-          {/* Bottom Sheet */}
-          <div
-            className={`fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl shadow-2xl transition-transform duration-300 ease-out max-h-[90vh] flex flex-col ${isModalOpen ? 'translate-y-0' : 'translate-y-full'
-              }`}
-          >
-            {/* Drag Handle */}
-            <div className="flex justify-center pt-3 pb-2">
-              <div className="w-10 h-1 bg-gray-300 rounded-full" />
-            </div>
+         {/* Bottom Sheet */}
+<div
+  className={`fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl shadow-2xl transition-transform duration-300 ease-out max-h-[90vh] flex flex-col ${
+    isModalOpen ? 'translate-y-0' : 'translate-y-full'
+  }`}
+>
+  {/* Drag Handle */}
+  <div className="flex justify-center pt-3 pb-2">
+    <div className="w-10 h-1 bg-gray-300 rounded-full" />
+  </div>
 
-            {/* Header */}
-            <div className="px-5 py-3 border-b border-gray-100">
-              <div className="flex items-start justify-between mb-2">
-                <h3 className="text-lg font-bold text-gray-900 flex-1 pr-4">
-                  {selectedProduct.name}
-                </h3>
-                <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 flex-shrink-0">
-                  <X size={24} />
-                </button>
-              </div>
+  {/* Header - Fixed */}
+  <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+    <h3 className="text-lg font-bold text-gray-900 flex-1 pr-4">
+      {selectedProduct.name}
+    </h3>
+    <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 flex-shrink-0">
+      <X size={24} />
+    </button>
+  </div>
 
-              {/* Description */}
-              <div className="space-y-3">
-                <div className="max-h-24 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                  <p className="text-sm text-gray-600 leading-relaxed pr-2">
-                    {selectedProduct.description}
-                  </p>
-                </div>
+  {/* Single Scrollable Section - Description + Nutrients + Customization */}
+  <div className="flex-1 overflow-y-auto px-5 py-4">
+    {/* Description */}
+    <div className="mb-4">
+      <p className="text-sm text-gray-600 leading-relaxed">
+        {selectedProduct.description}
+      </p>
+    </div>
 
-                {/* Nutrients Button */}
-                {((selectedProduct.regularNutrients && selectedProduct.regularNutrients.length > 0) ||
-                  (selectedProduct.largeNutrients && selectedProduct.largeNutrients.length > 0)) && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openNutrientsModal(selectedProduct);
-                      }}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-200 transition-all border border-orange-200 hover:border-orange-300 group shadow-sm"
-                    >
-                      <div className="w-6 h-6 rounded-full bg-orange-200 group-hover:bg-orange-300 flex items-center justify-center transition-colors">
-                        <Info className="w-3.5 h-3.5 text-orange-700" />
-                      </div>
-                      <span className="text-sm font-semibold text-orange-700 group-hover:text-orange-800 transition-colors">
-                        View Nutritional Information
-                      </span>
-                    </button>
-                  )}
+    {/* Nutrients Button */}
+    {((selectedProduct.regularNutrients && selectedProduct.regularNutrients.length > 0) ||
+      (selectedProduct.largeNutrients && selectedProduct.largeNutrients.length > 0)) && (
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          openNutrientsModal(selectedProduct);
+        }}
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-200 transition-all border border-orange-200 hover:border-orange-300 group shadow-sm mb-4"
+      >
+        <div className="w-6 h-6 rounded-full bg-orange-200 group-hover:bg-orange-300 flex items-center justify-center transition-colors">
+          <Info className="w-3.5 h-3.5 text-orange-700" />
+        </div>
+        <span className="text-sm font-semibold text-orange-700 group-hover:text-orange-800 transition-colors">
+          View Nutritional Information
+        </span>
+      </button>
+    )}
 
-              </div>
-            </div>
+    {/* Customization Options */}
+    <div className="border-t border-gray-100 pt-4 mt-2">
+      <ProductCustomization
+        category={selectedProduct.category}
+        smallPrice={selectedProduct.smallPrice ?? 0}
+        mediumPrice={selectedProduct.mediumPrice ?? 0}
+        onCustomizationChange={handleCustomizationChange}
+      />
+    </div>
+  </div>
 
-
-            {/* Scrollable Customization Content */}
-            <div className="flex-1 overflow-y-auto px-5">
-              <ProductCustomization
-                category={selectedProduct.category}
-                smallPrice={selectedProduct.smallPrice ?? 0}
-                mediumPrice={selectedProduct.mediumPrice ?? 0}
-                onCustomizationChange={handleCustomizationChange}
-              />
-            </div>
-
-            {/* Sticky Footer */}
-            <div className="border-t border-gray-100 bg-white px-5 py-4 shadow-lg">
-              <button
-                onClick={addToCart}
-                disabled={cartLoading === selectedProduct._id || !customization}
-                className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-xl transition shadow-md hover:shadow-lg flex items-center justify-between"
-              >
-                <span>Add to Cart</span>
-                <span className="text-lg">₹{finalPrice || selectedProduct.price}</span>
-              </button>
-            </div>
-          </div>
+  {/* Sticky Footer */}
+  <div className="border-t border-gray-100 bg-white px-5 py-4 shadow-lg flex-shrink-0">
+    <button
+      onClick={addToCart}
+      disabled={cartLoading === selectedProduct._id || !customization}
+      className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-xl transition shadow-md hover:shadow-lg flex items-center justify-between"
+    >
+      <span>Add to Cart</span>
+      <span className="text-lg">₹{finalPrice || selectedProduct.price}</span>
+    </button>
+  </div>
+</div>
         </>
       )}
      {selectedProductForNutrients && (
