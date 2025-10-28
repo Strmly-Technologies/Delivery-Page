@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     // Generate JWT token
     const token = jwt.sign(
       { 
-        userId: newUser._id.toString(), 
+        userId: String(newUser._id).toString(), 
         email: newUser.email,
         username: newUser.username 
       },
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       message: 'Account created successfully',
       user: {
-        id: newUser._id.toString(),
+        id: String(newUser._id).toString(),
         username: newUser.username,
         email: newUser.email,
         fullName: fullName,

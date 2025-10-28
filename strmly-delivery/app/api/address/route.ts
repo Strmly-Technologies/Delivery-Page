@@ -13,7 +13,7 @@ export async function POST(request:NextRequest){
         const decodedToken=await verifyAuth(request);
         const userId= decodedToken.userId;
         const body=await request.json();
-        const {addressName, deliveryAddress, additionalAddressDetails,phoneNumber}=body;
+        const {addressName, deliveryAddress, additionalAddressDetails,phoneNumber,fullName}=body;
 
         // Validate required fields
         if (!addressName || !deliveryAddress || !phoneNumber) {
@@ -26,6 +26,7 @@ export async function POST(request:NextRequest){
             {
                 $push: {
                     savedAddresses: {
+                        fullName,
                         addressName,
                         deliveryAddress,
                         additionalAddressDetails,

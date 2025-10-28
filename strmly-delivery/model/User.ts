@@ -52,6 +52,7 @@ export interface User extends Document {
     paymentComplete:boolean;
   }>
   savedAddresses?: Array<{
+    fullName:string;
     addressName: string;
     deliveryAddress: string;
     additionalAddressDetails?: string;
@@ -164,7 +165,7 @@ const userSchema = new Schema<User>({
   },
   role: {
     type: String,
-    enum: ["customer", "admin"],
+    enum: ["customer", "admin","chef","delivery"],
     default: "customer",
   },
   createdAt: {
@@ -190,6 +191,7 @@ const userSchema = new Schema<User>({
   freshPlans:[freshPlanSchema],
   savedAddresses: [
     {
+      fullName: { type: String, required: false },
       addressName: { type: String, required: true },
       deliveryAddress:{type: String, required: true },
       additionalAddressDetails: { type: String },

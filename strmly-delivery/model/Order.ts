@@ -28,7 +28,7 @@ export interface Order extends Document {
     address: string;
     additionalAddressInfo?: string;
   };
-  status: 'pending' | 'accepted' | 'out-for-delivery' | 'delivered' | 'cancelled';
+  status: 'pending' | 'accepted' | 'out-for-delivery' | 'delivered' | 'cancelled' | 'received' | 'done';
   createdAt: Date;
   updatedAt: Date;
   deliveryCharge?: number;
@@ -90,7 +90,7 @@ const orderSchema: Schema<Order> = new Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'accepted', 'out-for-delivery', 'delivered', 'cancelled'],
+    enum: ['pending', 'accepted', 'out-for-delivery', 'delivered', 'cancelled','received','done'],
     default: 'pending'
   },
   createdAt: { type: Date, default: Date.now },
