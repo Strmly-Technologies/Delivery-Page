@@ -50,10 +50,13 @@ export async function POST(request: NextRequest) {
 
     // Update quantity based on action
     if (action === 'increment') {
+        // also increase the price accordingly
       user.cart[cartItemIndex].quantity += 1;
+      user.cart[cartItemIndex].price += user.cart[cartItemIndex].customization.finalPrice;
     } else if (action === 'decrement') {
       if (user.cart[cartItemIndex].quantity > 1) {
         user.cart[cartItemIndex].quantity -= 1;
+        user.cart[cartItemIndex].price -= user.cart[cartItemIndex].customization.finalPrice;
       } else {
         // Remove item if quantity becomes 0
         user.cart.splice(cartItemIndex, 1);

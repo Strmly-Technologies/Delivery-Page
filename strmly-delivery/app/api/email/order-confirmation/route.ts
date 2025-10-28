@@ -17,7 +17,7 @@ export async function POST(request:NextRequest){
         const emailBody=`
         <div>
           <p>Dear Customer,</p>
-          <p>Thank you for your ${type} order! Your order ID is <strong>${orderId}</strong>.</p>
+          <p>Thank you for your ${type} order! Your order ID is <strong>${orderId.toString().slice(-6).toUpperCase()}</strong>.</p>
           <p>We are processing your order.</p>
           <p> You can view the details of your order in your order history on our website.</p>
           <br/>

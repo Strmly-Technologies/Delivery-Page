@@ -155,7 +155,7 @@ export default function OtpModal({ isOpen, onClose, onVerificationComplete }: Ot
               {/* Phone Number Field */}
               <div className="relative">
                 <label className="block text-sm font-medium text-zinc-400 mb-2">
-                  Phone Number
+                  Whatsapp Number
                 </label>
                 <div className="relative">
                   <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-zinc-500" />

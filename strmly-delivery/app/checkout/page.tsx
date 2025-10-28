@@ -112,6 +112,7 @@ interface FreshPlan {
   const [calculatedDeliveryCharge, setCalculatedDeliveryCharge] = useState(0);
   const [expandedDayId, setExpandedDayId] = useState<string | null>(null);
   const [savedAddresses, setSavedAddresses] = useState<Array<{
+    fullName:string;
     phoneNumber: string;
     _id: number;
     addressName: string;
@@ -147,6 +148,10 @@ interface FreshPlan {
       alert('Please enter an address name');
       return;
     }
+    if(!customerDetails.name.trim()){
+      alert('Please enter your name first');
+      return;
+    }
 
     if (!customerDetails.address.trim()) {
       alert('Please enter a delivery address first');
@@ -161,6 +166,7 @@ interface FreshPlan {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          fullName: customerDetails.name,
           addressName: newAddressName,
           deliveryAddress: customerDetails.address,
           additionalAddressDetails: customerDetails.additionalAddressInfo || '',
@@ -203,6 +209,7 @@ interface FreshPlan {
   const handleSelectSavedAddress = (address: any) => {
     setCustomerDetails(prev => ({
       ...prev,
+      name:address.fullName,
       address: address.deliveryAddress,
       phone: address.phoneNumber || prev.phone,
       additionalAddressInfo: address.additionalAddressDetails || ''
@@ -1235,6 +1242,7 @@ interface FreshPlan {
                       onClick={() => handleSelectSavedAddress(address)}
                       className="w-full text-left p-4 border border-gray-200 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all"
                     >
+                      <h3 className='font-semibold text-black mb-1'>{address.fullName}</h3>
                       <h4 className="font-semibold text-black mb-1">{address.addressName}</h4>
                       <p className="text-sm text-gray-600">{address.deliveryAddress}</p>
                       {address.additionalAddressDetails && (

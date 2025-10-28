@@ -166,7 +166,7 @@ function OrderList() {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Details</h2>
             <div className="space-y-4 mb-6">
               <p className="text-sm text-gray-600">
-                Order ID: <span className="font-medium text-gray-900">#{order._id}</span>
+                Order ID: <span className="font-medium text-gray-900">#{order._id.toString().slice(-6).toUpperCase()}</span>
               </p>
               <p className="text-sm text-gray-600">
                 Date: <span className="font-medium text-gray-900">{format(new Date(order.createdAt), 'PPP')}</span>
