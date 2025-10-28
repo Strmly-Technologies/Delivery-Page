@@ -7,6 +7,7 @@ interface ProductCustomization {
   sugar?: string;
   dilution?: string;
   finalPrice: number;
+  fibre?: boolean;
 }
 
 interface OrderProduct {
@@ -60,6 +61,7 @@ const productCustomizationSchema = new Schema<ProductCustomization>(
     ice: { type: String },
     sugar: { type: String },
     dilution: { type: String },
+    fibre: { type: Boolean },
     finalPrice: { type: Number, required: true }
   },
   { _id: false }
@@ -128,7 +130,8 @@ const orderSchema: Schema<Order> = new Schema({
         ice: String,
         sugar: String,
         dilution: String,
-        finalPrice: Number
+        finalPrice: Number,
+        fibre: Boolean
       },
       timeSlot: String
     }]

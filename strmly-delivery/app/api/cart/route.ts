@@ -83,6 +83,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+
     // Create cart item that matches the schema
     const cartItem = {
   product: new mongoose.Types.ObjectId(productId),
@@ -92,12 +93,14 @@ export async function POST(request: NextRequest) {
     ice: customization.ice || undefined,
     sugar: customization.sugar || undefined,
     dilution: customization.dilution || undefined,
+    fibre: customization.fibre?true:false,
     finalPrice: customization.finalPrice
   },
   price: finalPrice,
   quantity: customization.orderQuantity, 
   addedAt: new Date()
 };
+
 
     // Update user document using findByIdAndUpdate
     const updatedUser = await UserModel.findByIdAndUpdate(

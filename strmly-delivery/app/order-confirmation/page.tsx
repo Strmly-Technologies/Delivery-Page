@@ -368,7 +368,7 @@ function OrderList() {
                 Back to Dashboard
               </Link>
               <Link
-                href={order.orderType === 'freshplan' ? '/current-plan' : '/orders'}
+                href={order.orderType === 'freshplan' ? '/my-plans' : '/orders'}
                 className="block w-full py-3 bg-gray-100 text-gray-700 text-center font-medium rounded-lg hover:bg-gray-200 transition-colors"
               >
                 {order.orderType === 'freshplan' ? 'View Current Plan' : 'View All Orders'}

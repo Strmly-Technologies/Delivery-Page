@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { format, addDays, isToday, isTomorrow, isAfter, isBefore } from 'date-fns';
 import { ChevronRight, Calendar, Clock, Plus, X, ArrowLeft, Minus, AlertCircle } from 'lucide-react';
-import { TIME_SLOTS } from '@/constants/timeSlots';
+import { TIME_SLOTS, TimeSlot } from '@/constants/timeSlots';
 import Link from 'next/link';
 import Image from 'next/image';
 import ProductCustomization, { ProductCustomization as CustomizationType } from '@/app/components/product/ProductCustomization';
+import { getAvailableTimeSlots } from '@/lib/timeUtil';
 
 
 interface PlanStep {
@@ -73,6 +74,8 @@ export default function FreshPlanPage() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [allDaysHaveItems, setAllDaysHaveItems] = useState(false);
+  const [todayTimeSlots,setTodayTimeSlots]=useState<TimeSlot[]>([]);
+  const [ProductsToAllDays,setProductsToAllDays]=useState<Boolean>(false);
 
   useEffect(() => {
     if (schedule.length > 0) {
@@ -81,16 +84,10 @@ export default function FreshPlanPage() {
     }
   }, [schedule]);
 
-
-
-  
   // New state variables for sequential plans
   const [earliestStartDate, setEarliestStartDate] = useState<Date | null>(null);
   const [hasExistingPlans, setHasExistingPlans] = useState(false);
-  
-  // Calendar navigation states
-  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
-  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
+
 
   useEffect(() => {
     checkExistingPlans();
@@ -129,6 +126,9 @@ export default function FreshPlanPage() {
     const canStartTodayByPlans = !earliestStartDate || !isAfter(earliestStartDate, new Date());
     
     setCanStartToday(canStartTodayByTime && canStartTodayByPlans);
+    // find the available time slots for today
+    const timeSlots=getAvailableTimeSlots(TIME_SLOTS);
+    setTodayTimeSlots(timeSlots);
   }, [earliestStartDate]);
 
   // Check if we can start today based on current time
@@ -160,22 +160,29 @@ export default function FreshPlanPage() {
   };
 
   // Initialize schedule when duration and start date are set
-  useEffect(() => {
-    if (currentStep === 'schedule' && duration > 0 && startDate) {
-      const newSchedule: DaySchedule[] = [];
+ useEffect(() => {
+  if (currentStep === 'schedule' && duration > 0 && startDate) {
+    const newSchedule: DaySchedule[] = [];
+    
+    for (let i = 0; i < duration; i++) {
+      const date = addDays(startDate, i);
+      let defaultTimeSlot = TIME_SLOTS[2].range; // Default to 9-10 AM
       
-      for (let i = 0; i < duration; i++) {
-        const date = addDays(startDate, i);
-        newSchedule.push({
-          date,
-          timeSlot: TIME_SLOTS[2].range, // Default to 9-10 AM
-          items: []
-        });
+      // If this is today and there are available slots, use the first available one
+      if (isToday(date) && todayTimeSlots.length > 0) {
+        defaultTimeSlot = todayTimeSlots[0].range;
       }
       
-      setSchedule(newSchedule);
+      newSchedule.push({
+        date,
+        timeSlot: defaultTimeSlot,
+        items: []
+      });
     }
-  }, [duration, startDate, currentStep]);
+    
+    setSchedule(newSchedule);
+  }
+}, [duration, startDate, currentStep, todayTimeSlots]);
 
   const handleNextStep = () => {
     setAnimate(true);
@@ -204,11 +211,23 @@ export default function FreshPlanPage() {
   };
 
   const handleTimeSlotChange = (dayIndex: number, timeSlot: string) => {
-    const updatedSchedule = [...schedule];
-    updatedSchedule[dayIndex].timeSlot = timeSlot;
+  if(dayIndex === -1){
+    // Set time slot for all days
+    const updatedSchedule = schedule.map(day => ({
+      ...day,
+      timeSlot: timeSlot
+    }));
     setSchedule(updatedSchedule);
     setShowTimePicker(null);
-  };
+    return; // Exit early after setting all days
+  }
+  
+  // Set time slot for specific day
+  const updatedSchedule = [...schedule];
+  updatedSchedule[dayIndex].timeSlot = timeSlot;
+  setSchedule(updatedSchedule);
+  setShowTimePicker(null);
+};
 
   const incrementDuration = () => {
     if (duration < MAX_DURATION) {
@@ -223,6 +242,9 @@ export default function FreshPlanPage() {
   };
 
   const handleAddItem = (dayIndex: number) => {
+    if(dayIndex===-1){
+      setProductsToAllDays(true);
+    }
     setActiveDayIndex(dayIndex);
   };
   
@@ -248,6 +270,30 @@ export default function FreshPlanPage() {
   updatedSchedule[dayIndex].items.splice(itemIndex, 1);
   setSchedule(updatedSchedule);
 };
+
+const addProductToAllDays=()=>{
+  if(!selectedProduct || !customization){
+    return;
+  }
+  const updatedSchedule = schedule.map(day => {
+    const newDay={
+      ...day,
+      items:[...day.items,{
+        product: selectedProduct,
+        customization,
+        quantity: customization.orderQuantity || 1,
+        timeSlot: day.timeSlot,
+        _id: `temp-${Date.now()}`
+      }
+      ]
+    }
+    return newDay;
+  });
+  setSchedule(updatedSchedule);
+  closeProductCustomization();
+    
+
+}
   
  const handleConfirmPlan = async () => {
     try {
@@ -427,7 +473,7 @@ export default function FreshPlanPage() {
 const renderProductSelectionModal = () => {
   if (activeDayIndex === null) return null;
   
-  const day = schedule[activeDayIndex];
+  const day = activeDayIndex!==-1?schedule[activeDayIndex]:null;
   
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex flex-col">
@@ -583,7 +629,7 @@ const renderProductCustomizationModal = () => {
           <span className="text-xl font-bold text-black">₹{finalPrice}</span>
         </div>
         <button
-          onClick={addProductToDay}
+          onClick={!ProductsToAllDays?addProductToDay:addProductToAllDays}
           disabled={!customization}
           className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm ${
             customization
@@ -591,7 +637,7 @@ const renderProductCustomizationModal = () => {
               : 'bg-gray-200 text-black/50'
           } transition-colors`}
         >
-          {customization ? 'Add to Day ' + (activeDayIndex !== null ? activeDayIndex + 1 : '') : 'Select Options'}
+          {customization ? 'Add to Day ' + (activeDayIndex !== -1 ? activeDayIndex! + 1 : '') : 'Select Options'}
         </button>
       </div>
     </div>
@@ -788,7 +834,7 @@ const renderProductCustomizationModal = () => {
                     !hasItems ? 'ring-2 ring-red-300' : ''
                   }`}
                 >
-                  <div className={`py-2 px-4 ${hasItems ? 'bg-orange-500' : 'bg-red-400'} text-white`}>
+                  <div className={`py-2 px-4 ${hasItems ? 'bg-orange-500' : 'bg-orange-300'} text-white`}>
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-semibold">Day {index + 1}</p>
@@ -802,6 +848,7 @@ const renderProductCustomizationModal = () => {
                     </div>
                   </div>
                   
+
                   <div className="p-4 space-y-4">
                     <div>
                       <p className="text-xs text-black mb-1">Delivery Time</p>
@@ -845,7 +892,7 @@ const renderProductCustomizationModal = () => {
                                   e.stopPropagation();
                                   removeItemFromDay(index, itemIndex);
                                 }}
-                                className="absolute right-1 top-1 w-5 h-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="absolute right-1 top-1 w-5 h-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center opacity-100 group-hover:opacity-100 transition-opacity"
                                 aria-label="Remove item"
                               >
                                 <X className="w-3 h-3" />
@@ -855,7 +902,7 @@ const renderProductCustomizationModal = () => {
                         </div>
                       </div>
                     ) : (
-                      <div className="h-20 flex flex-col items-center justify-center bg-red-50 rounded-lg border border-red-200">
+                      <div className="h-20 flex flex-col items-center justify-center bg-orange-50 rounded-lg border border-red-200">
                         <AlertCircle className="w-5 h-5 text-red-500 mb-1" />
                         <p className="text-xs text-red-600 font-medium">No items added</p>
                       </div>
@@ -887,6 +934,50 @@ const renderProductCustomizationModal = () => {
               </div>
             </div>
           )}
+
+         <div className="space-y-3 mb-6">
+  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Quick Actions</p>
+  
+  <div className="grid grid-cols-1 gap-3">
+    <button 
+      className="group relative overflow-hidden bg-gradient-to-r from-orange-500 to-orange-400 text-white rounded-xl p-4 shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+      onClick={() => setShowTimePicker(-1)}
+    >
+      <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+      <div className="relative flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+            <Clock className="w-5 h-5 text-white" />
+          </div>
+          <div className="text-left">
+            <p className="font-semibold text-sm">Set Time for All Days</p>
+            <p className="text-xs text-white/80">Apply same delivery time</p>
+          </div>
+        </div>
+        <ChevronRight className="w-5 h-5 text-white/80 group-hover:translate-x-1 transition-transform" />
+      </div>
+    </button>
+
+    <button 
+    onClick={()=>handleAddItem(-1)}
+      className="group relative overflow-hidden bg-white border-2 border-orange-200 text-gray-700 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-orange-300 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+    >
+      <div className="absolute inset-0 bg-orange-50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+      <div className="relative flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center group-hover:bg-orange-200 transition-colors">
+            <Plus className="w-5 h-5 text-orange-600" />
+          </div>
+          <div className="text-left">
+            <p className="font-semibold text-sm text-gray-800">Copy Items to All Days</p>
+            <p className="text-xs text-gray-500">Duplicate first day's items</p>
+          </div>
+        </div>
+        <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
+      </div>
+    </button>
+  </div>
+</div>
           
           <div className="flex space-x-4">
             <button
@@ -915,62 +1006,170 @@ const renderProductCustomizationModal = () => {
 
       {/* Time Slot Picker Modal */}
       {showTimePicker !== null && (
-        <div className="fixed inset-0 bg-black/50  text-black z-40 flex items-end justify-center p-4">
-          <div className="bg-white rounded-t-2xl text-black w-full max-w-md animate-slide-up">
-            <div className="flex justify-between items-center p-4 border-b">
-              <h3 className="font-semibold text-black">Select Delivery Time</h3>
-              <button 
-                onClick={() => setShowTimePicker(null)}
-                className="p-2 hover:bg-gray-100 rounded-full"
-              >
-                <X className="w-5 h-5" />
-              </button>
+  <div className="fixed inset-0 bg-black/50 text-black z-40 flex items-end justify-center p-4">
+    <div className="bg-white rounded-t-2xl text-black w-full max-w-md animate-slide-up">
+      <div className="flex justify-between items-center p-4 border-b">
+        <h3 className="font-semibold text-black">Select Delivery Time</h3>
+        <button 
+          onClick={() => setShowTimePicker(null)}
+          className="p-2 hover:bg-gray-100 rounded-full"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+      
+      <div className="p-4 max-h-96 overflow-y-auto">
+        {/* Setting time for all days when showTimePicker === -1 */}
+        {showTimePicker === -1 ? (
+          <div className="space-y-4">
+            <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg flex items-start">
+              <AlertCircle className="w-5 h-5 text-orange-500 mt-0.5 mr-3 flex-shrink-0" />
+              <div>
+                <p className="text-sm text-gray-800">
+                  You are setting the delivery time for all the days
+                </p>
+              </div>
             </div>
             
-            <div className="p-4 max-h-96 overflow-y-auto">
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-sm font-medium text-black mb-2">Morning Slots</h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    {TIME_SLOTS.filter(slot => slot.type === 'morning').map((slot) => (
-                      <button
-                        key={slot.id}
-                        onClick={() => handleTimeSlotChange(showTimePicker, slot.range)}
-                        className={`p-3 rounded-lg text-left ${
-                          schedule[showTimePicker]?.timeSlot === slot.range
-                            ? 'bg-orange-500 text-white'
-                            : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
-                        }`}
-                      >
-                        <span className="font-medium">{slot.range}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                
-                <div>
-                  <h4 className="text-sm font-medium  text-black mb-2">Evening Slots</h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    {TIME_SLOTS.filter(slot => slot.type === 'evening').map((slot) => (
-                      <button
-                        key={slot.id}
-                        onClick={() => handleTimeSlotChange(showTimePicker, slot.range)}
-                        className={`p-3 rounded-lg text-left ${
-                          schedule[showTimePicker]?.timeSlot === slot.range
-                            ? 'bg-orange-500 text-white'
-                            : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
-                        }`}
-                      >
-                        <span className="font-medium">{slot.range}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+            <div>
+              <h4 className="text-sm font-medium text-black mb-2">Morning Slots</h4>
+              <div className="grid grid-cols-2 gap-2">
+                {TIME_SLOTS.filter(slot => slot.type === 'morning').map((slot) => (
+                  <button
+                    key={slot.id}
+                    onClick={() => handleTimeSlotChange(showTimePicker, slot.range)}
+                    className="p-3 rounded-lg text-left bg-gray-100 hover:bg-gray-200 text-gray-800"
+                  >
+                    <span className="font-medium">{slot.range}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="text-sm font-medium text-black mb-2">Evening Slots</h4>
+              <div className="grid grid-cols-2 gap-2">
+                {TIME_SLOTS.filter(slot => slot.type === 'evening').map((slot) => (
+                  <button
+                    key={slot.id}
+                    onClick={() => handleTimeSlotChange(showTimePicker, slot.range)}
+                    className="p-3 rounded-lg text-left bg-gray-100 hover:bg-gray-200 text-gray-800"
+                  >
+                    <span className="font-medium">{slot.range}</span>
+                  </button>
+                ))}
               </div>
             </div>
           </div>
-        </div>
-      )}
+        ) : isToday(schedule[showTimePicker]?.date) ? (
+          // Show only available slots for today
+          <div className="space-y-4">
+            {todayTimeSlots.length > 0 ? (
+              <>
+                <div className="mb-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  <p className="text-xs text-orange-700">
+                    <Clock className="w-3.5 h-3.5 inline mr-1" />
+                    Only available time slots for today are shown
+                  </p>
+                </div>
+                
+                {todayTimeSlots.filter(slot => slot.type === 'morning').length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-black mb-2">Morning Slots</h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      {todayTimeSlots.filter(slot => slot.type === 'morning').map((slot) => (
+                        <button
+                          key={slot.id}
+                          onClick={() => handleTimeSlotChange(showTimePicker, slot.range)}
+                          className={`p-3 rounded-lg text-left ${
+                            schedule[showTimePicker]?.timeSlot === slot.range
+                              ? 'bg-orange-500 text-white'
+                              : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+                          }`}
+                        >
+                          <span className="font-medium">{slot.range}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {todayTimeSlots.filter(slot => slot.type === 'evening').length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-black mb-2">Evening Slots</h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      {todayTimeSlots.filter(slot => slot.type === 'evening').map((slot) => (
+                        <button
+                          key={slot.id}
+                          onClick={() => handleTimeSlotChange(showTimePicker, slot.range)}
+                          className={`p-3 rounded-lg text-left ${
+                            schedule[showTimePicker]?.timeSlot === slot.range
+                              ? 'bg-orange-500 text-white'
+                              : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+                          }`}
+                        >
+                          <span className="font-medium">{slot.range}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <Clock className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-600 font-medium">No slots available for today</p>
+                <p className="text-xs text-gray-500 mt-1">It's too late to schedule delivery for today</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          // Show all slots for future days
+          <div className="space-y-4">
+            <div>
+              <h4 className="text-sm font-medium text-black mb-2">Morning Slots</h4>
+              <div className="grid grid-cols-2 gap-2">
+                {TIME_SLOTS.filter(slot => slot.type === 'morning').map((slot) => (
+                  <button
+                    key={slot.id}
+                    onClick={() => handleTimeSlotChange(showTimePicker, slot.range)}
+                    className={`p-3 rounded-lg text-left ${
+                      schedule[showTimePicker]?.timeSlot === slot.range
+                        ? 'bg-orange-500 text-white'
+                        : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+                    }`}
+                  >
+                    <span className="font-medium">{slot.range}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="text-sm font-medium text-black mb-2">Evening Slots</h4>
+              <div className="grid grid-cols-2 gap-2">
+                {TIME_SLOTS.filter(slot => slot.type === 'evening').map((slot) => (
+                  <button
+                    key={slot.id}
+                    onClick={() => handleTimeSlotChange(showTimePicker, slot.range)}
+                    className={`p-3 rounded-lg text-left ${
+                      schedule[showTimePicker]?.timeSlot === slot.range
+                        ? 'bg-orange-500 text-white'
+                        : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+                    }`}
+                  >
+                    <span className="font-medium">{slot.range}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+)}
+
       {renderProductSelectionModal()}
       {renderProductCustomizationModal()}
     </div>

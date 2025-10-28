@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document } from "mongoose";
 import bcrypt from "bcryptjs";
+import { fi } from "date-fns/locale";
 
 export interface CartItem {
   product: mongoose.Types.ObjectId;
@@ -10,6 +11,7 @@ export interface CartItem {
     sugar?: string;
     dilution?: string;
     finalPrice: number;
+    fibre?: boolean;
   };
   price: number;
   quantity: number;
@@ -19,6 +21,7 @@ export interface CartItem {
 
 export interface User extends Document {
   username: string;
+  phone?:string
   email: string;
   password: string;
   createdAt: Date;
@@ -48,6 +51,12 @@ export interface User extends Document {
     createdAt:Date;
     paymentComplete:boolean;
   }>
+  savedAddresses?: Array<{
+    addressName: string;
+    deliveryAddress: string;
+    additionalAddressDetails?: string;
+    phoneNumber?: string;
+  }>;
 }
 
 const freshPlanItemSchema = new Schema({
@@ -62,6 +71,7 @@ const freshPlanItemSchema = new Schema({
     ice: { type: String },
     sugar: { type: String },
     dilution: { type: String },
+    fibre: { type: Boolean },
     finalPrice: { type: Number, required: true },
   },
   quantity: {
@@ -123,6 +133,7 @@ const cartItemSchema = new Schema<CartItem>({
     ice: { type: String },
     sugar: { type: String },
     dilution: { type: String },
+    fibre:{type: Boolean},
     finalPrice: { type: Number, required: true },
   },
   price: { type: Number, required: true },
@@ -135,6 +146,11 @@ const userSchema = new Schema<User>({
     type: String,
     required: true,
     unique: true, // already creates index
+  },
+  phone:{
+    type:String,
+    unique:true,
+    sparse:true
   },
   email: {
     type: String,
@@ -171,7 +187,15 @@ const userSchema = new Schema<User>({
     type:freshPlanSchema,
     default:null
   },
-  freshPlans:[freshPlanSchema]
+  freshPlans:[freshPlanSchema],
+  savedAddresses: [
+    {
+      addressName: { type: String, required: true },
+      deliveryAddress:{type: String, required: true },
+      additionalAddressDetails: { type: String },
+      phoneNumber: { type: String }
+    }
+  ]
 });
 
 // Update `updatedAt` before save

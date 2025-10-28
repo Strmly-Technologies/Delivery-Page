@@ -29,6 +29,7 @@ interface Customization {
   sugar?: string;
   dilution?: string;
   finalPrice: number;
+  fibre?:Boolean
   orderQuantity?: number;
 }
 
@@ -110,6 +111,17 @@ interface FreshPlan {
   const [availableTimeSlots, setAvailableTimeSlots] = useState(TIME_SLOTS);
   const [calculatedDeliveryCharge, setCalculatedDeliveryCharge] = useState(0);
   const [expandedDayId, setExpandedDayId] = useState<string | null>(null);
+  const [savedAddresses, setSavedAddresses] = useState<Array<{
+    phoneNumber: string;
+    _id: number;
+    addressName: string;
+    deliveryAddress: string;
+    additionalAddressDetails?: string;
+  }>>([]);
+   const [showSavedAddresses, setShowSavedAddresses] = useState(false);
+  const [showSaveAddressModal, setShowSaveAddressModal] = useState(false);
+  const [newAddressName, setNewAddressName] = useState('');
+
 
   const router = useRouter();
 
@@ -126,6 +138,83 @@ interface FreshPlan {
     }
     return null;
   };
+
+
+  // handle save Address
+
+  const handleSaveAddress = async () => {
+    if (!newAddressName.trim()) {
+      alert('Please enter an address name');
+      return;
+    }
+
+    if (!customerDetails.address.trim()) {
+      alert('Please enter a delivery address first');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/address', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          addressName: newAddressName,
+          deliveryAddress: customerDetails.address,
+          additionalAddressDetails: customerDetails.additionalAddressInfo || '',
+          phoneNumber: customerDetails.phone
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('Address saved successfully!');
+        setShowSaveAddressModal(false);
+        setNewAddressName('');
+        fetchSavedAddresses(); // Refresh the list
+      } else {
+        alert(data.error || 'Failed to save address');
+      }
+    } catch (error) {
+      console.error('Error saving address:', error);
+      alert('Failed to save address');
+    }
+  };
+
+  const fetchSavedAddresses = async () => {
+    try {
+      const response = await fetch('/api/address', {
+        method: 'GET',
+        credentials: 'include',
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setSavedAddresses(data.savedAddresses || []);
+      }
+    } catch (error) {
+      console.error('Error fetching saved addresses:', error);
+    }
+  };
+
+  const handleSelectSavedAddress = (address: any) => {
+    setCustomerDetails(prev => ({
+      ...prev,
+      address: address.deliveryAddress,
+      phone: address.phoneNumber || prev.phone,
+      additionalAddressInfo: address.additionalAddressDetails || ''
+    }));
+    setShowSavedAddresses(false);
+    setDisableAddressInput(true);
+  };
+
+  // Fetch saved addresses on mount
+  useEffect(() => {
+    fetchSavedAddresses();
+  }, []);
 
   const initialise = async () => {
   setLoading(true);
@@ -147,7 +236,7 @@ interface FreshPlan {
       if (planData) {
         // Get all items from all days in the plan
         if(planData.paymentComplete===true){
-          router.push('/current-plan');
+          router.push('/my-plans');
         }
         const allPlanItems: PlanItem[] = [];
         planData.schedule.forEach((day:any) => {
@@ -574,7 +663,19 @@ interface FreshPlan {
                   }
                 });
               }
-              
+
+              // send email after order placement
+              const response = await fetch('/api/email/order-confirmation', {
+                method: 'POST',
+                credentials: 'include',
+                body: JSON.stringify({ orderId: orderData.orderId, type: checkoutType}),
+              }
+              )
+              if(response.ok){
+                console.log("Order confirmation email sent");
+              }else{
+                console.error("Failed to send order confirmation email");
+              }
               router.push(`/order-confirmation?orderId=${orderData.orderId}`);
             } else {
               alert('Payment verification failed. Please contact support.');
@@ -731,7 +832,7 @@ interface FreshPlan {
           
           <div className="flex items-center space-x-4">
             <div className="group relative">
-              <Link href={checkoutType==='quicksip'?'/cart':'/current-plan'} className="text-gray-700">
+              <Link href={checkoutType==='quicksip'?'/cart':'/my-plans'} className="text-gray-700">
                 <button className="text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors">
                   <ShoppingBag className="w-5 h-5" />
                 </button>
@@ -756,9 +857,20 @@ interface FreshPlan {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Customer Details Form */}
-          <div className="lg:col-span-2">
+        <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl text-black font-semibold mb-6">Delivery Details</h2>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl text-black font-semibold">Delivery Details</h2>
+                
+                {/* Saved Addresses Button */}
+                <button
+                  type="button"
+                  onClick={() => setShowSavedAddresses(true)}
+                  className="text-sm text-orange-600 hover:text-orange-700 font-medium underline"
+                >
+                  Choose Saved Address
+                </button>
+              </div>
               
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
@@ -771,8 +883,8 @@ interface FreshPlan {
                     name="name"
                     value={customerDetails.name}
                     onChange={handleInputChange}
-                    className={`mt-1 block w-full px-3 py-2 border ${errors.name ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500`}
-                    placeholder="John Doe"
+                    className={`mt-1 block w-full px-3 py-2 border text-black ${errors.name ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500`}
+                    placeholder="Enter your full name"
                   />
                   {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
                 </div>
@@ -787,7 +899,7 @@ interface FreshPlan {
                     name="phone"
                     value={customerDetails.phone}
                     onChange={handleInputChange}
-                    className={`mt-1 block w-full px-3 py-2 border ${errors.phone ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500`}
+                    className={`mt-1 block w-full px-3 py-2 border text-black ${errors.phone ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500`}
                     placeholder="10-digit phone number"
                   />
                   {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
@@ -831,44 +943,66 @@ interface FreshPlan {
                       name="additionalAddressInfo"
                       value={customerDetails.additionalAddressInfo || ''}
                       onChange={handleInputChange}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                      className="mt-1 block w-full px-3 py-2 border text-black border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
                       placeholder="Apartment number, landmarks, etc."
                     />
                   </div>
-                </div>
-                
-                 {checkoutType === 'quicksip' ? (
-                  <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <label htmlFor="timeSlot" className="block text-sm font-medium text-gray-700">
-                      Delivery Time Slot
-                    </label>
-                    {errors.timeSlot && <p className="text-sm text-red-600">{errors.timeSlot}</p>}
-                  </div>
-                  {availableTimeSlots.length > 0 ? (
-                    <div className="grid grid-cols-2 gap-2">
-                      {availableTimeSlots.map((slot) => (
-                        <button
-                          key={slot.id}
-                          type="button"
-                          onClick={(e) => handleTimeSlotSelect(e, slot.range)}
-                          className={`px-4 py-2 rounded-lg text-sm transition-colors ${
-                            selectedTimeSlot === slot.range
-                              ? 'bg-orange-500 text-white'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
-                        >
-                          {slot.range}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center p-4 bg-orange-50 rounded-lg text-orange-600">
-                      No delivery slots available for today. Please try again tomorrow.
-                    </div>
+
+                  {/* Save Address Button */}
+                  {customerDetails.address && (
+                    <button
+                      type="button"
+                      onClick={() => setShowSaveAddressModal(true)}
+                      className="text-sm text-orange-600 hover:text-orange-700 font-medium underline"
+                    >
+                      Save this address for future orders
+                    </button>
                   )}
                 </div>
-                 ) : null}
+                
+              {checkoutType === 'quicksip' ? (
+  <div>
+    <div className="flex justify-between items-center mb-2">
+      <label htmlFor="timeSlot" className="block text-sm font-medium text-gray-700">
+        Delivery Time Slot *
+      </label>
+      {errors.timeSlot && <p className="text-sm text-red-600">{errors.timeSlot}</p>}
+    </div>
+    
+    {availableTimeSlots && availableTimeSlots.length === 0 ? (
+      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+        <p className="text-sm text-red-600">
+          No time slots available for today. Please try again tomorrow or contact support.
+        </p>
+      </div>
+    ) : (
+      <div className="grid grid-cols-2 gap-3">
+        {TIME_SLOTS.map((slot) => {
+          const isDisabled = !availableTimeSlots.includes(slot);
+          const isSelected = selectedTimeSlot === slot.range;
+          
+          return (
+            <button
+              key={slot.range}
+              type="button"
+              onClick={(e) => handleTimeSlotSelect(e, slot.range)}
+              disabled={isDisabled}
+              className={`px-4 py-3 rounded-lg border text-sm font-medium focus:outline-none transition-colors ${
+                isDisabled
+                  ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                  : isSelected
+                    ? 'bg-orange-500 text-white border-orange-500 hover:bg-orange-600'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              {slot.range}
+            </button>
+          );
+        })}
+      </div>
+    )}
+  </div>
+) : null}
 
                 
                 <div className="flex items-center justify-between border-t border-b border-gray-200 py-4 mt-4">
@@ -896,7 +1030,7 @@ interface FreshPlan {
                   </div>
                 </div>
                 
-                <button
+                 <button
                   type="submit"
                   disabled={submitting || locationError !== ''}
                   className={`w-full py-3 px-4 rounded-lg font-bold text-center ${
@@ -940,6 +1074,7 @@ interface FreshPlan {
                           {item.customization.ice && ` • ${item.customization.ice}`}
                           {item.customization.sugar && ` • ${item.customization.sugar}`}
                           {item.customization.dilution && ` • ${item.customization.dilution}`}
+                          {item.customization.fibre!==undefined && item.customization.fibre?" With Fibre":" Without Fibre"}
                         </p>
                         <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                       </div>
@@ -1070,6 +1205,116 @@ interface FreshPlan {
           </div>
         </div>
       </div>
+      {showSavedAddresses && (
+        <div className="fixed inset-0 bg-gray-300  bg-opacity-60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-bold text-gray-900">Saved Addresses</h3>
+                <button
+                  onClick={() => setShowSavedAddresses(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              {savedAddresses.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">No saved addresses yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {savedAddresses.map((address, index) => (
+                    <button
+                      key={address._id || index}
+                      onClick={() => handleSelectSavedAddress(address)}
+                      className="w-full text-left p-4 border border-gray-200 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all"
+                    >
+                      <h4 className="font-semibold text-black mb-1">{address.addressName}</h4>
+                      <p className="text-sm text-gray-600">{address.deliveryAddress}</p>
+                      {address.additionalAddressDetails && (
+                        <p className="text-xs text-gray-500 mt-1">{address.additionalAddressDetails}</p>
+                      )}
+                      {address.phoneNumber && (<p className="text-xs text-gray-500 mt-1">Phone: {address.phoneNumber}</p>)}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* Save Address Modal */}
+      {showSaveAddressModal && (
+        <div className="fixed inset-0  bg-opacity-80 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-bold text-gray-900">Save Address</h3>
+                <button
+                  onClick={() => {
+                    setShowSaveAddressModal(false);
+                    setNewAddressName('');
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Address Name *
+                </label>
+                <input
+                  type="text"
+                  value={newAddressName}
+                  onChange={(e) => setNewAddressName(e.target.value)}
+                  placeholder="e.g., Home, Office, Gym"
+                  className="w-full px-3 py-2 border text-black border-gray-300 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                />
+              </div>
+              
+              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-600 mb-1">Address to save:</p>
+                <p className="text-sm text-gray-900">{customerDetails.address}</p>
+                {customerDetails.additionalAddressInfo && (
+                  <p className="text-xs text-gray-600 mt-1">{customerDetails.additionalAddressInfo}</p>
+                )}
+              </div>
+              
+              <div className="flex gap-3 mt-3">
+                <button
+                  onClick={() => {
+                    setShowSaveAddressModal(false);
+                    setNewAddressName('');
+                  }}
+                  className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-black hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveAddress}
+                  className="flex-1 py-2 px-4 bg-orange-500 text-black rounded-lg hover:bg-orange-600 transition-colors"
+                >
+                  Save Address
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <DeliveryInfoModal
         isOpen={showDeliveryInfo}
         onClose={() => setShowDeliveryInfo(false)}

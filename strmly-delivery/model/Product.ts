@@ -15,6 +15,12 @@ interface Customization {
   dilutionOptions: string[];
 }
 
+interface NutrientInfo {
+  name: string;
+  amount: string;
+  unit: string;
+}
+
 export interface ProductDocument extends Document {
   name: string;
   description: string;
@@ -29,6 +35,8 @@ export interface ProductDocument extends Document {
   updatedAt: Date;
   smallPrice?: number;
   mediumPrice?: number;
+   regularNutrients?: NutrientInfo[]; 
+  largeNutrients?: NutrientInfo[];
 }
 
 const customizationSchema = new Schema<Customization>({
@@ -118,6 +126,16 @@ const productSchema = new Schema<ProductDocument>({
       return { sizeOptions };
     }
   },
+  regularNutrients: [{
+    name: { type: String, required: true },
+    amount: { type: String, required: true },
+    unit: { type: String, required: true }
+  }],
+  largeNutrients: [{
+    name: { type: String, required: true },
+    amount: { type: String, required: true },
+    unit: { type: String, required: true }
+  }],
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'

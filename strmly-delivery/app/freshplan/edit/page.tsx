@@ -253,7 +253,7 @@ function EditFreshPlanPage() {
       
       // Redirect after a short delay to show the success message
       setTimeout(() => {
-        router.push('/current-plan');
+        router.push('/my-plans');
       }, 1500);
       
     } catch (error) {
@@ -541,7 +541,7 @@ function EditFreshPlanPage() {
           <div className="py-4 flex items-center justify-between">
             <div className="flex items-center">
               <button 
-                onClick={() => router.push('/current-plan')}
+                onClick={() => router.push('/my-plans')}
                 className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center mr-3 transition-colors"
               >
                 <ArrowLeft className="w-5 h-5 text-black" />
@@ -702,7 +702,7 @@ function EditFreshPlanPage() {
           </button>
           
           <button
-            onClick={() => router.push('/current-plan')}
+            onClick={() => router.push('/my-plans')}
             className="w-full py-3 mt-3 text-gray-600 font-medium"
           >
             Cancel
