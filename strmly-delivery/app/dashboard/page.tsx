@@ -276,107 +276,147 @@ export default function BesomMobileUI() {
   }, [filter, isAuthenticated]);
 
 
-  const incrementLastCustomization = async (productId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const lastCustom = lastCustomizations[productId];
-    if (!lastCustom) return;
+ const incrementLastCustomization = async (productId: string, e: React.MouseEvent) => {
+  e.stopPropagation();
+  const lastCustom = lastCustomizations[productId];
+  if (!lastCustom) return;
 
-    setCartLoading(productId);
-    try {
-      if (isAuthenticated) {
-        const response = await fetch('/api/cart/update-quantity', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            productId,
-            customization: lastCustom,
-            action: 'increment'
-          })
-        });
-        const data = await response.json();
-        if (data.success) {
-          await fetchCartCount();
-          await updateProductQuantities();
-        }
-      } else {
-        // Update local cart
-        const localCartItems = localCart.getItems();
-        const itemIndex = localCartItems.findIndex((item: any) => 
-          item.productId === productId &&
-          item.customization.size === lastCustom.size &&
-          item.customization.quantity === lastCustom.quantity &&
-          item.customization.ice === lastCustom.ice &&
-          item.customization.sugar === lastCustom.sugar &&
-          item.customization.dilution === lastCustom.dilution
-        );
-
-        if (itemIndex !== -1) {
-          localCartItems[itemIndex].quantity += 1;
-          localStorage.setItem('cart', JSON.stringify(localCartItems));
-          await fetchCartCount();
-          await updateProductQuantities();
-        }
+  setCartLoading(productId);
+  try {
+    if (isAuthenticated) {
+      const response = await fetch('/api/cart/update-quantity', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId,
+          customization: lastCustom,
+          action: 'increment'
+        })
+      });
+      const data = await response.json();
+      if (data.success) {
+        await fetchCartCount();
+        await updateProductQuantities();
       }
-    } catch (error) {
-      console.error('Error incrementing quantity:', error);
-    } finally {
-      setCartLoading(null);
-    }
-  };
+    } else {
+      // Update local cart
+      const localCartItems = localCart.getItems();
+      const itemIndex = localCartItems.findIndex((item: any) => 
+        item.productId === productId &&
+        item.customization.size === lastCustom.size &&
+        item.customization.quantity === lastCustom.quantity &&
+        item.customization.ice === lastCustom.ice &&
+        item.customization.sugar === lastCustom.sugar &&
+        item.customization.dilution === lastCustom.dilution
+      );
 
-  const decrementLastCustomization = async (productId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const lastCustom = lastCustomizations[productId];
-    if (!lastCustom) return;
-
-    setCartLoading(productId);
-    try {
-      if (isAuthenticated) {
-        const response = await fetch('/api/cart/update-quantity', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            productId,
-            customization: lastCustom,
-            action: 'decrement'
-          })
+      if (itemIndex !== -1) {
+        const unitPrice = localCartItems[itemIndex].customization.finalPrice;
+        
+        console.log("Before increment:", {
+          quantity: localCartItems[itemIndex].quantity,
+          unitPrice: unitPrice,
+          totalPrice: localCartItems[itemIndex].price
         });
-        const data = await response.json();
-        if (data.success) {
-          await fetchCartCount();
-          await updateProductQuantities();
-        }
-      } else {
-        // Update local cart
-        const localCartItems = localCart.getItems();
-        const itemIndex = localCartItems.findIndex((item: any) => 
-          item.productId === productId &&
-          item.customization.size === lastCustom.size &&
-          item.customization.quantity === lastCustom.quantity &&
-          item.customization.ice === lastCustom.ice &&
-          item.customization.sugar === lastCustom.sugar &&
-          item.customization.dilution === lastCustom.dilution
-        );
-
-        if (itemIndex !== -1) {
-          if (localCartItems[itemIndex].quantity > 1) {
-            localCartItems[itemIndex].quantity -= 1;
-          } else {
-            localCartItems.splice(itemIndex, 1);
-          }
-          localStorage.setItem('cart', JSON.stringify(localCartItems));
-          await fetchCartCount();
-          await updateProductQuantities();
-        }
+        
+        // Increment quantity
+        localCartItems[itemIndex].quantity += 1;
+        // Recalculate total price
+        localCartItems[itemIndex].price = unitPrice * localCartItems[itemIndex].quantity;
+        
+        console.log("After increment:", {
+          quantity: localCartItems[itemIndex].quantity,
+          unitPrice: unitPrice,
+          totalPrice: localCartItems[itemIndex].price
+        });
+        
+        localStorage.setItem('cart', JSON.stringify(localCartItems));
+        await fetchCartCount();
+        await updateProductQuantities();
       }
-    } catch (error) {
-      console.error('Error decrementing quantity:', error);
-    } finally {
-      setCartLoading(null);
     }
-  };
+  } catch (error) {
+    console.error('Error incrementing quantity:', error);
+  } finally {
+    setCartLoading(null);
+  }
+};
+
+const decrementLastCustomization = async (productId: string, e: React.MouseEvent) => {
+  e.stopPropagation();
+  const lastCustom = lastCustomizations[productId];
+  if (!lastCustom) return;
+
+  setCartLoading(productId);
+  try {
+    if (isAuthenticated) {
+      const response = await fetch('/api/cart/update-quantity', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId,
+          customization: lastCustom,
+          action: 'decrement'
+        })
+      });
+      const data = await response.json();
+      if (data.success) {
+        await fetchCartCount();
+        await updateProductQuantities();
+      }
+    } else {
+      // Update local cart
+      const localCartItems = localCart.getItems();
+      const itemIndex = localCartItems.findIndex((item: any) => 
+        item.productId === productId &&
+        item.customization.size === lastCustom.size &&
+        item.customization.quantity === lastCustom.quantity &&
+        item.customization.ice === lastCustom.ice &&
+        item.customization.sugar === lastCustom.sugar &&
+        item.customization.dilution === lastCustom.dilution
+      );
+
+      if (itemIndex !== -1) {
+        const unitPrice = localCartItems[itemIndex].customization.finalPrice;
+        
+        console.log("Before decrement:", {
+          quantity: localCartItems[itemIndex].quantity,
+          unitPrice: unitPrice,
+          totalPrice: localCartItems[itemIndex].price
+        });
+        
+        if (localCartItems[itemIndex].quantity > 1) {
+          // Decrement quantity
+          localCartItems[itemIndex].quantity -= 1;
+          // Recalculate total price
+          localCartItems[itemIndex].price = unitPrice * localCartItems[itemIndex].quantity;
+          
+          console.log("After decrement:", {
+            quantity: localCartItems[itemIndex].quantity,
+            unitPrice: unitPrice,
+            totalPrice: localCartItems[itemIndex].price
+          });
+        } else {
+          console.log("Removing item from cart (quantity was 1)");
+          localCartItems.splice(itemIndex, 1);
+        }
+        
+        localStorage.setItem('cart', JSON.stringify(localCartItems));
+        await fetchCartCount();
+        await updateProductQuantities();
+      }
+    }
+  } catch (error) {
+    console.error('Error decrementing quantity:', error);
+  } finally {
+    setCartLoading(null);
+  }
+};
+
+// Fix addToCart to use correct price
+
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -572,56 +612,68 @@ export default function BesomMobileUI() {
   };
 
   const addToCart = async () => {
-    if (!selectedProduct || !customization) return;
+  if (!selectedProduct || !customization) return;
 
-    setCartLoading(selectedProduct._id);
-    try {
-      if (isAuthenticated) {
-        console.log('Adding to server cart:', {
+  setCartLoading(selectedProduct._id);
+  try {
+    if (isAuthenticated) {
+      console.log('Adding to server cart:', {
+        productId: selectedProduct._id,
+        customization,
+        finalPrice
+      });
+      const response = await fetch('/api/cart', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           productId: selectedProduct._id,
-          customization,
-          finalPrice
-        });
-        const response = await fetch('/api/cart', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            productId: selectedProduct._id,
-            customization: customization,
-            finalPrice: finalPrice
-          })
-        });
-        const data = await response.json();
-        if (data.success) {
-          closeModal();
-          fetchCartCount();
-        } else {
-          alert(data.error || 'Failed to add to cart');
-        }
+          customization: customization,
+          finalPrice: finalPrice
+        })
+      });
+      const data = await response.json();
+      if (data.success) {
+        closeModal();
+        fetchCartCount();
       } else {
-        try {
-          localCart.addItem({
-            productId: selectedProduct._id,
-            customization: customization,
-            price: finalPrice || selectedProduct.price,
-            quantity: customization.orderQuantity || 1,
-            addedAt: new Date().toISOString()
-          });
-          closeModal();
-          fetchCartCount();
-          console.log('Current local cart items:');
-        } catch (error: any) {
-          alert(error.message || 'Failed to add to cart. Please try clearing some items.');
-        }
+        alert(data.error || 'Failed to add to cart');
       }
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      alert('Failed to add to cart. Please try again.');
-    } finally {
-      setCartLoading(null);
+    } else {
+      try {
+        const itemQuantity = customization.orderQuantity || 1;
+        const unitPrice = customization.finalPrice;
+        const totalPrice = unitPrice * itemQuantity;
+        
+        localCart.addItem({
+          productId: selectedProduct._id,
+          customization: {
+            ...customization,
+            finalPrice: unitPrice // Store unit price in customization
+          },
+          price: totalPrice, // Store total price in item
+          quantity: itemQuantity,
+          addedAt: new Date().toISOString()
+        });
+        closeModal();
+        fetchCartCount();
+        console.log('Added to local cart:', {
+          unitPrice,
+          quantity: itemQuantity,
+          totalPrice
+        });
+      } catch (error: any) {
+        console.error('Error adding to local cart:', error);
+        alert(error.message || 'Failed to add to cart');
+      }
     }
-  };
+  } catch (error) {
+    console.error('Error adding to cart:', error);
+    alert('Failed to add to cart');
+  } finally {
+    setCartLoading(null);
+  }
+};
 
   const getCategoryColor = (category: 'juices' | 'shakes' | 'discount') => {
     const colors = {

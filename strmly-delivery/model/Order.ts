@@ -29,6 +29,11 @@ export interface Order extends Document {
     additionalAddressInfo?: string;
   };
   status: 'pending' | 'accepted' | 'out-for-delivery' | 'delivered' | 'cancelled' | 'received' | 'done';
+  statusInfo?: {
+    chefId?: mongoose.Types.ObjectId;
+    receivedTime?: Date;
+    doneTime?: Date;
+  };
   createdAt: Date;
   updatedAt: Date;
   deliveryCharge?: number;
@@ -50,6 +55,12 @@ export interface Order extends Document {
         customization: ProductCustomization;
         timeSlot: string;
       }[];
+      status?: 'pending' | 'received' | 'done';
+      statusInfo?: {
+        chefId?: mongoose.Types.ObjectId;
+        receivedTime?: Date;
+        doneTime?: Date;
+      };
     }[];
   };
 }
@@ -93,6 +104,11 @@ const orderSchema: Schema<Order> = new Schema({
     enum: ['pending', 'accepted', 'out-for-delivery', 'delivered', 'cancelled','received','done'],
     default: 'pending'
   },
+  statusInfo: {
+    chefId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    receivedTime: { type: Date },
+    doneTime: { type: Date }
+  },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
   deliveryCharge: { type: Number, default: 0 },
@@ -133,8 +149,18 @@ const orderSchema: Schema<Order> = new Schema({
         finalPrice: Number,
         fibre: Boolean
       },
-      timeSlot: String
-    }]
+      timeSlot: String,
+    }],
+    status: {
+        type: String,
+        enum: ['pending', 'received', 'done'],
+        default: 'pending'
+    },
+    statusInfo:{
+      chefId:{type: Schema.Types.ObjectId, ref:'User'},
+      receivedTime:{type:Date},
+      doneTime:{type:Date}
+    }
   }]
   }
 });

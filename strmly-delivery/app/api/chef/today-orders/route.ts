@@ -3,7 +3,7 @@ import dbConnect from '@/lib/dbConnect';
 import OrderModel from '@/model/Order';
 import { startOfDay, endOfDay } from 'date-fns';
 import { verifyAuth } from '@/lib/serverAuth';
-import '@/model/Product'
+import "@/model/Product";
 
 export async function GET(request: NextRequest) {
   try {
@@ -77,6 +77,7 @@ export async function GET(request: NextRequest) {
                 quantity: item.quantity,
                 timeSlot: item.timeSlot || day.timeSlot || 'Not Set',
                 status: item.status || 'pending',
+                dayStatus: day.status || 'pending', // Day-level status
                 orderNumber,
                 orderType: 'freshplan',
                 deliveryDate: dayDate.toISOString(),

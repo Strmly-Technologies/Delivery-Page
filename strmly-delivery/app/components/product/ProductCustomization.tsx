@@ -311,28 +311,7 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
       )}
 
       {/* Quantity Selector */}
-      <div className="flex items-center space-x-4 py-4">
-        <h3 className="text-sm font-medium text-gray-900">Quantity:</h3>
-        <div className="flex items-center border border-gray-200 rounded">
-          <button
-            type="button"
-            onClick={() => setOrderQuantity(Math.max(1, orderQuantity - 1))}
-            className="px-3 py-1 text-gray-600 hover:text-orange-500 focus:outline-none"
-          >
-            -
-          </button>
-          <span className="px-4 py-1 text-gray-900 border-x border-gray-200">
-            {orderQuantity}
-          </span>
-          <button
-            type="button"
-            onClick={() => setOrderQuantity(orderQuantity + 1)}
-            className="px-3 py-1 text-gray-600 hover:text-orange-500 focus:outline-none"
-          >
-            +
-          </button>
-        </div>
-      </div>
+     
 
       {/* Final Price Display */}
       <div className="pt-4 border-t border-gray-200">

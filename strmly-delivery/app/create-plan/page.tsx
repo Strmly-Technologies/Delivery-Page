@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { format, addDays, isToday, isTomorrow, isAfter, isBefore } from 'date-fns';
-import { ChevronRight, Calendar, Clock, Plus, X, ArrowLeft, Minus, AlertCircle } from 'lucide-react';
+import { ChevronRight, Calendar, Clock, Plus, X, ArrowLeft, Minus, AlertCircle, Info } from 'lucide-react';
 import { TIME_SLOTS, TimeSlot } from '@/constants/timeSlots';
 import Link from 'next/link';
 import Image from 'next/image';
 import ProductCustomization, { ProductCustomization as CustomizationType } from '@/app/components/product/ProductCustomization';
 import { getAvailableTimeSlots } from '@/lib/timeUtil';
+import NutrientsModal from '../components/nutrients/NutrientModal';
 
 
 interface PlanStep {
@@ -54,6 +55,8 @@ interface Product {
   stock: number;
   smallPrice?: number;
   mediumPrice?: number;
+  regularNutrients?: any;
+  largeNutrients?: any;
 }
 
 export default function FreshPlanPage() {
@@ -76,6 +79,9 @@ export default function FreshPlanPage() {
   const [allDaysHaveItems, setAllDaysHaveItems] = useState(false);
   const [todayTimeSlots,setTodayTimeSlots]=useState<TimeSlot[]>([]);
   const [ProductsToAllDays,setProductsToAllDays]=useState<Boolean>(false);
+  const [showNutrientsModal, setShowNutrientsModal] = useState(false);
+    const [selectedProductForNutrients, setSelectedProductForNutrients] = useState<Product | null>(null);
+  
 
   useEffect(() => {
     if (schedule.length > 0) {
@@ -87,6 +93,17 @@ export default function FreshPlanPage() {
   // New state variables for sequential plans
   const [earliestStartDate, setEarliestStartDate] = useState<Date | null>(null);
   const [hasExistingPlans, setHasExistingPlans] = useState(false);
+
+  const openNutrientsModal = (product: Product) => {
+      setSelectedProductForNutrients(product);
+      setShowNutrientsModal(true);
+    };
+
+    const closeNutrientsModal = () => {
+    setShowNutrientsModal(false);
+    setSelectedProductForNutrients(null);
+  };
+
 
 
   useEffect(() => {
@@ -526,7 +543,7 @@ const renderProductSelectionModal = () => {
                       src={product.image}
                       alt={product.name}
                       fill
-                      className="object-cover"
+                      className="object-contain"
                       sizes="(max-width: 768px) 50vw, 33vw"
                     />
                     {product.category === 'juices' && (
@@ -565,80 +582,144 @@ const renderProductCustomizationModal = () => {
   
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex flex-col">
-      <div className="bg-white rounded-t-2xl p-5 flex items-center justify-between shadow-md">
-        <div className="flex-1">
-          <div className="flex items-center">
-            <span className={`inline-block w-2 h-2 rounded-full ${
-              selectedProduct.category === 'juices' ? 'bg-green-500' : 'bg-purple-500'
-            } mr-2`}></span>
-            <span className="text-xs font-medium text-black/60 uppercase">
-              {selectedProduct.category}
-            </span>
+      {/* Fixed Header */}
+      <div className="bg-white rounded-t-2xl shadow-lg flex-shrink-0">
+        <div className="p-4 flex items-center justify-between border-b border-gray-100">
+          <div className="flex items-center flex-1 min-w-0 mr-3">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+              selectedProduct.category === 'juices' ? 'bg-green-100' : 'bg-purple-100'
+            }`}>
+              {selectedProduct.category === 'juices' ? (
+                <span className="text-green-600 text-lg">🥤</span>
+              ) : (
+                <span className="text-purple-600 text-lg">🥛</span>
+              )}
+            </div>
+            <div className="ml-3 min-w-0">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                {selectedProduct.category}
+              </p>
+              <h3 className="font-bold text-lg text-gray-900 truncate">
+                {selectedProduct.name}
+              </h3>
+            </div>
           </div>
-          <h3 className="font-bold text-xl text-black mt-1">{selectedProduct.name}</h3>
-          <p className="text-sm text-black/70 mt-0.5 line-clamp-1">{selectedProduct.description}</p>
+          <button 
+            onClick={closeProductCustomization}
+            className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors flex-shrink-0"
+          >
+            <X className="w-5 h-5 text-gray-600" />
+          </button>
         </div>
-        <button 
-          onClick={closeProductCustomization}
-          className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center ml-4 transition-colors"
-        >
-          <X className="w-5 h-5 text-black" />
-        </button>
       </div>
       
+      {/* Unified Scrollable Content */}
       <div className="flex-1 overflow-y-auto bg-gray-50">
-        <div className="p-5 bg-white">
-          <div className="relative h-40 w-full rounded-xl overflow-hidden mb-4">
-            <Image
-              src={selectedProduct.image}
-              alt={selectedProduct.name}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, 50vw"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
-          </div>
-          
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-sm text-black/60">Base Price</p>
-              <p className="text-2xl font-bold text-black">₹{selectedProduct.price}</p>
-            </div>
-            <div className="px-3 py-1.5 bg-orange-100 rounded-lg">
-              <p className="text-xs font-medium text-orange-700">Customizable</p>
+        <div className="px-5 py-4 space-y-4">
+          {/* Product Image Card */}
+          <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+            <div className="relative h-48 w-full bg-gradient-to-br from-orange-50 to-white">
+              <Image
+                src={selectedProduct.image}
+                alt={selectedProduct.name}
+                fill
+                className="object-contain p-4"
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
             </div>
           </div>
-        </div>
-        
-        <div className="px-5 py-4">
-          <h4 className="font-semibold text-black mb-2">Customize Your Order</h4>
-          <div className="bg-white rounded-xl p-4 shadow-sm">
-            <ProductCustomization
-              category={selectedProduct.category}
-              smallPrice={selectedProduct.smallPrice ?? selectedProduct.price}
-              mediumPrice={selectedProduct.mediumPrice ?? (selectedProduct.price * 1.3)}
-              onCustomizationChange={handleCustomizationChange}
-            />
+
+          {/* Description Card */}
+          <div className="bg-white rounded-2xl p-4 shadow-sm">
+            <p className="text-sm text-gray-600 leading-relaxed">
+              {selectedProduct.description}
+            </p>
           </div>
+
+         
+
+          {/* Nutrients Button */}
+          {((selectedProduct.regularNutrients && selectedProduct.regularNutrients.length > 0) ||
+            (selectedProduct.largeNutrients && selectedProduct.largeNutrients.length > 0)) && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                openNutrientsModal(selectedProduct);
+              }}
+              className="w-full bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition-all border border-orange-100 hover:border-orange-200 group"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="w-10 h-10 rounded-xl bg-orange-100 group-hover:bg-orange-200 flex items-center justify-center transition-colors">
+                    <Info className="w-5 h-5 text-orange-600" />
+                  </div>
+                  <div className="ml-3 text-left">
+                    <p className="text-sm font-semibold text-gray-900 group-hover:text-orange-600 transition-colors">
+                      Nutritional Information
+                    </p>
+                    <p className="text-xs text-gray-500">View detailed nutrients</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-orange-600 transition-colors" />
+              </div>
+            </button>
+          )}
+
+          {/* Customization Card */}
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div className="bg-gradient-to-r from-gray-50 to-white p-4 border-b border-gray-100">
+              <h4 className="font-bold text-gray-900 text-base">Customize Your Order</h4>
+              <p className="text-xs text-gray-500 mt-0.5">Select size, quantity, and preferences</p>
+            </div>
+            <div className="p-4">
+              <ProductCustomization
+                category={selectedProduct.category}
+                smallPrice={selectedProduct.smallPrice ?? selectedProduct.price}
+                mediumPrice={selectedProduct.mediumPrice ?? (selectedProduct.price * 1.3)}
+                onCustomizationChange={handleCustomizationChange}
+              />
+            </div>
+          </div>
+
+          {/* Spacer for fixed footer */}
+          <div className="h-24"></div>
         </div>
       </div>
       
-      <div className="bg-white p-5 shadow-lg border-t">
-        <div className="flex justify-between items-center mb-3">
-          <span className="text-sm font-medium text-black">Total Price:</span>
-          <span className="text-xl font-bold text-black">₹{finalPrice}</span>
+      {/* Fixed Footer */}
+      <div className="bg-white border-t border-gray-200 shadow-2xl flex-shrink-0">
+        <div className="p-4">
+          {/* Price Summary */}
+          <div className="bg-gradient-to-r from-gray-50 to-orange-50 rounded-xl p-3 mb-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-700">Final Price</span>
+              <div className="flex items-center">
+                
+                <span className="text-2xl font-bold text-orange-600">₹{finalPrice}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Add Button */}
+          <button
+            onClick={!ProductsToAllDays ? addProductToDay : addProductToAllDays}
+            disabled={!customization}
+            className={`w-full py-4 px-4 rounded-xl font-bold text-base shadow-lg transition-all transform active:scale-95 ${
+              customization
+                ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 shadow-orange-200'
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            {customization ? (
+              <span className="flex items-center justify-center">
+                <Plus className="w-5 h-5 mr-2" />
+                Add to {activeDayIndex !== -1 ? `Day ${activeDayIndex! + 1}` : 'All Days'}
+              </span>
+            ) : (
+              'Select Options to Continue'
+            )}
+          </button>
         </div>
-        <button
-          onClick={!ProductsToAllDays?addProductToDay:addProductToAllDays}
-          disabled={!customization}
-          className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm ${
-            customization
-              ? 'bg-orange-500 text-white'
-              : 'bg-gray-200 text-black/50'
-          } transition-colors`}
-        >
-          {customization ? 'Add to Day ' + (activeDayIndex !== -1 ? activeDayIndex! + 1 : '') : 'Select Options'}
-        </button>
       </div>
     </div>
   );
@@ -797,7 +878,7 @@ const renderProductCustomizationModal = () => {
           {currentStep === 'schedule' && (
       <div className="space-y-6">
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Set Delivery Schedule</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Set delivery schedule</h2>
           <p className="text-gray-600 mt-1">Choose delivery time for each day</p>
         </div>
         
@@ -851,7 +932,7 @@ const renderProductCustomizationModal = () => {
 
                   <div className="p-4 space-y-4">
                     <div>
-                      <p className="text-xs text-black mb-1">Delivery Time</p>
+                      <p className="text-xs text-black mb-1">Delivery time</p>
                       <button
                         onClick={() => setShowTimePicker(index)}
                         className="flex items-center justify-between w-full p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
@@ -879,7 +960,7 @@ const renderProductCustomizationModal = () => {
                                   src={item.product.image}
                                   alt={item.product.name}
                                   fill
-                                  className="object-cover"
+                                  className="object-contain"
                                 />
                               </div>
                               <div className="flex-1 min-w-0">
@@ -913,7 +994,7 @@ const renderProductCustomizationModal = () => {
                       className="w-full flex items-center justify-center p-2 border border-dashed border-orange-300 rounded-lg hover:bg-orange-50 transition-colors"
                     >
                       <Plus className="w-4 h-4 mr-1 text-orange-500" />
-                      <span className="text-sm text-orange-500">Add Item</span>
+                      <span className="text-sm text-orange-500">Add item</span>
                     </button>
                   </div>
                 </div>
@@ -950,7 +1031,7 @@ const renderProductCustomizationModal = () => {
             <Clock className="w-5 h-5 text-white" />
           </div>
           <div className="text-left">
-            <p className="font-semibold text-sm">Set Time for All Days</p>
+            <p className="font-semibold text-sm">Set time for all days</p>
             <p className="text-xs text-white/80">Apply same delivery time</p>
           </div>
         </div>
@@ -969,8 +1050,8 @@ const renderProductCustomizationModal = () => {
             <Plus className="w-5 h-5 text-orange-600" />
           </div>
           <div className="text-left">
-            <p className="font-semibold text-sm text-gray-800">Copy Items to All Days</p>
-            <p className="text-xs text-gray-500">Duplicate first day's items</p>
+            <p className="font-semibold text-sm text-gray-800">Copy items to all days</p>
+            <p className="text-xs text-gray-500"> Add items to all days</p>
           </div>
         </div>
         <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
@@ -1172,6 +1253,15 @@ const renderProductCustomizationModal = () => {
 
       {renderProductSelectionModal()}
       {renderProductCustomizationModal()}
+      {selectedProductForNutrients && (
+        <NutrientsModal
+          isOpen={showNutrientsModal}
+          onClose={closeNutrientsModal}
+          productName={selectedProductForNutrients.name}
+          regularNutrients={selectedProductForNutrients.regularNutrients || []}
+          largeNutrients={selectedProductForNutrients.largeNutrients || []}
+        />
+      )}
     </div>
   );
 }

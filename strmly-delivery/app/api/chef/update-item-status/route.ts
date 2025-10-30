@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import OrderModel from '@/model/Order';
-import { verifyAuth } from '@/lib/serverAuth'
-import '@/model/Product'
-;
+import { verifyAuth } from '@/lib/serverAuth';
+import { stat } from 'fs';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,11 +17,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { itemId, status } = await request.json();
+    const { orderId, dayId, status,chefTime} = await request.json();
+    console.log('Received data for updating day status:', { orderId, dayId, status });
 
-    if (!itemId || !status) {
+    if (!orderId || !status) {
       return NextResponse.json(
-        { error: 'Item ID and status are required' },
+        { error: 'Order ID, Day ID, and status are required' },
         { status: 400 }
       );
     }
@@ -34,15 +34,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse the composite ID
-    const idParts = itemId.split('-');
-    const orderId = idParts[0];
-    console.log(orderId)
-
-    console.log('Updating item status:', { itemId, orderId, status });
+    console.log('Updating day status:', { orderId, dayId, status });
 
     // Find the order
     const order = await OrderModel.findById(orderId);
+    console.log('Order fetched for update:', order);
     
     if (!order) {
       return NextResponse.json(
@@ -51,51 +47,78 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (order.orderType === 'freshplan' && order.planRelated?.daySchedule) {
     let updated = false;
 
-    // Update QuickSip item
-    if (order.orderType === 'quicksip') {
-        order.status = status;
+    // Update the specific day's status
+    order.planRelated.daySchedule.forEach((day: any) => {
+      if (day._id.toString() === dayId) {
+        day.status = status;        
         updated = true;
-    }
-
-    // Update FreshPlan item
-    if (order.orderType === 'freshplan' && order.planRelated?.daySchedule) {
-      const dayId = idParts[1];
-      
-      order.planRelated.daySchedule.forEach((day: any) => {
-        if (day._id.toString() === dayId) {
-          day.items.forEach((item: any) => {
-            const compositeId = `${orderId}-${dayId}-${item._id}`;
-            if (compositeId === itemId || itemId.includes(item._id?.toString())) {
-              item.status = status;
-              updated = true;
-            }
-          });
-        }
-      });
-    }
+      }
+    });
 
     if (!updated) {
       return NextResponse.json(
-        { error: 'Item not found in order' },
+        { error: 'Day not found in order' },
         { status: 404 }
       );
+    }
+  }
+  else if(order.orderType==='quicksip'){
+    order.status=status;
+  }
+
+    if(status==='received'){
+      if(order.orderType==='quicksip'){
+        order.statusInfo={
+          chefId: decodedToken.userId,
+          receivedTime: chefTime ? new Date(chefTime) : new Date()
+        }
+      }
+      else if(order.orderType==='freshplan' && order.planRelated?.daySchedule){
+        order.planRelated.daySchedule.forEach((day: any) => {
+          if (day._id.toString() === dayId) {
+            day.statusInfo={
+              chefId: decodedToken.userId,
+              receivedTime: chefTime ? new Date(chefTime) : new Date()
+            }        
+          }
+        });
+      }
+    }
+    else if(status==='done'){
+      if(order.orderType==='quicksip'){
+        order.statusInfo={
+          ...order.statusInfo,
+          doneTime: chefTime ? new Date(chefTime) : new Date()
+        }
+      }
+      else if(order.orderType==='freshplan' && order.planRelated?.daySchedule){
+        order.planRelated.daySchedule.forEach((day: any) => {
+          if (day._id.toString() === dayId) {
+            day.statusInfo={
+              ...day.statusInfo,
+              doneTime: chefTime ? new Date(chefTime) : new Date()
+            }        
+          }
+        });
+      }
     }
 
     await order.save();
 
-    console.log('Item status updated successfully');
+    console.log('Day status updated successfully');
 
     return NextResponse.json({
       success: true,
-      message: 'Item status updated successfully'
+      message: 'Day status updated successfully'
     });
 
   } catch (error) {
-    console.error('Error updating item status:', error);
+    console.error('Error updating day status:', error);
     return NextResponse.json(
-      { error: 'Failed to update item status' },
+      { error: 'Failed to update day status' },
       { status: 500 }
     );
   }
