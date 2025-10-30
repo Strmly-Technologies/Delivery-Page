@@ -468,7 +468,7 @@ const addProductToAllDays=()=>{
               <div className="flex items-center">
                 <Calendar className="w-6 h-6 mr-3 opacity-80" />
                 <div className="text-left">
-                  <p className="font-semibold">After Current Plan</p>
+                  <p className="font-semibold">After current plan</p>
                   <p className="text-sm opacity-80">{format(earliestStartDate, 'EEEE, MMMM d, yyyy')}</p>
                 </div>
               </div>
@@ -496,7 +496,7 @@ const renderProductSelectionModal = () => {
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex flex-col">
       <div className="bg-white rounded-t-2xl p-5 flex items-center justify-between shadow-md">
         <div>
-          <h3 className="font-bold text-xl text-black">Add Item</h3>
+          <h3 className="font-bold text-xl text-black">Add item</h3>
           <p className="text-sm text-black/70">
             {day ? format(day.date, 'EEEE, MMM d') : 'Select a product'}
           </p>
@@ -655,7 +655,7 @@ const renderProductCustomizationModal = () => {
                   </div>
                   <div className="ml-3 text-left">
                     <p className="text-sm font-semibold text-gray-900 group-hover:text-orange-600 transition-colors">
-                      Nutritional Information
+                      Nutritional information
                     </p>
                     <p className="text-xs text-gray-500">View detailed nutrients</p>
                   </div>
@@ -668,7 +668,7 @@ const renderProductCustomizationModal = () => {
           {/* Customization Card */}
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div className="bg-gradient-to-r from-gray-50 to-white p-4 border-b border-gray-100">
-              <h4 className="font-bold text-gray-900 text-base">Customize Your Order</h4>
+              <h4 className="font-bold text-gray-900 text-base">Customize your order</h4>
               <p className="text-xs text-gray-500 mt-0.5">Select size, quantity, and preferences</p>
             </div>
             <div className="p-4">
@@ -692,7 +692,7 @@ const renderProductCustomizationModal = () => {
           {/* Price Summary */}
           <div className="bg-gradient-to-r from-gray-50 to-orange-50 rounded-xl p-3 mb-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">Final Price</span>
+              <span className="text-sm font-medium text-gray-700">Final price</span>
               <div className="flex items-center">
                 
                 <span className="text-2xl font-bold text-orange-600">₹{finalPrice}</span>
@@ -758,7 +758,7 @@ const renderProductCustomizationModal = () => {
           {currentStep === 'duration' && (
             <div className="space-y-6">
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-gray-900">Choose Duration</h2>
+                <h2 className="text-2xl font-bold text-gray-900">Choose duration</h2>
                 <p className="text-gray-600 mt-1">How many days would you like your plan to run?</p>
               </div>
               
@@ -790,7 +790,7 @@ const renderProductCustomizationModal = () => {
         <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
           <AlertCircle className="w-8 h-8 text-white" />
         </div>
-        <h3 className="text-xl font-bold text-white">Minimum Duration Required</h3>
+        <h3 className="text-xl font-bold text-white">Minimum duration required</h3>
       </div>
       
       {/* Content */}
@@ -850,7 +850,7 @@ const renderProductCustomizationModal = () => {
           {currentStep === 'start-date' && (
             <div className="space-y-6">
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-gray-900">Choose Start Date</h2>
+                <h2 className="text-2xl font-bold text-gray-900">Choose start date</h2>
                 <p className="text-gray-600 mt-1">When would you like your plan to start?</p>
               </div>
               
@@ -885,7 +885,7 @@ const renderProductCustomizationModal = () => {
         {/* Progress indicator */}
         <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">Schedule Progress</span>
+            <span className="text-sm font-medium text-gray-700">Schedule progress</span>
             <span className="text-sm font-semibold text-orange-600">
               {schedule.filter(day => day.items.length > 0).length}/{schedule.length} days
             </span>
@@ -1017,7 +1017,7 @@ const renderProductCustomizationModal = () => {
           )}
 
          <div className="space-y-3 mb-6">
-  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Quick Actions</p>
+  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Quick actions</p>
   
   <div className="grid grid-cols-1 gap-3">
     <button 
@@ -1076,7 +1076,7 @@ const renderProductCustomizationModal = () => {
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
-              Confirm Schedule
+              Confirm schedule
             </button>
           </div>
         </div>
@@ -1090,7 +1090,7 @@ const renderProductCustomizationModal = () => {
   <div className="fixed inset-0 bg-black/50 text-black z-40 flex items-end justify-center p-4">
     <div className="bg-white rounded-t-2xl text-black w-full max-w-md animate-slide-up">
       <div className="flex justify-between items-center p-4 border-b">
-        <h3 className="font-semibold text-black">Select Delivery Time</h3>
+        <h3 className="font-semibold text-black">Select delivery time</h3>
         <button 
           onClick={() => setShowTimePicker(null)}
           className="p-2 hover:bg-gray-100 rounded-full"
@@ -1113,7 +1113,7 @@ const renderProductCustomizationModal = () => {
             </div>
             
             <div>
-              <h4 className="text-sm font-medium text-black mb-2">Morning Slots</h4>
+              <h4 className="text-sm font-medium text-black mb-2">Morning slots</h4>
               <div className="grid grid-cols-2 gap-2">
                 {TIME_SLOTS.filter(slot => slot.type === 'morning').map((slot) => (
                   <button
@@ -1128,7 +1128,7 @@ const renderProductCustomizationModal = () => {
             </div>
             
             <div>
-              <h4 className="text-sm font-medium text-black mb-2">Evening Slots</h4>
+              <h4 className="text-sm font-medium text-black mb-2">Evening slots</h4>
               <div className="grid grid-cols-2 gap-2">
                 {TIME_SLOTS.filter(slot => slot.type === 'evening').map((slot) => (
                   <button
@@ -1156,7 +1156,7 @@ const renderProductCustomizationModal = () => {
                 
                 {todayTimeSlots.filter(slot => slot.type === 'morning').length > 0 && (
                   <div>
-                    <h4 className="text-sm font-medium text-black mb-2">Morning Slots</h4>
+                    <h4 className="text-sm font-medium text-black mb-2">Morning slots</h4>
                     <div className="grid grid-cols-2 gap-2">
                       {todayTimeSlots.filter(slot => slot.type === 'morning').map((slot) => (
                         <button
@@ -1177,7 +1177,7 @@ const renderProductCustomizationModal = () => {
                 
                 {todayTimeSlots.filter(slot => slot.type === 'evening').length > 0 && (
                   <div>
-                    <h4 className="text-sm font-medium text-black mb-2">Evening Slots</h4>
+                    <h4 className="text-sm font-medium text-black mb-2">Evening slots</h4>
                     <div className="grid grid-cols-2 gap-2">
                       {todayTimeSlots.filter(slot => slot.type === 'evening').map((slot) => (
                         <button
@@ -1208,7 +1208,7 @@ const renderProductCustomizationModal = () => {
           // Show all slots for future days
           <div className="space-y-4">
             <div>
-              <h4 className="text-sm font-medium text-black mb-2">Morning Slots</h4>
+              <h4 className="text-sm font-medium text-black mb-2">Morning slots</h4>
               <div className="grid grid-cols-2 gap-2">
                 {TIME_SLOTS.filter(slot => slot.type === 'morning').map((slot) => (
                   <button
@@ -1227,7 +1227,7 @@ const renderProductCustomizationModal = () => {
             </div>
             
             <div>
-              <h4 className="text-sm font-medium text-black mb-2">Evening Slots</h4>
+              <h4 className="text-sm font-medium text-black mb-2">Evening slots</h4>
               <div className="grid grid-cols-2 gap-2">
                 {TIME_SLOTS.filter(slot => slot.type === 'evening').map((slot) => (
                   <button

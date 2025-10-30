@@ -80,7 +80,7 @@ export default function DeliveryDashboard() {
                 <Truck className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Delivery Dashboard</h1>
+                <h1 className="text-xl font-bold text-gray-900">Delivery dashboard</h1>
                 <p className="text-xs text-gray-500">Manage your deliveries</p>
               </div>
             </div>
@@ -119,7 +119,7 @@ export default function DeliveryDashboard() {
           {/* Active Time Slots */}
           {activeInfo.isActive && activeInfo.timeSlots.length > 0 && (
             <div className="bg-blue-50 rounded-lg p-3 mb-3">
-              <h3 className="text-sm font-medium text-blue-900 mb-2">Your Active Time Slots:</h3>
+              <h3 className="text-sm font-medium text-blue-900 mb-2">Your active time slots:</h3>
               <div className="flex flex-wrap gap-1">
                 {activeInfo.timeSlots.map((slot, index) => (
                   <span key={index} className="text-xs bg-blue-500 text-white px-2 py-1 rounded-full">
@@ -145,7 +145,7 @@ export default function DeliveryDashboard() {
                 <Settings className="w-6 h-6 text-white" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900">Delivery Settings</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Delivery settings</h3>
                 <p className="text-sm text-gray-500">Set your active time slots</p>
               </div>
               <div className="text-gray-400">
@@ -165,7 +165,7 @@ export default function DeliveryDashboard() {
                 <Package className="w-6 h-6 text-white" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900">View Orders</h3>
+                <h3 className="text-lg font-semibold text-gray-900">View orders</h3>
                 <p className="text-sm text-gray-500">Check orders for your time slots</p>
               </div>
               <div className="text-gray-400">
@@ -179,7 +179,7 @@ export default function DeliveryDashboard() {
 
         {/* Current Status Card */}
         <div className="bg-white rounded-2xl shadow-md p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Current Status</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Current status</h2>
           
           <div className="space-y-4">
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -199,7 +199,7 @@ export default function DeliveryDashboard() {
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center">
                 <MapPin className="w-5 h-5 text-gray-600 mr-2" />
-                <span className="text-sm text-gray-600">Time Slots</span>
+                <span className="text-sm text-gray-600">Time slots</span>
               </div>
               <span className="text-sm font-medium text-gray-900">
                 {activeInfo.timeSlots.length} selected
@@ -210,7 +210,7 @@ export default function DeliveryDashboard() {
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center">
                   <Calendar className="w-5 h-5 text-gray-600 mr-2" />
-                  <span className="text-sm text-gray-600">Last Updated</span>
+                  <span className="text-sm text-gray-600">Last updated</span>
                 </div>
                 <span className="text-sm font-medium text-gray-900">
                   {format(new Date(activeInfo.lastUpdated), 'MMM d, h:mm a')}
@@ -222,7 +222,7 @@ export default function DeliveryDashboard() {
 
         {/* Available Time Slots Info */}
         <div className="bg-white rounded-2xl shadow-md p-6 mt-4">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Available Time Slots</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Available time slots</h2>
           <div className="grid grid-cols-1 gap-2">
             {TIME_SLOTS.map((slot) => {
               const isActive = activeInfo.timeSlots.includes(slot.range);
