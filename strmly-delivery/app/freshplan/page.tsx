@@ -44,7 +44,7 @@ export default function FreshPlanPage() {
         className="flex items-center px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-lg transition-colors"
       >
         <Clock className="w-4 h-4 mr-1.5" />
-        <span className="text-sm font-medium">View Orders</span>
+        <span className="text-sm font-medium">View orders</span>
       </Link>
     </div>
   </div>
@@ -53,7 +53,7 @@ export default function FreshPlanPage() {
       <div className="max-w-md mx-auto px-4 pt-6 pb-16">
         {/* Intro Section */}
         <div className="mb-8 text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Your Daily Refreshment</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Your daily refreshment</h2>
           <p className="text-gray-600">Schedule regular deliveries of your favorite drinks</p>
         </div>
 
@@ -66,7 +66,7 @@ export default function FreshPlanPage() {
                 <div className="flex-1">
                   <div className="flex items-center">
                     <CalendarDays className="w-6 h-6 text-white opacity-90 mr-3" />
-                    <h3 className="text-xl font-bold text-white">Current FreshPlan</h3>
+                    <h3 className="text-xl font-bold text-white">Current freshplan</h3>
                   </div>
                   <p className="mt-2 text-blue-100">
                     
@@ -97,7 +97,7 @@ export default function FreshPlanPage() {
                 <div className="flex-1">
                   <div className="flex items-center">
                     <PlusCircle className="w-6 h-6 text-white opacity-90 mr-3" />
-                    <h3 className="text-xl font-bold text-white">Create New Plan</h3>
+                    <h3 className="text-xl font-bold text-white">Create new plan</h3>
                   </div>
                   <p className="mt-2 text-orange-100">
                     Set up a new subscription plan with your favorite drinks
@@ -111,7 +111,7 @@ export default function FreshPlanPage() {
                 href="/create-plan"
                 className="mt-4 inline-flex items-center px-5 py-2.5 rounded-lg bg-white text-orange-600 font-medium"
               >
-                Start New Plan
+                Start new plan
                 <ChevronRight className="ml-1 w-4 h-4" />
               </Link>
             </div>

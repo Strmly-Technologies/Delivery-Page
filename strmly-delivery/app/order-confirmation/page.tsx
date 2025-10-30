@@ -118,7 +118,7 @@ function OrderList() {
   if (!order) {
     return (
       <div className="max-w-lg mx-auto px-4 py-12 text-center">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">Order Not Found</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">Order not found</h1>
         <p className="text-gray-600 mb-8">
           We couldn't find any details for this order. Please check the order ID and try again.
         </p>
@@ -126,7 +126,7 @@ function OrderList() {
           href="/dashboard"
           className="inline-block bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 px-6 rounded-lg transition-colors"
         >
-          Return to Dashboard
+          Return to dashboard
         </Link>
       </div>
     );
@@ -154,7 +154,7 @@ function OrderList() {
                   />
                 </svg>
               </div>
-              <h1 className="text-3xl font-bold text-white mb-2">Order Confirmed!</h1>
+              <h1 className="text-3xl font-bold text-white mb-2">Order confirmed!</h1>
               <p className="text-white text-opacity-90">
                 Thank you for your order. We'll start preparing it right away.
               </p>
@@ -163,7 +163,7 @@ function OrderList() {
 
           {/* Order Details */}
           <div className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Details</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Order details</h2>
             <div className="space-y-4 mb-6">
               <p className="text-sm text-gray-600">
                 Order ID: <span className="font-medium text-gray-900">#{order._id.toString().slice(-6).toUpperCase()}</span>
@@ -172,7 +172,7 @@ function OrderList() {
                 Date: <span className="font-medium text-gray-900">{format(new Date(order.createdAt), 'PPP')}</span>
               </p>
               <p className="text-sm text-gray-600">
-                Order Type: <span className="font-medium text-gray-900 capitalize">{order.orderType}</span>
+                Order type: <span className="font-medium text-gray-900 capitalize">{order.orderType}</span>
               </p>
             </div>
 
@@ -218,7 +218,7 @@ function OrderList() {
             ) : (
               // FreshPlan Order Items (Day-wise)
               <div className="mb-6">
-                <h3 className="font-medium text-gray-900 mb-3">FreshPlan Schedule</h3>
+                <h3 className="font-medium text-gray-900 mb-3">FreshPlan schedule</h3>
                 
                 {order.planRelated?.isCompletePlanCheckout && order.planRelated.daySchedule ? (
                   // Complete FreshPlan checkout with day-wise data

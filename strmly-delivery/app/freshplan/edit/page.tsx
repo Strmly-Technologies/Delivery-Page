@@ -274,7 +274,7 @@ function EditFreshPlanPage() {
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex flex-col">
         <div className="bg-white rounded-t-2xl p-5 flex items-center justify-between shadow-md">
           <div>
-            <h3 className="font-bold text-xl text-black">Add Item</h3>
+            <h3 className="font-bold text-xl text-black">Add item</h3>
             <p className="text-sm text-black/70">
               {activeDay ? format(new Date(activeDay.date), 'EEEE, MMM d') : 'Select a product'}
             </p>
@@ -396,7 +396,7 @@ function EditFreshPlanPage() {
             
             <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="text-sm text-black/60">Base Price</p>
+                <p className="text-sm text-black/60">Base price</p>
                 <p className="text-2xl font-bold text-black">₹{selectedProduct.price}</p>
               </div>
               <div className="px-3 py-1.5 bg-orange-100 rounded-lg">
@@ -406,7 +406,7 @@ function EditFreshPlanPage() {
           </div>
           
           <div className="px-5 py-4">
-            <h4 className="font-semibold text-black mb-2">Customize Your Order</h4>
+            <h4 className="font-semibold text-black mb-2">Customize your order</h4>
             <div className="bg-white rounded-xl p-4 shadow-sm">
               <ProductCustomization
                 category={selectedProduct.category}
@@ -420,7 +420,7 @@ function EditFreshPlanPage() {
         
         <div className="bg-white p-5 shadow-lg border-t">
           <div className="flex justify-between items-center mb-3">
-            <span className="text-sm font-medium text-black">Total Price:</span>
+            <span className="text-sm font-medium text-black">Total price:</span>
             <span className="text-xl font-bold text-black">₹{finalPrice}</span>
           </div>
           <button
@@ -447,7 +447,7 @@ function EditFreshPlanPage() {
       <div className="fixed inset-0 bg-black/50 z-40 flex items-end justify-center p-4">
         <div className="bg-white rounded-t-2xl w-full max-w-md animate-slide-up">
           <div className="flex justify-between items-center p-4 border-b">
-            <h3 className="font-semibold text-black">Select Delivery Time</h3>
+            <h3 className="font-semibold text-black">Select delivery time</h3>
             <button 
               onClick={() => setShowTimePicker(null)}
               className="p-2 hover:bg-gray-100 rounded-full"
@@ -459,7 +459,7 @@ function EditFreshPlanPage() {
           <div className="p-4 max-h-96 overflow-y-auto">
             <div className="space-y-4">
               <div>
-                <h4 className="text-sm font-medium text-black mb-2">Morning Slots</h4>
+                <h4 className="text-sm font-medium text-black mb-2">Morning slots</h4>
                 <div className="grid grid-cols-2 gap-2">
                   {TIME_SLOTS.filter(slot => slot.type === 'morning').map((slot) => (
                     <button
@@ -478,7 +478,7 @@ function EditFreshPlanPage() {
               </div>
               
               <div>
-                <h4 className="text-sm font-medium text-black mb-2">Evening Slots</h4>
+                <h4 className="text-sm font-medium text-black mb-2">Evening slots</h4>
                 <div className="grid grid-cols-2 gap-2">
                   {TIME_SLOTS.filter(slot => slot.type === 'evening').map((slot) => (
                     <button
@@ -520,13 +520,13 @@ function EditFreshPlanPage() {
           <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <X className="w-8 h-8 text-orange-500" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">No Active Plan</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">No active plan</h2>
           <p className="text-gray-600 mb-6">You don't have an active FreshPlan to edit.</p>
           <Link
             href="/create-plan"
             className="block w-full py-3 bg-orange-500 text-white font-semibold rounded-lg"
           >
-            Create New Plan
+            Create new plan
           </Link>
         </div>
       </div>
@@ -583,7 +583,7 @@ function EditFreshPlanPage() {
       <div className="max-w-md mx-auto px-4 pt-4">
         <div className="bg-white rounded-xl shadow-md p-4 mb-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-gray-900">FreshPlan Summary</h2>
+            <h2 className="text-lg font-bold text-gray-900">FreshPlan summary</h2>
             <span className="text-sm font-medium text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">
               {plan.days} Days
             </span>
@@ -610,7 +610,7 @@ function EditFreshPlanPage() {
                 
                 <div className="p-4 space-y-4">
                   <div>
-                    <p className="text-xs text-black mb-1">Delivery Time</p>
+                    <p className="text-xs text-black mb-1">Delivery time</p>
                     <button
                       onClick={() => setShowTimePicker({ dayId: day._id, timeSlot })}
                       className="flex items-center justify-between w-full p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"

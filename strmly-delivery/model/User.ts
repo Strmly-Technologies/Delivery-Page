@@ -58,6 +58,10 @@ export interface User extends Document {
     additionalAddressDetails?: string;
     phoneNumber?: string;
   }>;
+  deliveryActiveInfo:{
+    isActive:boolean;
+    timeSlots?:string[];
+  }
 }
 
 const freshPlanItemSchema = new Schema({
@@ -197,7 +201,11 @@ const userSchema = new Schema<User>({
       additionalAddressDetails: { type: String },
       phoneNumber: { type: String }
     }
-  ]
+  ],
+  deliveryActiveInfo:{
+    isActive:{type:Boolean,default:false},
+    timeSlots:[{type:String}]
+  }
 });
 
 // Update `updatedAt` before save
