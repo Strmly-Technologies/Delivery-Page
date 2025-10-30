@@ -112,7 +112,7 @@ const getStatusColor = (status?: string) => {
    <div className="min-h-screen bg-gray-50 py-8">
   <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
     <div className="flex items-center justify-between mb-8">
-      <h1 className="text-3xl font-bold text-gray-900">My Orders</h1>
+      <h1 className="text-3xl font-bold text-gray-900">My orders</h1>
       <div className="group relative">
         <Link href='/dashboard'>
           <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
@@ -145,7 +145,7 @@ const getStatusColor = (status?: string) => {
       </svg>
     </div>
 
-    <h3 className="text-xl font-semibold text-gray-900">No Orders Yet</h3>
+    <h3 className="text-xl font-semibold text-gray-900">No orders yet</h3>
     
     <p className="text-gray-500 max-w-xs">
       Looks like you haven't placed any orders. Start exploring our delicious drinks!
@@ -155,7 +155,7 @@ const getStatusColor = (status?: string) => {
       href="/dashboard" 
       className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-medium rounded-full hover:from-orange-600 hover:to-orange-700 transition-all duration-200 transform hover:scale-105 hover:shadow-lg"
     >
-      <span>Start Ordering</span>
+      <span>Start ordering</span>
       <svg 
         className="ml-2 w-4 h-4" 
         fill="none" 
@@ -228,11 +228,11 @@ const getStatusColor = (status?: string) => {
 
                   <div className="border-t border-gray-200 mt-4 pt-4">
                     <div className="flex justify-between text-base font-semibold text-gray-900">
-                      <span>Total Amount</span>
+                      <span>Total amount</span>
                       <span>₹{order.totalAmount}</span>
                     </div>
                     <div className="mt-4">
-                      <h3 className="text-sm font-medium text-gray-900">Delivery Details</h3>
+                      <h3 className="text-sm font-medium text-gray-900">Delivery details</h3>
                       <p className="text-sm text-gray-500 mt-1">
                         {order.customerDetails.name}<br />
                         {order.customerDetails.phone}<br />

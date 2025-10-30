@@ -42,8 +42,8 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
     { name: 'Large', quantity: '500mL', priceAdjustment: mediumPrice },
   ];
 
-  const iceOptions = ['No Ice', 'Less Ice', 'Normal Ice', 'More Ice'];
-  const sugarOptions = ['No Sugar', 'Less Sugar', 'Normal Sugar'];
+  const iceOptions = ['No ice', 'Less ice', 'Normal ice', 'More ice'];
+  const sugarOptions = ['No sugar', 'Less sugar', 'Normal sugar'];
   const dilutionOptions = ['Normal', 'Concentrated', 'Diluted'];
   const fibreOptionDetails=["Thicker juice with natural pulp; richer in nutrients and keeps you full longer.", "Smooth, light, and easy to drink."]
   const [fibreOption, setFibreOption] = useState(false);
@@ -127,7 +127,7 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
       {(isJuice || isShake) && (
         <>
         <div>
-          <h3 className="text-sm font-medium text-gray-900 mb-3">Ice Preference</h3>
+          <h3 className="text-sm font-medium text-gray-900 mb-3">Ice preference</h3>
           <RadioGroup value={selectedIce} onChange={setSelectedIce}>
             <div className="grid grid-cols-2 gap-2">
               {iceOptions.map((option) => (
@@ -168,7 +168,7 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
 
         {/* Fibre Option - Available for both Juices and Shakes */}
         <div>
-          <h3 className="text-sm font-medium text-gray-900 mb-3">Fibre Preference</h3>
+          <h3 className="text-sm font-medium text-gray-900 mb-3">Fibre preference</h3>
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
@@ -182,7 +182,7 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
             >
               <div className="flex items-center justify-between mb-2">
                 <span className={`font-semibold text-sm ${fibreOption ? 'text-orange-800' : 'text-gray-900'}`}>
-                  With Fibre
+                  With fibre
                 </span>
                 {fibreOption && (
                   <svg className="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
@@ -207,7 +207,7 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
             >
               <div className="flex items-center justify-between mb-2">
                 <span className={`font-semibold text-sm ${!fibreOption ? 'text-orange-800' : 'text-gray-900'}`}>
-                  Without Fibre
+                  Without fibre
                 </span>
                 {!fibreOption && (
                   <svg className="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
@@ -227,7 +227,7 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
       {/* Sugar Options - Only for Shakes */}
       {isShake && (
         <div>
-          <h3 className="text-sm font-medium text-gray-900 mb-3">Sugar Level</h3>
+          <h3 className="text-sm font-medium text-gray-900 mb-3">Sugar level</h3>
           <RadioGroup value={selectedSugar} onChange={setSelectedSugar}>
             <div className="grid grid-cols-3 gap-2">
               {sugarOptions.map((option) => (
@@ -316,7 +316,7 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
       {/* Final Price Display */}
       <div className="pt-4 border-t border-gray-200">
         <div className="flex justify-between items-center">
-          <span className="text-base font-medium text-gray-900">Final Price:</span>
+          <span className="text-base font-medium text-gray-900">Final price:</span>
           <div className="text-right">
             <span className="text-xl font-bold text-orange-600">₹{calculateFinalPrice()}</span>
             {orderQuantity > 1 && (

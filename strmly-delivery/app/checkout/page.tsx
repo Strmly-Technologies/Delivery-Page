@@ -867,7 +867,7 @@ interface FreshPlan {
         <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-md p-6">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl text-black font-semibold">Delivery Details</h2>
+                <h2 className="text-xl text-black font-semibold">Delivery details</h2>
                 
                 {/* Saved Addresses Button */}
                 <button
@@ -875,14 +875,14 @@ interface FreshPlan {
                   onClick={() => setShowSavedAddresses(true)}
                   className="text-sm text-orange-600 hover:text-orange-700 font-medium underline"
                 >
-                  Choose Saved Address
+                  Choose saved address
                 </button>
               </div>
               
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                    Full Name *
+                    Full name *
                   </label>
                   <input
                     type="text"
@@ -898,7 +898,7 @@ interface FreshPlan {
                 
                 <div>
                   <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number *
+                    Phone number *
                   </label>
                   <input
                     type="tel"
@@ -916,7 +916,7 @@ interface FreshPlan {
                   <div>
                     <div className="flex justify-between items-center mb-2">
                       <label htmlFor="address" className="block text-sm font-medium text-gray-700">
-                        Delivery Address *
+                        Delivery address *
                       </label>
                       <button
                         type="button"
@@ -942,7 +942,7 @@ interface FreshPlan {
                   
                   <div>
                     <label htmlFor="additionalAddressInfo" className="block text-sm font-medium text-gray-700 mb-2">
-                      Additional Address Info <span className="text-xs text-gray-500">(optional)</span>
+                      Additional address info <span className="text-xs text-gray-500">(optional)</span>
                     </label>
                     <input
                       type="text"
@@ -1014,7 +1014,7 @@ interface FreshPlan {
                 
                 <div className="flex items-center justify-between border-t border-b border-gray-200 py-4 mt-4">
                   <div className="flex items-center">
-                    <span className="text-sm text-gray-600 mr-1">Delivery Fee:</span>
+                    <span className="text-sm text-gray-600 mr-1">Delivery fee:</span>
                     <button
                       type="button"
                       onClick={() => setShowDeliveryInfo(true)}
@@ -1174,7 +1174,7 @@ interface FreshPlan {
     <div className="p-4 bg-orange-100 rounded-lg">
       <div className="flex justify-between items-center">
         <div>
-          <p className="text-sm font-medium text-gray-800">Plan Subtotal</p>
+          <p className="text-sm font-medium text-gray-800">Plan subtotal</p>
           <p className="text-xs text-gray-600">
             {planItems.length} items across {freshPlan?.days} days
           </p>
@@ -1188,7 +1188,7 @@ interface FreshPlan {
               {/* Delivery Charge Price */}
               {deliveryCharge >= 0 && (
                 <div className="flex items-center justify-between text-gray-700 mb-2">
-                  <span>Delivery Fee</span>
+                  <span>Delivery fee</span>
                   {deliveryCharge === 0 && calculatedDeliveryCharge > 0 ? (
                     <div className="flex items-center gap-2">
                       <span className="text-gray-500 line-through">₹{calculatedDeliveryCharge}</span>
@@ -1221,7 +1221,7 @@ interface FreshPlan {
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden">
             <div className="p-6 border-b border-gray-200">
               <div className="flex justify-between items-center">
-                <h3 className="text-xl font-bold text-gray-900">Saved Addresses</h3>
+                <h3 className="text-xl font-bold text-gray-900">Saved addresses</h3>
                 <button
                   onClick={() => setShowSavedAddresses(false)}
                   className="text-gray-400 hover:text-gray-600"
@@ -1269,7 +1269,7 @@ interface FreshPlan {
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
             <div className="p-6 border-b border-gray-200">
               <div className="flex justify-between items-center">
-                <h3 className="text-xl font-bold text-gray-900">Save Address</h3>
+                <h3 className="text-xl font-bold text-gray-900">Save address</h3>
                 <button
                   onClick={() => {
                     setShowSaveAddressModal(false);
@@ -1287,7 +1287,7 @@ interface FreshPlan {
             <div className="p-6">
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Address Name *
+                  Address name *
                 </label>
                 <input
                   type="text"
@@ -1320,7 +1320,7 @@ interface FreshPlan {
                   onClick={handleSaveAddress}
                   className="flex-1 py-2 px-4 bg-orange-500 text-black rounded-lg hover:bg-orange-600 transition-colors"
                 >
-                  Save Address
+                  Save address
                 </button>
               </div>
             </div>

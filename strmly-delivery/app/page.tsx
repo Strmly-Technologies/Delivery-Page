@@ -72,7 +72,7 @@ export default function Home() {
               }`} />
             </div>
             <div className="flex-1 text-left">
-              <h3 className="text-xl font-bold mb-2">QuickSip</h3>
+              <h3 className="text-xl font-bold mb-2">Quicksip</h3>
               <p className={`text-sm ${
                 selectedOption === 'quick' ? 'text-orange-100' : 'text-gray-600'
               }`}>
@@ -103,7 +103,7 @@ export default function Home() {
               }`} />
             </div>
             <div className="flex-1 text-left">
-              <h3 className="text-xl font-bold mb-2">FreshPlan</h3>
+              <h3 className="text-xl font-bold mb-2">Freshplan</h3>
               <p className={`text-sm ${
                 selectedOption === 'scheduled' ? 'text-orange-100' : 'text-gray-600'
               }`}>

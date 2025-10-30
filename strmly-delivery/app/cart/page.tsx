@@ -211,7 +211,7 @@ const handleCheckoutClick = (e: React.MouseEvent) => {
   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div className="flex justify-between items-center h-16">
       <div className="flex items-center space-x-3">
-        <h1 className="text-xl font-bold text-gray-800">My Cart</h1>
+        <h1 className="text-xl font-bold text-gray-800">My cart</h1>
       </div>
       <div className="flex items-center space-x-4">
         <div className="group relative">
@@ -254,7 +254,7 @@ const handleCheckoutClick = (e: React.MouseEvent) => {
               href="/dashboard"
               className="inline-block bg-orange-500 text-white px-8 py-3 rounded-xl hover:bg-orange-600 transition duration-200 font-semibold"
             >
-              Start Shopping
+              Start shopping
             </Link>
           </div>
         ) : (
@@ -354,7 +354,7 @@ const handleCheckoutClick = (e: React.MouseEvent) => {
             <div className="lg:col-span-1">
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 lg:sticky lg:top-24">
                 <h3 className="text-xl font-bold text-gray-900 mb-6">
-                  Order Summary
+                  Order summary
                 </h3>
                 
                 <div className="space-y-4 mb-6">
@@ -387,7 +387,7 @@ const handleCheckoutClick = (e: React.MouseEvent) => {
                       ' py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 hover:shadow-lg'
                   }`}
                 >
-                  Proceed to Checkout
+                  Proceed to checkout
                 </button>
               </div>
                 
@@ -395,7 +395,7 @@ const handleCheckoutClick = (e: React.MouseEvent) => {
                   href="/dashboard"
                   className="w-full border-2 mt-4 border-gray-200 text-gray-700 py-3 px-4 rounded-xl hover:bg-gray-50 transition duration-200 text-center block font-semibold"
                 >
-                  Add More Items
+                  Add more items
                 </Link>
               </div>
             </div>

@@ -28,12 +28,19 @@ export interface Order extends Document {
     address: string;
     additionalAddressInfo?: string;
   };
-  status: 'pending' | 'accepted' | 'out-for-delivery' | 'delivered' | 'cancelled' | 'received' | 'done';
+  status: 'pending' | 'accepted' | 'out-for-delivery' | 'delivered' | 'cancelled' | 'received' | 'done' | 'picked';
   statusInfo?: {
     chefId?: mongoose.Types.ObjectId;
     receivedTime?: Date;
     doneTime?: Date;
   };
+  deliveryInfo?: {
+  deliveryPersonId?: mongoose.Types.ObjectId;
+  pickedTime?: Date;
+  deliveredTime?: Date;
+  notDeliveredTime?: Date;
+  notDeliveredReason?: string;
+};
   createdAt: Date;
   updatedAt: Date;
   deliveryCharge?: number;
@@ -60,6 +67,13 @@ export interface Order extends Document {
         chefId?: mongoose.Types.ObjectId;
         receivedTime?: Date;
         doneTime?: Date;
+      };
+      deliveryInfo?: {
+        deliveryPersonId?: mongoose.Types.ObjectId;
+        pickedTime?: Date;
+        deliveredTime?: Date;
+        notDeliveredTime?: Date;
+        notDeliveredReason?: string;
       };
     }[];
   };
@@ -101,13 +115,20 @@ const orderSchema: Schema<Order> = new Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'accepted', 'out-for-delivery', 'delivered', 'cancelled','received','done'],
+    enum: ['pending', 'accepted', 'out-for-delivery', 'delivered', 'cancelled','received','done','picked','not-delivered'],
     default: 'pending'
   },
   statusInfo: {
     chefId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     receivedTime: { type: Date },
     doneTime: { type: Date }
+  },
+  deliveryInfo: {
+    deliveryPersonId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    pickedTime: { type: Date },
+    deliveredTime: { type: Date },
+    notDeliveredTime: { type: Date },
+    notDeliveredReason: { type: String }
   },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
@@ -153,14 +174,21 @@ const orderSchema: Schema<Order> = new Schema({
     }],
     status: {
         type: String,
-        enum: ['pending', 'received', 'done'],
+        enum: ['pending', 'received', 'done','picked','delivered','not-delivered','not-delivered'],
         default: 'pending'
     },
     statusInfo:{
       chefId:{type: Schema.Types.ObjectId, ref:'User'},
       receivedTime:{type:Date},
       doneTime:{type:Date}
-    }
+    },
+    deliveryInfo: {
+    deliveryPersonId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    pickedTime: { type: Date },
+    deliveredTime: { type: Date },
+    notDeliveredTime: { type: Date },
+    notDeliveredReason: { type: String }
+  },
   }]
   }
 });

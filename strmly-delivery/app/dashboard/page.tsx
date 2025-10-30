@@ -747,7 +747,7 @@ const decrementLastCustomization = async (productId: string, e: React.MouseEvent
                   </button>
                 </Link>
                 <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                  My Cart
+                  My cart
                 </span>
               </div>
             </div>
@@ -762,8 +762,8 @@ const decrementLastCustomization = async (productId: string, e: React.MouseEvent
                 <Zap className="w-5 h-5 text-orange-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900">QuickSip Delivery</h3>
-                <p className="text-sm text-gray-600">Free Delivery on orders above ₹99</p>
+                <h3 className="font-semibold text-gray-900">Quicksip delivery</h3>
+                <p className="text-sm text-gray-600">Free delivery on orders above ₹99</p>
               </div>
             </div>
           )}
@@ -955,7 +955,7 @@ const decrementLastCustomization = async (productId: string, e: React.MouseEvent
           <Info className="w-3.5 h-3.5 text-orange-700" />
         </div>
         <span className="text-sm font-semibold text-orange-700 group-hover:text-orange-800 transition-colors">
-          View Nutritional Information
+          View nutritional information
         </span>
       </button>
     )}
@@ -978,7 +978,7 @@ const decrementLastCustomization = async (productId: string, e: React.MouseEvent
       disabled={cartLoading === selectedProduct._id || !customization}
       className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-xl transition shadow-md hover:shadow-lg flex items-center justify-between"
     >
-      <span>Add to Cart</span>
+      <span>Add to cart</span>
       <span className="text-lg">₹{finalPrice || selectedProduct.price}</span>
     </button>
   </div>

@@ -170,13 +170,13 @@ const fetchCompletedPlans = async () => {
           <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Calendar className="w-8 h-8 text-orange-500" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">No Active Plans</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">No active plans</h2>
           <p className="text-gray-600 mb-6">You don't have any active or upcoming FreshPlan subscriptions.</p>
           <Link 
             href="/freshplan" 
             className="px-6 py-3 bg-orange-500 text-white font-medium rounded-lg hover:bg-orange-600 shadow-md transition-colors inline-block"
           >
-            Explore FreshPlan
+            Explore freshplan
           </Link>
         </div>
       </div>
@@ -195,7 +195,7 @@ const fetchCompletedPlans = async () => {
             >
               <ArrowLeft className="w-5 h-5 text-black" />
             </button>
-            <h1 className="text-xl text-black font-bold">My Plans</h1>
+            <h1 className="text-xl text-black font-bold">My plans</h1>
           </div>
         </div>
       </header>
@@ -206,7 +206,7 @@ const fetchCompletedPlans = async () => {
           <div className="mb-8">
             <div className="flex items-center mb-4">
               <CalendarCheck className="w-5 h-5 text-orange-500 mr-2" />
-              <h2 className="text-lg text-black font-semibold">My Plans</h2>
+              <h2 className="text-lg text-black font-semibold">My plans</h2>
             </div>
             
             <div className="space-y-4">
@@ -226,7 +226,7 @@ const fetchCompletedPlans = async () => {
                             <h3 className="text-lg font-bold text-white">FreshPlan #{planIndex + 1}</h3>
                             {!plan.paymentComplete && (
                               <span className="ml-2 bg-yellow-400 text-yellow-800 text-xs px-2 py-0.5 rounded-full font-medium">
-                                Payment Pending
+                                Payment pending
                               </span>
                             )}
                           </div>
@@ -334,13 +334,13 @@ const fetchCompletedPlans = async () => {
                         href={`/checkout?type=freshplan&planId=${plan._id}`}
                         className="bg-white text-orange-600 text-center py-2.5 rounded-lg text-sm font-medium hover:bg-orange-50 transition-colors shadow"
                       >
-                        Complete Payment
+                        Complete payment
                       </Link>
                       <Link
                         href={`/freshplan/edit?planId=${plan._id}`}
                         className="bg-white/20 text-white text-center py-2.5 rounded-lg text-sm font-medium hover:bg-white/30 transition-colors border border-white/30"
                       >
-                        Edit Plan
+                        Edit plan
                       </Link>
                     </div>
                     <button
@@ -360,7 +360,7 @@ const fetchCompletedPlans = async () => {
                           d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" 
                         />
                       </svg>
-                      Cancel Plan
+                      Cancel plan
                     </button>
                   </div>
                 )}
@@ -377,7 +377,7 @@ const fetchCompletedPlans = async () => {
           <div className="mb-8">
             <div className="flex items-center mb-4">
               <CalendarDays className="w-5 h-5 text-gray-600 mr-2" />
-              <h2 className="text-lg font-semibold text-gray-800">Past Plans</h2>
+              <h2 className="text-lg font-semibold text-gray-800">Past plans</h2>
             </div>
             <div className="space-y-3">
               {completedPlans.map((plan, planIndex) => {

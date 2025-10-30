@@ -3,7 +3,7 @@ import { TimeSlot } from "@/constants/timeSlots";
 
 export function getAvailableTimeSlots(slots: TimeSlot[]): TimeSlot[] {
   const now = new Date();
-  const currentHour = now.getHours() // testing
+  const currentHour = 8 // testing
   const currentMinutes = now.getMinutes();
   console.log("Current time:", currentHour, currentMinutes);
   

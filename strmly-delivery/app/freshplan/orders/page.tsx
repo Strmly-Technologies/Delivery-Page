@@ -279,7 +279,7 @@ export default function FreshPlanOrdersPage() {
       <div className="fixed inset-0  bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-xl shadow-xl max-w-sm w-full overflow-hidden animate-slide-up">
           <div className="p-4 border-b border-gray-100 flex justify-between items-center">
-            <h3 className="font-medium text-gray-900">Select Delivery Time</h3>
+            <h3 className="font-medium text-gray-900">Select delivery time</h3>
             <button 
               onClick={closeTimePicker}
               className="p-1 rounded-full hover:bg-gray-100"
@@ -290,7 +290,7 @@ export default function FreshPlanOrdersPage() {
           
           <div className="p-4 space-y-4">
             <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Morning Slots</h4>
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Morning slots</h4>
               <div className="grid grid-cols-2 gap-2">
                 {TIME_SLOTS.filter(slot => slot.type === 'morning').map((slot) => (
                   <button
@@ -310,7 +310,7 @@ export default function FreshPlanOrdersPage() {
             </div>
             
             <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Evening Slots</h4>
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Evening slots</h4>
               <div className="grid grid-cols-2 gap-2">
                 {TIME_SLOTS.filter(slot => slot.type === 'evening').map((slot) => (
                   <button
@@ -369,7 +369,7 @@ export default function FreshPlanOrdersPage() {
             >
               <ArrowLeft className="w-5 h-5 text-black" />
             </button>
-            <h1 className="text-xl text-black font-bold">My FreshPlan Orders</h1>
+            <h1 className="text-xl text-black font-bold">My FreshPlan orders</h1>
           </div>
         </div>
       </header>
@@ -410,7 +410,7 @@ export default function FreshPlanOrdersPage() {
               <Info className="h-5 w-5 text-blue-500" />
             </div>
             <div className="ml-3">
-              <h4 className="text-sm font-medium text-blue-800">About Delivery Time Changes</h4>
+              <h4 className="text-sm font-medium text-blue-800">About delivery time changes</h4>
               <ul className="mt-2 text-sm text-blue-700 space-y-1 list-disc list-inside">
                 <li>You can edit tomorrow's delivery times until 11:59 PM today</li>
                 <li>Future delivery times (beyond tomorrow) can be changed anytime</li>
@@ -423,7 +423,7 @@ export default function FreshPlanOrdersPage() {
         {orders.length === 0 ? (
           <div className="bg-white rounded-xl shadow-md p-8 text-center">
             <Calendar className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-800 mb-2">No Orders Found</h2>
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">No orders found</h2>
             <p className="text-gray-600 mb-6">You don't have any upcoming FreshPlan orders yet.</p>
             <Link 
               href="/freshplan"
@@ -480,7 +480,7 @@ export default function FreshPlanOrdersPage() {
                       <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                         <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
                           <MapPin className="w-4 h-4 mr-1.5 text-gray-500" />
-                          Delivery Address
+                          Delivery address
                         </h4>
                         <p className="text-sm text-gray-800">{order.customerDetails.name} • {order.customerDetails.phone}</p>
                         <p className="text-sm text-gray-600 mt-1">{order.customerDetails.address}</p>
@@ -490,7 +490,7 @@ export default function FreshPlanOrdersPage() {
                       </div>
                       
                       {/* Day Schedule */}
-                      <h4 className="text-sm font-medium text-gray-700 mb-3">Delivery Schedule</h4>
+                      <h4 className="text-sm font-medium text-gray-700 mb-3">Delivery schedule</h4>
                       <div className="space-y-3">
                         {order.planRelated?.daySchedule?.map((day, dayIndex) => {
                           const dayDate = safeParseDate(day.date);
@@ -627,7 +627,7 @@ export default function FreshPlanOrdersPage() {
                                   </div>
                                   
                                   <div className="mt-3 pt-2 border-t border-gray-100 flex justify-between">
-                                    <span className="text-sm text-gray-600">Day Total</span>
+                                    <span className="text-sm text-gray-600">Day total</span>
                                     <span className="text-sm font-semibold text-gray-900">
                                       ₹{day.items.reduce((total, item) => total + item.price, 0)}
                                     </span>
@@ -640,7 +640,7 @@ export default function FreshPlanOrdersPage() {
                       </div>
                       
                       <div className="mt-4 pt-3 border-t border-gray-200 flex justify-between">
-                        <span className="font-medium text-gray-700">Order Total</span>
+                        <span className="font-medium text-gray-700">Order total</span>
                         <span className="font-bold text-gray-900">₹{order.totalAmount}</span>
                       </div>
                     </div>
