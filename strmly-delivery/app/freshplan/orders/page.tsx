@@ -40,6 +40,7 @@ interface DayScheduleItem {
   items: OrderItem[];
   _id: string;
   timeSlot?: string;
+  status?: string;
 }
 
 interface PlanRelated {
@@ -502,6 +503,8 @@ export default function FreshPlanOrdersPage() {
                           
                           // Get the time slot from the first item (they should all be the same)
                           const timeSlot = day.items[0]?.timeSlot || day.timeSlot || "Not set";
+                          const status=day.status || 'pending';
+                          console.log("Day Status:", status);
                           
                           // Check if this day is editable
                           const isEditable = (day as any).isEditable === true;
@@ -514,55 +517,57 @@ export default function FreshPlanOrdersPage() {
                               }`}
                             >
                               <div 
-                                className={`p-3 flex items-center justify-between cursor-pointer ${
-                                  isTodays ? 'bg-blue-50' : 
-                                  isTomorrow ? 'bg-orange-50' : 
-                                  'bg-white'
-                                }`}
-                                onClick={() => toggleDay(order._id, day._id)}
-                              >
-                                <div className="flex items-center">
-                                  <div className={`w-9 h-9 rounded-full flex items-center justify-center mr-3 ${
-                                    isTodays ? 'bg-blue-100 text-blue-700' : 
-                                    isTomorrow ? 'bg-orange-100 text-orange-700' : 
-                                    isPast ? 'bg-gray-100 text-gray-500' :
-                                    'bg-gray-100 text-gray-700'
-                                  }`}>
-                                    <span className="text-sm font-bold">
-                                      {format(dayDate, 'd')}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-900">
-                                      {format(dayDate, 'EEEE, MMM d')}
-                                      {isTodays && <span className="ml-1.5 text-xs text-blue-600 font-medium">Today</span>}
-                                      {isTomorrow && <span className="ml-1.5 text-xs text-orange-600 font-medium">Tomorrow</span>}
-                                    </p>
-                                    <div className="flex items-center text-xs text-gray-500">
-                                      <Clock className="w-3.5 h-3.5 mr-1 text-gray-400" />
-                                      <span>{timeSlot}</span>
-                                      {isEditable && (
-                                        <button 
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            openTimePicker(order._id, day._id, timeSlot);
-                                          }}
-                                          className="ml-2 text-orange-500 hover:text-orange-600 text-xs font-medium"
-                                        >
-                                          Edit time
-                                        </button>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div>
-                                  {isExpanded ? (
-                                    <ChevronUp className="w-4 h-4 text-gray-400" />
-                                  ) : (
-                                    <ChevronDown className="w-4 h-4 text-gray-400" />
-                                  )}
-                                </div>
-                              </div>
+  className={`p-3 flex items-center justify-between cursor-pointer ${
+    isTodays ? 'bg-blue-50' : 
+    isTomorrow ? 'bg-orange-50' : 
+    'bg-white'
+  }`}
+  onClick={() => toggleDay(order._id, day._id)}
+>
+  <div className="flex items-center">
+    <div className={`w-9 h-9 rounded-full flex items-center justify-center mr-3 ${
+      isTodays ? 'bg-blue-100 text-blue-700' : 
+      isTomorrow ? 'bg-orange-100 text-orange-700' : 
+      isPast ? 'bg-gray-100 text-gray-500' :
+      'bg-gray-100 text-gray-700'
+    }`}>
+      <span className="text-sm font-bold">
+        {format(dayDate, 'd')}
+      </span>
+    </div>
+    <div>
+      <p className="text-sm font-medium text-gray-900">
+        {format(dayDate, 'EEEE, MMM d')}
+        {isTodays && <span className="ml-1.5 text-xs text-blue-600 font-medium">Today</span>}
+        {isTomorrow && <span className="ml-1.5 text-xs text-orange-600 font-medium">Tomorrow</span>}
+      </p>
+      <p className="text-xs text-gray-500 flex items-center">
+        <Clock className="w-3 h-3 mr-1" />
+        {timeSlot}
+      </p>
+    </div>
+  </div>
+  
+  {/* Add Day Status Badge */}
+  <div className="flex items-center gap-2">
+    {day.status && (
+      <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+        day.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+        day.status === 'received' ? 'bg-blue-100 text-blue-700' :
+        'bg-green-100 text-green-700'
+      }`}>
+        {day.status === 'pending' ? 'Pending' :
+         day.status === 'received' ? 'Received' :
+         'Done'}
+      </span>
+    )}
+    {isExpanded ? (
+      <ChevronUp className="w-4 h-4 text-gray-500" />
+    ) : (
+      <ChevronDown className="w-4 h-4 text-gray-500" />
+    )}
+  </div>
+</div>
                               
                               {/* Day Items */}
                               {isExpanded && (

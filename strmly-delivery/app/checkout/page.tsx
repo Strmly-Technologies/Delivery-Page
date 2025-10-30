@@ -518,7 +518,7 @@ interface FreshPlan {
   if (checkoutType === 'quicksip') {
     // Calculate for cart items
     let itemsTotal = cartItems.reduce((total, item) => 
-      total + item.customization.finalPrice, 0
+      total + item.price, 0
     );
     
     for(let i=0; i < customisablePrices.length; i++) {
@@ -1064,32 +1064,36 @@ interface FreshPlan {
               {/* QuickSip Order Summary */}
               {checkoutType === 'quicksip' && (
                 <div className="space-y-4 mb-6">
-                  {cartItems.map((item) => (
-                    <div key={`${item.product._id}-${item.addedAt}`} className="flex items-center gap-4">
-                      <div className="relative w-16 h-16 flex-shrink-0">
-                        <Image
-                          src={item.product.image}
-                          alt={item.product.name}
-                          fill
-                          className="object-cover rounded"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm text-black font-medium">{item.product.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {item.customization.size} • {item.customization.quantity}
-                          {item.customization.ice && ` • ${item.customization.ice}`}
-                          {item.customization.sugar && ` • ${item.customization.sugar}`}
-                          {item.customization.dilution && ` • ${item.customization.dilution}`}
-                          {item.customization.fibre!==undefined && item.customization.fibre?" With Fibre":" Without Fibre"}
-                        </p>
-                        <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
-                      </div>
-                      <p className="text-sm font-medium text-gray-900">
-                        ₹{item.customization.finalPrice}
-                      </p>
-                    </div>
-                  ))}
+                  {cartItems.map((item, index) => (
+  <div key={index} className="flex justify-between items-start py-2">
+    <div className="flex gap-3 flex-1">
+      <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+        <Image
+          src={item.product.image}
+          alt={item.product.name}
+          fill
+          className="object-cover"
+        />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-900 truncate">{item.product.name}</p>
+        <p className="text-xs text-gray-500">
+          {item.customization.size} • {item.customization.quantity}
+          {item.customization.ice && ` • ${item.customization.ice}`}
+          {item.customization.sugar && ` • ${item.customization.sugar}`}
+          {item.customization.dilution && ` • ${item.customization.dilution}`}
+          {item.customization.fibre !== undefined && (item.customization.fibre ? " With Fibre" : " Without Fibre")}
+        </p>
+        <p className="text-xs text-gray-500">
+          ₹{item.customization.finalPrice} × {item.quantity}
+        </p>
+      </div>
+    </div>
+    <p className="text-sm font-medium text-gray-900">
+      ₹{item.price}
+    </p>
+  </div>
+))}
                 </div>
               )}
               

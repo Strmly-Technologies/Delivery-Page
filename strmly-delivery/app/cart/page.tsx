@@ -45,42 +45,41 @@ export default function CartPage() {
   const router = useRouter();
 
   const localFetchProductDetails = async () => {
-    const localItems = localCart.getItems().map((item:any) => ({
-        ...item,
-        addedAt: item.addedAt ? new Date(item.addedAt) : undefined,
-      }));
-      const productIds = [...new Set(localItems.map((item:LocalCartItem) => item.productId))];
-
-       const productsResponse = await fetch('/api/products/batch', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ productIds })
-          });
-           const productsData = await productsResponse.json();
-          
-          if (productsData.success) {
-            // Merge product details with local cart items
-            const mergedCart = localItems.map((item:LocalCartItem) => {
-              const productDetails = productsData.products.find((p:any) => p._id === item.productId);
-              return {
-                product: {
-                  _id: productDetails._id,
-                  name: productDetails.name,
-                  image: productDetails.image,
-                  price: productDetails.price
-                },
-                customization: item.customization,
-                quantity: item.quantity,
-                price: item.customization.finalPrice,
-                addedAt: new Date()
-              };
-            });
-             console.log('Merged local cart items:', mergedCart);
-            return mergedCart;
-
+  const localItems = localCart.getItems();
+  if (localItems.length === 0) {
+    return [];
   }
-}
 
+  try {
+    const productIds = [...new Set(localItems.map((item: LocalCartItem) => item.productId))];
+    const response = await fetch('/api/products');
+    const productsData = await response.json();
+
+    if (productsData.success) {
+      // Merge product details with local cart items
+      const mergedCart = localItems.map((item: LocalCartItem) => {
+        const productDetails = productsData.products.find((p: any) => p._id === item.productId);
+        return {
+          product: {
+            _id: productDetails._id,
+            name: productDetails.name,
+            image: productDetails.image,
+            price: productDetails.price
+          },
+          customization: item.customization,
+          quantity: item.quantity,
+          price: item.price, // Use the stored total price
+          addedAt: new Date()
+        };
+      });
+      console.log('Merged local cart items:', mergedCart);
+      return mergedCart;
+    }
+  } catch (error) {
+    console.error('Error fetching product details:', error);
+    return [];
+  }
+};
   useEffect(() => {
     const currentUser=localStorage.getItem('user');
     if(currentUser){
@@ -163,8 +162,8 @@ const handleCheckoutClick = (e: React.MouseEvent) => {
   };
 
   const getTotalPrice = () => {
-    return cartItems.reduce((total, item) => total + item.price, 0);
-  };
+  return cartItems.reduce((total, item) => total + item.price, 0);
+};
 
   const getTotalItems = () => {
     return cartItems.length;
@@ -336,12 +335,15 @@ const handleCheckoutClick = (e: React.MouseEvent) => {
                       </div>
                       
                       {/* Price */}
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500">Qty: {item.quantity}</span>
-                        <span className="text-xl font-bold text-orange-600">
-                          ₹{item.price}
-                        </span>
-                      </div>
+                      <div className="flex items-center justify-between border-t border-gray-100 pt-2">
+                    <div className="text-xs text-gray-500">
+                      <span>₹{item.customization.finalPrice} × {item.quantity}</span>
+                    </div>
+                    <span className="text-xl font-bold text-orange-600">
+                      ₹{item.price}
+                    </span>
+                  </div>
+                      
                     </div>
                   </div>
                 </div>
