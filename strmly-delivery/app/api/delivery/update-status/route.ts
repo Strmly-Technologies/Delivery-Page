@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     // Map delivery statuses to order statuses
     let orderStatus = status;
     if (status === 'picked') {
-      orderStatus = 'out-for-delivery';
+      orderStatus = 'picked';
     } else if (status === 'delivered') {
       orderStatus = 'delivered';
     } else if (status === 'not-delivered') {

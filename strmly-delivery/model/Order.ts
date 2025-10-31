@@ -62,7 +62,7 @@ export interface Order extends Document {
         customization: ProductCustomization;
         timeSlot: string;
       }[];
-      status?: 'pending' | 'received' | 'done';
+      status?: 'pending' | 'received' | 'done' | 'picked' | 'delivered' | 'not-delivered ' | 'pending';
       statusInfo?: {
         chefId?: mongoose.Types.ObjectId;
         receivedTime?: Date;
