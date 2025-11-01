@@ -262,7 +262,11 @@ export default function FreshPlanPage() {
     if(dayIndex===-1){
       setProductsToAllDays(true);
     }
+    else{
+    setProductsToAllDays(false);
+    }
     setActiveDayIndex(dayIndex);
+    
   };
   
   const handleSelectProduct = (product: Product) => {
@@ -307,6 +311,7 @@ const addProductToAllDays=()=>{
     return newDay;
   });
   setSchedule(updatedSchedule);
+  setProductsToAllDays(false);
   closeProductCustomization();
     
 
@@ -365,6 +370,7 @@ const addProductToAllDays=()=>{
     if (!selectedProduct || !customization || activeDayIndex === null) return;
     
     const updatedSchedule = [...schedule];
+    console.log(updatedSchedule[activeDayIndex])
     const newItem = {
       product: selectedProduct,
       customization,

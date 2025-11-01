@@ -1,6 +1,5 @@
 import { verifyAuth } from "@/lib/serverAuth";
 import OrderModel from "@/model/Order";
-import UserModel from "@/model/User";
 import { startOfDay, endOfDay } from "date-fns";
 import { NextRequest, NextResponse } from "next/server";
 import "@/model/Product";
@@ -20,6 +19,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const deliveryPersonId = decodedToken.userId;
+
     // Extract and validate date and timeSlot
     const { searchParams } = new URL(request.url);
     const dateParam = searchParams.get("date");
@@ -29,38 +30,43 @@ export async function GET(request: NextRequest) {
     const todayStart = startOfDay(targetDate);
     const todayEnd = endOfDay(targetDate);
 
-    console.log("Fetching done orders for delivery:", { 
-      date: targetDate.toISOString(), 
-      timeSlot: timeSlotParam 
-    });
+    console.log("Fetching delivered orders for delivery person:", deliveryPersonId);
 
-    // Fetch all orders with 'done' status (ready for delivery)
+    // Fetch orders delivered by this delivery person
     const orders = await OrderModel.find({
       $or: [
-        { status: "done" },
-        { "planRelated.daySchedule.status": "done" }
-      ],
+        { 
+          status: { $in: ["delivered", "not-delivered"] },
+          "deliveryInfo.deliveryPersonId": deliveryPersonId,
+          createdAt: { $gte: todayStart, $lte: todayEnd }
+        },
+        { 
+          "planRelated.daySchedule": {
+            $elemMatch: {
+              status: { $in: ["delivered", "not-delivered"] },
+              "deliveryInfo.deliveryPersonId": deliveryPersonId,
+              date: { $gte: todayStart, $lte: todayEnd }
+            }
+          }
+        }
+      ]
     })
       .populate("products.product")
       .populate("planRelated.daySchedule.items.product")
       .lean();
 
-      console.log("Fetched orders:", orders.length);
-
-    const todayOrders: any[] = [];
+    const deliveredOrders: any[] = [];
 
     for (const order of orders) {
       const orderNumber = String(order._id).slice(-6).toUpperCase();
 
       // === QuickSip Orders ===
-      if (order.orderType === "quicksip" && order.status === "done") {
+      if (order.orderType === "quicksip" && ["delivered", "not-delivered"].includes(order.status)
+          && order.deliveryInfo?.deliveryPersonId?.toString() === deliveryPersonId) {
         const orderTimeSlot = order.deliveryTimeSlot || "ASAP";
-         const orderDate = new Date(order.createdAt);
-        if (orderDate >= todayStart && orderDate <= todayEnd){
         
-        // Filter by time slot if specified
         if (!timeSlotParam || orderTimeSlot === timeSlotParam) {
-          todayOrders.push({
+          deliveredOrders.push({
             _id: order._id,
             orderNumber,
             orderType: "quicksip",
@@ -80,24 +86,27 @@ export async function GET(request: NextRequest) {
             timeSlot: orderTimeSlot,
             status: order.status,
             deliveryDate: order.createdAt,
+            pickedTime: order.deliveryInfo?.pickedTime,
+            deliveredTime: order.deliveryInfo?.deliveredTime,
+            notDeliveredTime: order.deliveryInfo?.notDeliveredTime,
+            notDeliveredReason: order.deliveryInfo?.notDeliveredReason,
             orderId: order._id,
           });
         }
       }
-    }
 
       // === FreshPlan Orders ===
       if (order.orderType === "freshplan" && order.planRelated?.daySchedule) {
         for (const day of order.planRelated.daySchedule) {
           const dayDate = new Date(day.date);
           
-          // Check if this day is the target date and status is done
-          if (dayDate >= todayStart && dayDate <= todayEnd && day.status === "done") {
+          if (dayDate >= todayStart && dayDate <= todayEnd 
+              && ["delivered", "not-delivered"].includes(day.status)
+              && day.deliveryInfo?.deliveryPersonId?.toString() === deliveryPersonId) {
             const dayTimeSlot = day.timeSlot || day.items?.[0]?.timeSlot || "7-8 AM";
             
-            // Filter by time slot if specified
             if (!timeSlotParam || dayTimeSlot === timeSlotParam) {
-              todayOrders.push({
+              deliveredOrders.push({
                 _id: `${order._id}-${day._id}`,
                 orderNumber,
                 orderType: "freshplan",
@@ -118,6 +127,10 @@ export async function GET(request: NextRequest) {
                 timeSlot: dayTimeSlot,
                 status: day.status,
                 deliveryDate: dayDate,
+                pickedTime: day.deliveryInfo?.pickedTime,
+                deliveredTime: day.deliveryInfo?.deliveredTime,
+                notDeliveredTime: day.deliveryInfo?.notDeliveredTime,
+                notDeliveredReason: day.deliveryInfo?.notDeliveredReason,
                 orderId: order._id,
               });
             }
@@ -128,34 +141,28 @@ export async function GET(request: NextRequest) {
 
     // Sort by time slot order
     const timeSlotOrder = TIME_SLOTS.map(slot => slot.range);
-    todayOrders.sort((a, b) => {
+    deliveredOrders.sort((a, b) => {
       const indexA = timeSlotOrder.indexOf(a.timeSlot);
       const indexB = timeSlotOrder.indexOf(b.timeSlot);
       return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
     });
 
-    console.log(`Returning ${todayOrders.length} done orders for delivery on ${targetDate.toISOString()}`);
-    console.log(todayOrders)
-    
-
     return NextResponse.json({
       success: true,
       date: targetDate.toISOString(),
-      timeSlot: timeSlotParam || 'all',
-      count: todayOrders.length,
-      orders: todayOrders
+      count: deliveredOrders.length,
+      orders: deliveredOrders
     });
 
   } catch (error) {
-    console.error("Error fetching done orders:", error);
+    console.error("Error fetching delivered orders:", error);
     return NextResponse.json(
-      { error: "Failed to fetch done orders" },
+      { error: "Failed to fetch delivered orders" },
       { status: 500 }
     );
   }
 }
 
-// Helper function to calculate day total for FreshPlan
 function calculateDayTotal(items: any[]): number {
   return items.reduce((total, item) => {
     return total + (item.customization?.finalPrice || 0) * (item.quantity || 1);

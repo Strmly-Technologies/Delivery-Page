@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+
     if (order.orderType === 'freshplan' && order.planRelated?.daySchedule) {
     let updated = false;
 

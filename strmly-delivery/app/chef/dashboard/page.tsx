@@ -97,6 +97,9 @@ export default function ChefDashboard() {
     
     if (data.success) {
       setItems(data.items);
+      console.log(`Fetched ${data.items.length} items for ${isCurrentlyToday ? 'today' : isCurrentlyTomorrow ? 'tomorrow' : 'selected date'}`);
+      console.log(data.items);
+      
     }
   } catch (error) {
     console.error('Error fetching orders:', error);
@@ -436,42 +439,72 @@ export default function ChefDashboard() {
 
                         {/* Items List */}
                         <div className="space-y-3 mb-3">
-                          {orderGroup.items.map((item: OrderItem) => (
-                            <div key={item._id} className="flex gap-3 bg-gray-50 p-3 rounded-lg">
-                              <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-white">
-                                <Image
-                                  src={item.product.image}
-                                  alt={item.product.name}
-                                  fill
-                                  className="object-cover"
-                                />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-bold text-gray-900 mb-1 truncate">
-                                  {item.product.name}
-                                </h4>
-                                <div className="text-xs text-gray-600 space-y-0.5">
-                                  <p className="font-medium">
-                                    {item.customization.size} • {item.customization.quantity}
-                                    {item.quantity > 1 && ` • Qty: ${item.quantity}`}
-                                  </p>
-                                  {item.customization.ice && (
-                                    <p>Ice: {item.customization.ice}</p>
-                                  )}
-                                  {item.customization.sugar && (
-                                    <p>Sugar: {item.customization.sugar}</p>
-                                  )}
-                                  {item.customization.dilution && (
-                                    <p>Dilution: {item.customization.dilution}</p>
-                                  )}
-                                  {item.customization.fibre && (
-                                    <p className="text-green-600 font-medium">+ Add Fibre</p>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+  {orderGroup.items.map((item: OrderItem) => {
+    // Add null check for product
+    if (!item.product) {
+      return (
+        <div key={item._id} className="flex gap-3 bg-red-50 border border-red-200 p-3 rounded-lg">
+          <div className="w-16 h-16 flex-shrink-0 rounded-lg bg-red-100 flex items-center justify-center">
+            <Package className="w-8 h-8 text-red-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h4 className="font-bold text-red-700 mb-1">
+              Product Not Found
+            </h4>
+            <div className="text-xs text-red-600 space-y-0.5">
+              <p className="font-medium">
+                {item.customization?.size || 'Unknown'} • {item.customization?.quantity || 'Unknown'}
+                {item.quantity > 1 && ` • Qty: ${item.quantity}`}
+              </p>
+              <p className="italic">This product may have been deleted</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div key={item._id} className="flex gap-3 bg-gray-50 p-3 rounded-lg">
+        <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-white">
+          <Image
+            src={item.product.image || '/placeholder-product.jpg'} // Add fallback image
+            alt={item.product.name || 'Product'}
+            fill
+            className="object-cover"
+            onError={(e) => {
+              // Handle broken images
+              const target = e.target as HTMLImageElement;
+              target.src = '/placeholder-product.jpg';
+            }}
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h4 className="font-bold text-gray-900 mb-1 truncate">
+            {item.product.name || 'Unknown Product'}
+          </h4>
+          <div className="text-xs text-gray-600 space-y-0.5">
+            <p className="font-medium">
+              {item.customization?.size || 'Unknown'} • {item.customization?.quantity || 'Unknown'}
+              {item.quantity > 1 && ` • Qty: ${item.quantity}`}
+            </p>
+            {item.customization?.ice && (
+              <p>Ice: {item.customization.ice}</p>
+            )}
+            {item.customization?.sugar && (
+              <p>Sugar: {item.customization.sugar}</p>
+            )}
+            {item.customization?.dilution && (
+              <p>Dilution: {item.customization.dilution}</p>
+            )}
+            {item.customization?.fibre && (
+              <p className="text-green-600 font-medium">+ Add Fibre</p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  })}
+</div>
 
                         {/* Action Buttons - Only show for today's orders */}
                         {isToday && currentStatus !== 'done' && (
