@@ -8,9 +8,13 @@ import Image from 'next/image';
 import { 
   BarChart3, Package2, ShoppingCart, Settings, Search, Eye, RefreshCw, 
   Phone, ChevronDown, ChevronUp, SlidersHorizontal, Calendar, Clock, Filter,
-  X, CalendarIcon
+  X, CalendarIcon,
+  User,
+  Mail,
+  Users
 } from 'lucide-react';
 import { format, parse, isValid } from 'date-fns';
+import mongoose from 'mongoose';
 
 interface OrderProduct {
   product: {
@@ -38,6 +42,19 @@ interface DaySchedule {
     customization: any;
     timeSlot: string;
   }>;
+   status?: 'pending' | 'received' | 'done' | 'picked' | 'delivered' | 'not-delivered ' | 'pending';
+        statusInfo?: {
+          chefId?: mongoose.Types.ObjectId;
+          receivedTime?: Date;
+          doneTime?: Date;
+        };
+        deliveryInfo?: {
+          deliveryPersonId?: mongoose.Types.ObjectId;
+          pickedTime?: Date;
+          deliveredTime?: Date;
+          notDeliveredTime?: Date;
+          notDeliveredReason?: string;
+        };
   _id: string;
 }
 
@@ -59,6 +76,18 @@ interface Order {
     additionalAddressInfo?: string;
   };
   status: 'pending' | 'accepted' | 'out-for-delivery' | 'delivered' | 'cancelled';
+   statusInfo?: {
+          chefId?: mongoose.Types.ObjectId;
+          receivedTime?: Date;
+          doneTime?: Date;
+        };
+    deliveryInfo?: {
+      deliveryPersonId?: mongoose.Types.ObjectId;
+      pickedTime?: Date;
+      deliveredTime?: Date;
+      notDeliveredTime?: Date;
+      notDeliveredReason?: string;
+    };
   createdAt: string;
   updatedAt: string;
   deliveryTimeSlot?: string;
@@ -227,6 +256,7 @@ function OrdersList() {
   };
 
   const formatDate = (dateString: string) => {
+    console.log(dateString);
     const options: Intl.DateTimeFormatOptions = {
       day: 'numeric', 
       month: 'short', 
@@ -316,31 +346,56 @@ function OrdersList() {
           <h1 className="text-2xl font-bold text-orange-600">STRMLY Admin</h1>
         </div>
         <nav className="mt-6">
-          <Link href="/admin" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
-            <div className="flex items-center">
-              <BarChart3 className="h-5 w-5 mr-3" />
-              Dashboard
-            </div>
-          </Link>
-          <Link href="/admin/products" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
-            <div className="flex items-center">
-              <Package2 className="h-5 w-5 mr-3" />
-              Products
-            </div>
-          </Link>
-          <Link href="/admin/orders" className="block py-3 px-6 text-gray-900 bg-gray-100 font-medium">
-            <div className="flex items-center">
-              <ShoppingCart className="h-5 w-5 mr-3" />
-              Orders
-            </div>
-          </Link>
-          <Link href="/admin/settings" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
-            <div className="flex items-center">
-              <Settings className="h-5 w-5 mr-3" />
-              Settings
-            </div>
-          </Link>
-        </nav>
+                         <Link href="/admin" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                           <div className="flex items-center">
+                             <BarChart3 className="h-5 w-5 mr-3" />
+                             Dashboard
+                           </div>
+                         </Link>
+                         <Link href="/admin/products" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                           <div className="flex items-center">
+                             <Package2 className="h-5 w-5 mr-3" />
+                             Products
+                           </div>
+                         </Link>
+                         <Link href="/admin/orders" className="block py-3 px-6 bg-gray-100 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                           <div className="flex items-center">
+                             <ShoppingCart className="h-5 w-5 mr-3" />
+                             Orders
+                           </div>
+                         </Link>
+                         <Link href="/admin/users" className="block py-3 px-6 text-gray-900 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                           <div className="flex items-center">
+                             <Users className="h-5 w-5 mr-3" />
+                             Users
+                           </div>
+                         </Link>
+                         <Link href="/admin/email" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                           <div className="flex items-center">
+                             <Mail className="h-5 w-5 mr-3" />
+                             Email
+                           </div>
+                         </Link>
+                         <Link href="/admin/settings" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                           <div className="flex items-center">
+                             <Settings className="h-5 w-5 mr-3" />
+                             Settings
+                           </div>
+                         </Link>
+                         <Link href="/admin/staff" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                           <div className="flex items-center">
+                             <User className="h-5 w-5 mr-3" />
+                             Staff Management
+                           </div>
+                         </Link>
+                         <Link href="/admin/others" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                           <div className="flex items-center">
+                             <SlidersHorizontal className="h-5 w-5 mr-3" />
+                             Customisations
+                           </div>
+                         </Link>
+                         
+                       </nav>
       </div>
 
       {/* Main Content */}
@@ -855,35 +910,30 @@ function OrdersList() {
                                   )}
                                 </div>
                                 
-                                <h4 className="text-sm font-medium text-gray-900 mt-6 mb-2">Order Actions</h4>
-                                <div className="flex flex-wrap gap-2">
-                                  {(function() {
-                                    const nextStatus = getNextStatus(order.status);
-                                    return nextStatus && (
-                                      <button
-                                        onClick={() => handleStatusChange(order._id, nextStatus)}
-                                        disabled={updateStatus === order._id}
-                                        className={`px-3 py-1 text-sm rounded-md bg-blue-100 text-blue-800 ${
-                                          updateStatus === order._id ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-200'
-                                        }`}
-                                      >
-                                        {updateStatus === order._id ? 'Updating...' : `Mark as ${nextStatus.replace(/-/g, ' ')}`}
-                                      </button>
-                                    );
-                                  })()}
-                                  
-                                  {order.status !== 'cancelled' && order.status !== 'delivered' && (
-                                    <button
-                                      onClick={() => handleStatusChange(order._id, 'cancelled')}
-                                      disabled={updateStatus === order._id}
-                                      className={`px-3 py-1 text-sm rounded-md bg-red-100 text-red-800 ${
-                                        updateStatus === order._id ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-200'
-                                      }`}
-                                    >
-                                      Cancel Order
-                                    </button>
+                                <h4 className="text-sm font-medium text-gray-900 mt-6 mb-2">Order Timings</h4>
+                                <div className="text-sm text-gray-600 space-y-1">
+                                  <p><span className="font-medium text-gray-900">Placed:</span> {formatDate(order.createdAt)}</p>
+                                  {order.orderType==='freshplan' && order.planRelated?.daySchedule && (
+                                    <p>Check Individual day Timings</p>
+                                    )}
+                                  {order.orderType==='quicksip' && order.statusInfo && (
+                                  <>{order.statusInfo.receivedTime && (
+                                    <>
+                                    <p><span className="font-medium text-gray-900">Received:</span> {formatDate(String(order?.statusInfo?.receivedTime))}</p>
+                                    <p><span className="font-medium text-gray-900">Prepared:</span> {formatDate(String(order?.statusInfo?.doneTime))}</p>
+                                    </>
                                   )}
-                                </div>
+                                  {order.deliveryInfo && (
+                                    <>
+                                    <p><span className="font-medium text-gray-900">Picked:</span> {formatDate(String(order?.deliveryInfo?.pickedTime))}</p>
+                                    <p><span className="font-medium text-gray-900">Delivered:</span> {formatDate(String(order?.deliveryInfo?.deliveredTime))}</p>
+                                    </>
+                                  )
+                                  }
+                                  </>
+                                  )}
+                                 
+                                  </div>
                               </div>
                             </div>
                           </td>

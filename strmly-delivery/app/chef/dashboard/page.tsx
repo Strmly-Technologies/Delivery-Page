@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChefHat, Clock, Package, CheckCircle, LogOut, RefreshCw, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChefHat, Clock, Package, CheckCircle, LogOut, RefreshCw, Calendar } from 'lucide-react';
 import Image from 'next/image';
 import { format, addDays, isSameDay } from 'date-fns';
 
@@ -44,6 +44,12 @@ export default function ChefDashboard() {
   const [updating, setUpdating] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'pending' | 'received' | 'done'>('all');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    received: 0,
+    done: 0
+  });
   const router = useRouter();
 
   const today = new Date();
@@ -51,33 +57,80 @@ export default function ChefDashboard() {
   const isToday = isSameDay(selectedDate, today);
   const isTomorrow = isSameDay(selectedDate, tomorrow);
 
+  // Fetch orders when date or filter changes
   useEffect(() => {
     fetchOrdersForDate(selectedDate);
+  }, [selectedDate, filter]);
+
+  // Fetch stats when date changes
+  useEffect(() => {
+    fetchChefStats(selectedDate);
   }, [selectedDate]);
 
+  // Auto-refresh only for today
   useEffect(() => {
-    // Only refresh automatically if viewing today
     if (isToday) {
-      const interval = setInterval(() => fetchOrdersForDate(selectedDate), 30000);
+      const interval = setInterval(() => {
+        fetchOrdersForDate(selectedDate);
+        fetchChefStats(selectedDate);
+      }, 30000);
       return () => clearInterval(interval);
     }
-  }, [selectedDate, isToday]);
+  }, [selectedDate, isToday, filter]);
 
- const fetchOrdersForDate = async (date: Date) => {
+  // Fetch chef statistics
+  const fetchChefStats = async (date: Date) => {
+    try {
+      const dateStr = date.toISOString();
+      const response = await fetch(`/api/chef/stats?date=${dateStr}`, {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          router.push('/chef/login');
+          return;
+        }
+        throw new Error('Failed to fetch stats');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setStats({
+          total: data.stats.totalOrders,
+          pending: data.stats.pendingOrders,
+          received: data.stats.receivedOrders,
+          done: data.stats.doneOrders
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching chef stats:', error);
+    }
+  };
+
+
+const fetchOrdersForDate = async (date: Date) => {
   try {
     setLoading(true);
     
-    // Determine which API endpoint to use based on selected date
     const isCurrentlyToday = isSameDay(date, today);
     const isCurrentlyTomorrow = isSameDay(date, tomorrow);
+    const dateStr = date.toISOString();
     
     let apiEndpoint: string;
-    if (isCurrentlyToday) {
+    
+    // Use filter-specific endpoints when filtering
+    if (filter === 'pending') {
+      apiEndpoint = `/api/chef/pending-orders?date=${dateStr}`;
+    } else if (filter === 'received') {
+      apiEndpoint = `/api/chef/received-orders?date=${dateStr}`;
+    } else if (filter === 'done') {
+      apiEndpoint = `/api/chef/done-orders?date=${dateStr}`;
+    } else if (isCurrentlyToday) {
       apiEndpoint = '/api/chef/today-orders';
     } else if (isCurrentlyTomorrow) {
       apiEndpoint = '/api/chef/tomorrow-orders';
     } else {
-      // Fallback to today if somehow neither matches
       apiEndpoint = '/api/chef/today-orders';
     }
     
@@ -97,9 +150,7 @@ export default function ChefDashboard() {
     
     if (data.success) {
       setItems(data.items);
-      console.log(`Fetched ${data.items.length} items for ${isCurrentlyToday ? 'today' : isCurrentlyTomorrow ? 'tomorrow' : 'selected date'}`);
-      console.log(data.items);
-      
+      console.log(`Fetched ${data.items.length} items for ${filter} filter`);
     }
   } catch (error) {
     console.error('Error fetching orders:', error);
@@ -108,8 +159,8 @@ export default function ChefDashboard() {
   }
 };
 
-  const updateDayStatus = async (orderId: string, dayId: string, newStatus: 'received' | 'done') => {
-    const updateKey = `${orderId}-${dayId}`;
+  const updateDayStatus = async (orderId: string, dayId: string | undefined, newStatus: 'received' | 'done') => {
+    const updateKey = dayId ? `${orderId}-${dayId}` : orderId;
     setUpdating(updateKey);
     const chefTime = new Date().toISOString();
     
@@ -124,23 +175,12 @@ export default function ChefDashboard() {
       const data = await response.json();
       
       if (data.success) {
-        // Update local state for all items in this day
-        if (dayId !== undefined) {
-          setItems(prev => prev.map(item => 
-            item.orderId === orderId && item.dayId === dayId 
-              ? { ...item, dayStatus: newStatus } 
-              : item
-          ));
-        } else {
-          setItems(prev => prev.map(item =>
-            item.orderId === orderId
-              ? { ...item, status: newStatus }
-              : item
-          ));
-        }
+        // Refresh both orders and stats after update
+        await fetchOrdersForDate(selectedDate);
+        await fetchChefStats(selectedDate);
       }
     } catch (error) {
-      console.error('Error updating day status:', error);
+      console.error('Error updating status:', error);
     } finally {
       setUpdating(null);
     }
@@ -163,17 +203,10 @@ export default function ChefDashboard() {
     setFilter('all');
   };
 
-  const filteredItems = items.filter(item => {
-    if (filter === 'all') return true;
-    // For FreshPlan items, check day status
-    if (item.orderType === 'freshplan' && item.dayStatus) {
-      return item.dayStatus === filter;
-    }
-    // For QuickSip items, check item status
-    return item.status === filter;
-  });
+  // No client-side filtering needed as API handles it
+  const filteredItems = items;
 
-  // Group items by time slot and then by order/day for FreshPlan
+  // Group items by time slot and then by order
   const groupedByTimeSlot = filteredItems.reduce((acc, item) => {
     const slot = item.timeSlot || 'No Time Slot';
     if (!acc[slot]) acc[slot] = {};
@@ -192,7 +225,6 @@ export default function ChefDashboard() {
       }
       acc[slot][dayKey].items.push(item);
     } else {
-      // QuickSip items
       const orderKey = item.orderId;
       if (!acc[slot][orderKey]) {
         acc[slot][orderKey] = {
@@ -209,7 +241,15 @@ export default function ChefDashboard() {
     return acc;
   }, {} as Record<string, any>);
 
-  const sortedTimeSlots = Object.keys(groupedByTimeSlot).sort();
+  const sortedTimeSlots = Object.keys(groupedByTimeSlot).sort((a, b) => {
+    const timeSlotOrder = [
+      '7-8 AM', '8-9 AM', '9-10 AM', '10-11 AM',
+      '3-4 PM', '4-5 PM', '5-6 PM', '6-7 PM', 'ASAP'
+    ];
+    const indexA = timeSlotOrder.indexOf(a);
+    const indexB = timeSlotOrder.indexOf(b);
+    return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -218,13 +258,6 @@ export default function ChefDashboard() {
       case 'done': return 'bg-green-100 text-green-800 border-green-300';
       default: return 'bg-gray-100 text-gray-800 border-gray-300';
     }
-  };
-
-  const stats = {
-    total: items.length,
-    pending: items.filter(i => (i.orderType === 'freshplan' ? i.dayStatus : i.status) === 'pending').length,
-    received: items.filter(i => (i.orderType === 'freshplan' ? i.dayStatus : i.status) === 'received').length,
-    done: items.filter(i => (i.orderType === 'freshplan' ? i.dayStatus : i.status) === 'done').length
   };
 
   if (loading) {
@@ -257,7 +290,10 @@ export default function ChefDashboard() {
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => fetchOrdersForDate(selectedDate)}
+                onClick={() => {
+                  fetchOrdersForDate(selectedDate);
+                  fetchChefStats(selectedDate);
+                }}
                 className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition"
                 title="Refresh"
               >
@@ -311,7 +347,6 @@ export default function ChefDashboard() {
               </button>
             </div>
 
-            {/* Current Date Display */}
             <div className={`flex items-center justify-center rounded-lg p-2 mt-2 ${
               isToday ? 'bg-green-50' : 'bg-orange-50'
             }`}>
@@ -321,7 +356,6 @@ export default function ChefDashboard() {
               </span>
             </div>
 
-            {/* Tomorrow View Notice */}
             {isTomorrow && (
               <div className="mt-2 bg-orange-50 border border-orange-200 rounded-lg p-2">
                 <p className="text-xs text-orange-700 text-center">
@@ -394,7 +428,6 @@ export default function ChefDashboard() {
           <div className="space-y-4">
             {sortedTimeSlots.map(timeSlot => (
               <div key={timeSlot} className="bg-white rounded-2xl shadow-md overflow-hidden">
-                {/* Time Slot Header */}
                 <div className={`px-4 py-3 ${
                   isToday 
                     ? 'bg-gradient-to-r from-green-500 to-green-600' 
@@ -409,16 +442,14 @@ export default function ChefDashboard() {
                   </div>
                 </div>
 
-                {/* Orders */}
                 <div className="divide-y divide-gray-100">
                   {Object.entries(groupedByTimeSlot[timeSlot]).map(([key, orderGroup]: [string, any]) => {
                     const isFreshPlan = orderGroup.orderType === 'freshplan';
                     const currentStatus = isFreshPlan ? orderGroup.dayStatus : orderGroup.status;
-                    const updateKey = isFreshPlan ? `${orderGroup.orderId}-${orderGroup.dayId}` : key;
+                    const updateKey = isFreshPlan ? `${orderGroup.orderId}-${orderGroup.dayId}` : orderGroup.orderId;
 
                     return (
                       <div key={key} className="p-4">
-                        {/* Order Header */}
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-bold text-gray-900 bg-gray-100 px-2 py-1 rounded">
@@ -437,134 +468,67 @@ export default function ChefDashboard() {
                           </span>
                         </div>
 
-                        {/* Items List */}
                         <div className="space-y-3 mb-3">
-  {orderGroup.items.map((item: OrderItem) => {
-    // Add null check for product
-    if (!item.product) {
-      return (
-        <div key={item._id} className="flex gap-3 bg-red-50 border border-red-200 p-3 rounded-lg">
-          <div className="w-16 h-16 flex-shrink-0 rounded-lg bg-red-100 flex items-center justify-center">
-            <Package className="w-8 h-8 text-red-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h4 className="font-bold text-red-700 mb-1">
-              Product Not Found
-            </h4>
-            <div className="text-xs text-red-600 space-y-0.5">
-              <p className="font-medium">
-                {item.customization?.size || 'Unknown'} • {item.customization?.quantity || 'Unknown'}
-                {item.quantity > 1 && ` • Qty: ${item.quantity}`}
-              </p>
-              <p className="italic">This product may have been deleted</p>
-            </div>
-          </div>
-        </div>
-      );
-    }
+                          {orderGroup.items.map((item: OrderItem) => (
+                            <div key={item._id} className="flex gap-3 bg-gray-50 p-3 rounded-lg">
+                              <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-white">
+                                <Image
+                                  src={item.product?.image || '/placeholder-product.jpg'}
+                                  alt={item.product?.name || 'Product'}
+                                  fill
+                                  className="object-cover"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.src = '/placeholder-product.jpg';
+                                  }}
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-bold text-gray-900 mb-1 truncate">
+                                  {item.product?.name || 'Unknown Product'}
+                                </h4>
+                                <div className="text-xs text-gray-600 space-y-0.5">
+                                  <p className="font-medium">
+                                    {item.customization?.size || 'Unknown'} • {item.customization?.quantity || 'Unknown'}
+                                    {item.quantity > 1 && ` • Qty: ${item.quantity}`}
+                                  </p>
+                                  {item.customization?.ice && <p>Ice: {item.customization.ice}</p>}
+                                  {item.customization?.sugar && <p>Sugar: {item.customization.sugar}</p>}
+                                  {item.customization?.dilution && <p>Dilution: {item.customization.dilution}</p>}
+                                  {item.customization?.fibre && <p className="text-green-600 font-medium">+ Add Fibre</p>}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
 
-    return (
-      <div key={item._id} className="flex gap-3 bg-gray-50 p-3 rounded-lg">
-        <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-white">
-          <Image
-            src={item.product.image || '/placeholder-product.jpg'} // Add fallback image
-            alt={item.product.name || 'Product'}
-            fill
-            className="object-cover"
-            onError={(e) => {
-              // Handle broken images
-              const target = e.target as HTMLImageElement;
-              target.src = '/placeholder-product.jpg';
-            }}
-          />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h4 className="font-bold text-gray-900 mb-1 truncate">
-            {item.product.name || 'Unknown Product'}
-          </h4>
-          <div className="text-xs text-gray-600 space-y-0.5">
-            <p className="font-medium">
-              {item.customization?.size || 'Unknown'} • {item.customization?.quantity || 'Unknown'}
-              {item.quantity > 1 && ` • Qty: ${item.quantity}`}
-            </p>
-            {item.customization?.ice && (
-              <p>Ice: {item.customization.ice}</p>
-            )}
-            {item.customization?.sugar && (
-              <p>Sugar: {item.customization.sugar}</p>
-            )}
-            {item.customization?.dilution && (
-              <p>Dilution: {item.customization.dilution}</p>
-            )}
-            {item.customization?.fibre && (
-              <p className="text-green-600 font-medium">+ Add Fibre</p>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  })}
-</div>
-
-                        {/* Action Buttons - Only show for today's orders */}
                         {isToday && currentStatus !== 'done' && (
                           <div className="flex gap-2">
                             {currentStatus === 'pending' && (
                               <button
-                                onClick={() => {
-                                  updateDayStatus(orderGroup.orderId, orderGroup.dayId, 'received');
-                                }}
+                                onClick={() => updateDayStatus(orderGroup.orderId, orderGroup.dayId, 'received')}
                                 disabled={updating === updateKey}
-                                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg font-semibold text-sm transition disabled:opacity-50 flex items-center justify-center"
+                                className="flex-1 bg-blue-500 text-white py-2.5 px-4 rounded-lg font-semibold text-sm hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                               >
-                                {updating === updateKey ? (
-                                  <RefreshCw className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <>
-                                    <Package className="w-4 h-4 mr-2" />
-                                    Mark Received
-                                  </>
-                                )}
+                                {updating === updateKey ? 'Updating...' : 'Mark as Received'}
                               </button>
                             )}
                             {currentStatus === 'received' && (
                               <button
-                                onClick={() => {
-                                  updateDayStatus(orderGroup.orderId, orderGroup.dayId, 'done');
-                                }}
+                                onClick={() => updateDayStatus(orderGroup.orderId, orderGroup.dayId, 'done')}
                                 disabled={updating === updateKey}
-                                className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2.5 rounded-lg font-semibold text-sm transition disabled:opacity-50 flex items-center justify-center"
+                                className="flex-1 bg-green-500 text-white py-2.5 px-4 rounded-lg font-semibold text-sm hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                               >
-                                {updating === updateKey ? (
-                                  <RefreshCw className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <>
-                                    <CheckCircle className="w-4 h-4 mr-2" />
-                                    Mark Done
-                                  </>
-                                )}
+                                {updating === updateKey ? 'Updating...' : 'Mark as Done'}
                               </button>
                             )}
                           </div>
                         )}
 
-                        {/* Status Display for Today's Completed or Tomorrow's Orders */}
-                        {(currentStatus === 'done' || !isToday) && (
-                          <div className={`border rounded-lg p-2 flex items-center justify-center ${
-                            currentStatus === 'done' 
-                              ? 'bg-green-50 border-green-200'
-                              : 'bg-gray-50 border-gray-200'
-                          }`}>
-                            {currentStatus === 'done' ? (
-                              <>
-                                <CheckCircle className="w-4 h-4 text-green-600 mr-2" />
-                                <span className="text-sm font-medium text-green-700">Completed</span>
-                              </>
-                            ) : (
-                              <span className="text-sm font-medium text-gray-600">
-                                Status: {currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1)}
-                              </span>
-                            )}
+                        {currentStatus === 'done' && (
+                          <div className="flex items-center justify-center py-2 px-4 bg-green-50 rounded-lg">
+                            <CheckCircle className="w-4 h-4 text-green-600 mr-2" />
+                            <span className="text-sm font-medium text-green-700">Completed</span>
                           </div>
                         )}
                       </div>

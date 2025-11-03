@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Package2, ShoppingCart, BarChart3, Settings, LogOut, Users, Clock, Truck, CheckCircle, AlertCircle, SlidersHorizontal } from 'lucide-react';
+import { Package2, ShoppingCart, BarChart3, Settings, LogOut, Users, Clock, Truck, CheckCircle, AlertCircle, SlidersHorizontal, Mail, User } from 'lucide-react';
 
 interface DashboardStats {
   products: number;
@@ -110,47 +110,65 @@ export default function AdminDashboard() {
         <div className="p-6">
           <h1 className="text-2xl font-bold text-orange-600">STRMLY Admin</h1>
         </div>
-        <nav className="mt-6">
-          <Link href="/admin" className="block py-3 px-6 bg-orange-50 text-orange-600 border-l-4 border-orange-600 font-medium">
-            <div className="flex items-center">
-              <BarChart3 className="h-5 w-5 mr-3" />
-              Dashboard
-            </div>
-          </Link>
-          <Link href="/admin/products" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
-            <div className="flex items-center">
-              <Package2 className="h-5 w-5 mr-3" />
-              Products
-            </div>
-          </Link>
-          <Link href="/admin/orders" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
-            <div className="flex items-center">
-              <ShoppingCart className="h-5 w-5 mr-3" />
-              Orders
-            </div>
-          </Link>
-          <Link href="/admin/delivery" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
-            <div className="flex items-center">
-              <Settings className="h-5 w-5 mr-3" />
-              Delivery Settings
-            </div>
-          </Link>
- <Link href="/admin/others" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
-            <div className="flex items-center">
-              <SlidersHorizontal className="h-5 w-5 mr-3" />
-              Customisations 
-            </div>
-          </Link>
-          <div className="mt-10 px-6">
-            <button 
-              onClick={handleLogout}
-              className="flex items-center text-red-500 hover:text-red-700"
-            >
-              <LogOut className="h-5 w-5 mr-3" />
-              Logout
-            </button>
-          </div>
-        </nav>
+       <nav className="mt-6">
+                 <Link href="/admin" className="block py-3 px-6 text-gray-600 bg-gray-100 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                   <div className="flex items-center">
+                     <BarChart3 className="h-5 w-5 mr-3" />
+                     Dashboard
+                   </div>
+                 </Link>
+                 <Link href="/admin/products" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                   <div className="flex items-center">
+                     <Package2 className="h-5 w-5 mr-3" />
+                     Products
+                   </div>
+                 </Link>
+                 <Link href="/admin/orders" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                   <div className="flex items-center">
+                     <ShoppingCart className="h-5 w-5 mr-3" />
+                     Orders
+                   </div>
+                 </Link>
+                 <Link href="/admin/users" className="block py-3 px-6 text-gray-900 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                   <div className="flex items-center">
+                     <Users className="h-5 w-5 mr-3" />
+                     Users
+                   </div>
+                 </Link>
+                 <Link href="/admin/email" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                   <div className="flex items-center">
+                     <Mail className="h-5 w-5 mr-3" />
+                     Email
+                   </div>
+                 </Link>
+                 <Link href="/admin/settings" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                   <div className="flex items-center">
+                     <Settings className="h-5 w-5 mr-3" />
+                     Settings
+                   </div>
+                 </Link>
+                 <Link href="/admin/staff" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                   <div className="flex items-center">
+                     <User className="h-5 w-5 mr-3" />
+                     Staff Management
+                   </div>
+                 </Link>
+                 <Link href="/admin/others" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                   <div className="flex items-center">
+                     <SlidersHorizontal className="h-5 w-5 mr-3" />
+                     Customisations
+                   </div>
+                 </Link>
+                 <div className="mt-10 px-6">
+                   <button
+                     onClick={handleLogout}
+                     className="flex items-center text-red-500 hover:text-red-700"
+                   >
+                     <LogOut className="h-5 w-5 mr-3" />
+                     Logout
+                   </button>
+                 </div>
+               </nav>
       </div>
 
       {/* Main Content */}

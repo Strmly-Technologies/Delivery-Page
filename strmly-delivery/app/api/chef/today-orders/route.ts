@@ -38,14 +38,7 @@ export async function GET(request: NextRequest) {
       // === QUICK SIP ORDERS ===
       if (order.orderType === 'quicksip') {
         const orderDate = new Date(order.createdAt);
-        if(String(order._id).toString()==="6900c74cc31f5e0b207da6ab"){
-          console.log("Order Date:", orderDate, "Today Start:", todayStart, "Today End:", todayEnd);
-        }
-        if(String(order._id).toString()==="69026c1bccdc4b96a16c4d16"){
-          console.log("Order Date:", orderDate, "Today Start:", todayStart, "Today End:", todayEnd);
-        }
-
-
+        
         if (orderDate >= todayStart && orderDate <= todayEnd) {
           console.log("Today's QuickSip order found:", order._id);
           for (const item of order.products) {
@@ -68,7 +61,6 @@ export async function GET(request: NextRequest) {
       // === FRESH PLAN ORDERS ===
       if (order.orderType === 'freshplan' && Array.isArray(order.planRelated?.daySchedule)) {
         if(String(order._id).toString()==="6903517edc9d736fc89d0510"){
-        console.log("ORDER,", order.planRelated.daySchedule);
         }
         
         for (const day of order.planRelated.daySchedule) {
