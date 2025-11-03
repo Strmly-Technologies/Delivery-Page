@@ -191,21 +191,34 @@ interface FreshPlan {
   };
 
   const fetchSavedAddresses = async () => {
-    try {
-      const response = await fetch('/api/address', {
-        method: 'GET',
-        credentials: 'include',
-      });
-      const data = await response.json();
+  try {
+    const response = await fetch('/api/address', {
+      method: 'GET',
+      credentials: 'include',
+    });
+    const data = await response.json();
+    
+    if (data.success) {
+      const addresses = data.savedAddresses || [];
+      setSavedAddresses(addresses);
       
-      if (data.success) {
-        setSavedAddresses(data.savedAddresses || []);
+      // Auto-fill first address if available and no address is set yet
+      if (addresses.length > 0 && !customerDetails.address) {
+        const firstSavedAddress = addresses[0];
+        setCustomerDetails(prev => ({
+          ...prev,
+          name: firstSavedAddress.fullName,
+          address: firstSavedAddress.deliveryAddress,
+          phone: firstSavedAddress.phoneNumber || prev.phone,
+          additionalAddressInfo: firstSavedAddress.additionalAddressDetails || ''
+        }));
+        setDisableAddressInput(true);
       }
-    } catch (error) {
-      console.error('Error fetching saved addresses:', error);
     }
-  };
-
+  } catch (error) {
+    console.error('Error fetching saved addresses:', error);
+  }
+};
   const handleSelectSavedAddress = (address: any) => {
     setCustomerDetails(prev => ({
       ...prev,
@@ -218,9 +231,12 @@ interface FreshPlan {
     setDisableAddressInput(true);
   };
 
+ 
+
   // Fetch saved addresses on mount
   useEffect(() => {
-    fetchSavedAddresses();
+   fetchSavedAddresses();
+
   }, []);
 
   const initialise = async () => {
