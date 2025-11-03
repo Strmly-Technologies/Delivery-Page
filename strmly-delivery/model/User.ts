@@ -147,7 +147,7 @@ const userSchema = new Schema<User>({
   username: {
     type: String,
     required: true,
-    unique: true, // already creates index
+    unique: false, // already creates index
   },
   phone:{
     type:String,

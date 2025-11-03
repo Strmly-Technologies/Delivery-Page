@@ -8,7 +8,10 @@ import Image from 'next/image';
 import { 
   BarChart3, Package2, ShoppingCart, Settings, Search, Eye, RefreshCw, 
   Phone, ChevronDown, ChevronUp, SlidersHorizontal, Calendar, Clock, Filter,
-  X, CalendarIcon
+  X, CalendarIcon,
+  User,
+  Mail,
+  Users
 } from 'lucide-react';
 import { format, parse, isValid } from 'date-fns';
 import mongoose from 'mongoose';
@@ -343,31 +346,56 @@ function OrdersList() {
           <h1 className="text-2xl font-bold text-orange-600">STRMLY Admin</h1>
         </div>
         <nav className="mt-6">
-          <Link href="/admin" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
-            <div className="flex items-center">
-              <BarChart3 className="h-5 w-5 mr-3" />
-              Dashboard
-            </div>
-          </Link>
-          <Link href="/admin/products" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
-            <div className="flex items-center">
-              <Package2 className="h-5 w-5 mr-3" />
-              Products
-            </div>
-          </Link>
-          <Link href="/admin/orders" className="block py-3 px-6 text-gray-900 bg-gray-100 font-medium">
-            <div className="flex items-center">
-              <ShoppingCart className="h-5 w-5 mr-3" />
-              Orders
-            </div>
-          </Link>
-          <Link href="/admin/settings" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
-            <div className="flex items-center">
-              <Settings className="h-5 w-5 mr-3" />
-              Settings
-            </div>
-          </Link>
-        </nav>
+                         <Link href="/admin" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                           <div className="flex items-center">
+                             <BarChart3 className="h-5 w-5 mr-3" />
+                             Dashboard
+                           </div>
+                         </Link>
+                         <Link href="/admin/products" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                           <div className="flex items-center">
+                             <Package2 className="h-5 w-5 mr-3" />
+                             Products
+                           </div>
+                         </Link>
+                         <Link href="/admin/orders" className="block py-3 px-6 bg-gray-100 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                           <div className="flex items-center">
+                             <ShoppingCart className="h-5 w-5 mr-3" />
+                             Orders
+                           </div>
+                         </Link>
+                         <Link href="/admin/users" className="block py-3 px-6 text-gray-900 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                           <div className="flex items-center">
+                             <Users className="h-5 w-5 mr-3" />
+                             Users
+                           </div>
+                         </Link>
+                         <Link href="/admin/email" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                           <div className="flex items-center">
+                             <Mail className="h-5 w-5 mr-3" />
+                             Email
+                           </div>
+                         </Link>
+                         <Link href="/admin/settings" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                           <div className="flex items-center">
+                             <Settings className="h-5 w-5 mr-3" />
+                             Settings
+                           </div>
+                         </Link>
+                         <Link href="/admin/staff" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                           <div className="flex items-center">
+                             <User className="h-5 w-5 mr-3" />
+                             Staff Management
+                           </div>
+                         </Link>
+                         <Link href="/admin/others" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                           <div className="flex items-center">
+                             <SlidersHorizontal className="h-5 w-5 mr-3" />
+                             Customisations
+                           </div>
+                         </Link>
+                         
+                       </nav>
       </div>
 
       {/* Main Content */}
