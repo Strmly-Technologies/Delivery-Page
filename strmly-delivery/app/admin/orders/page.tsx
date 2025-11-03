@@ -11,6 +11,7 @@ import {
   X, CalendarIcon
 } from 'lucide-react';
 import { format, parse, isValid } from 'date-fns';
+import mongoose from 'mongoose';
 
 interface OrderProduct {
   product: {
@@ -38,6 +39,19 @@ interface DaySchedule {
     customization: any;
     timeSlot: string;
   }>;
+   status?: 'pending' | 'received' | 'done' | 'picked' | 'delivered' | 'not-delivered ' | 'pending';
+        statusInfo?: {
+          chefId?: mongoose.Types.ObjectId;
+          receivedTime?: Date;
+          doneTime?: Date;
+        };
+        deliveryInfo?: {
+          deliveryPersonId?: mongoose.Types.ObjectId;
+          pickedTime?: Date;
+          deliveredTime?: Date;
+          notDeliveredTime?: Date;
+          notDeliveredReason?: string;
+        };
   _id: string;
 }
 
@@ -59,6 +73,18 @@ interface Order {
     additionalAddressInfo?: string;
   };
   status: 'pending' | 'accepted' | 'out-for-delivery' | 'delivered' | 'cancelled';
+   statusInfo?: {
+          chefId?: mongoose.Types.ObjectId;
+          receivedTime?: Date;
+          doneTime?: Date;
+        };
+    deliveryInfo?: {
+      deliveryPersonId?: mongoose.Types.ObjectId;
+      pickedTime?: Date;
+      deliveredTime?: Date;
+      notDeliveredTime?: Date;
+      notDeliveredReason?: string;
+    };
   createdAt: string;
   updatedAt: string;
   deliveryTimeSlot?: string;
@@ -227,6 +253,7 @@ function OrdersList() {
   };
 
   const formatDate = (dateString: string) => {
+    console.log(dateString);
     const options: Intl.DateTimeFormatOptions = {
       day: 'numeric', 
       month: 'short', 
@@ -855,35 +882,30 @@ function OrdersList() {
                                   )}
                                 </div>
                                 
-                                <h4 className="text-sm font-medium text-gray-900 mt-6 mb-2">Order Actions</h4>
-                                <div className="flex flex-wrap gap-2">
-                                  {(function() {
-                                    const nextStatus = getNextStatus(order.status);
-                                    return nextStatus && (
-                                      <button
-                                        onClick={() => handleStatusChange(order._id, nextStatus)}
-                                        disabled={updateStatus === order._id}
-                                        className={`px-3 py-1 text-sm rounded-md bg-blue-100 text-blue-800 ${
-                                          updateStatus === order._id ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-200'
-                                        }`}
-                                      >
-                                        {updateStatus === order._id ? 'Updating...' : `Mark as ${nextStatus.replace(/-/g, ' ')}`}
-                                      </button>
-                                    );
-                                  })()}
-                                  
-                                  {order.status !== 'cancelled' && order.status !== 'delivered' && (
-                                    <button
-                                      onClick={() => handleStatusChange(order._id, 'cancelled')}
-                                      disabled={updateStatus === order._id}
-                                      className={`px-3 py-1 text-sm rounded-md bg-red-100 text-red-800 ${
-                                        updateStatus === order._id ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-200'
-                                      }`}
-                                    >
-                                      Cancel Order
-                                    </button>
+                                <h4 className="text-sm font-medium text-gray-900 mt-6 mb-2">Order Timings</h4>
+                                <div className="text-sm text-gray-600 space-y-1">
+                                  <p><span className="font-medium text-gray-900">Placed:</span> {formatDate(order.createdAt)}</p>
+                                  {order.orderType==='freshplan' && order.planRelated?.daySchedule && (
+                                    <p>Check Individual day Timings</p>
+                                    )}
+                                  {order.orderType==='quicksip' && order.statusInfo && (
+                                  <>{order.statusInfo.receivedTime && (
+                                    <>
+                                    <p><span className="font-medium text-gray-900">Received:</span> {formatDate(String(order?.statusInfo?.receivedTime))}</p>
+                                    <p><span className="font-medium text-gray-900">Prepared:</span> {formatDate(String(order?.statusInfo?.doneTime))}</p>
+                                    </>
                                   )}
-                                </div>
+                                  {order.deliveryInfo && (
+                                    <>
+                                    <p><span className="font-medium text-gray-900">Picked:</span> {formatDate(String(order?.deliveryInfo?.pickedTime))}</p>
+                                    <p><span className="font-medium text-gray-900">Delivered:</span> {formatDate(String(order?.deliveryInfo?.deliveredTime))}</p>
+                                    </>
+                                  )
+                                  }
+                                  </>
+                                  )}
+                                 
+                                  </div>
                               </div>
                             </div>
                           </td>

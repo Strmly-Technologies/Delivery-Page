@@ -28,7 +28,7 @@ export interface Order extends Document {
     address: string;
     additionalAddressInfo?: string;
   };
-  status: 'pending' | 'accepted' | 'out-for-delivery' | 'delivered' | 'cancelled' | 'received' | 'done' | 'picked';
+  status: 'pending' | 'accepted'  | 'delivered' | 'cancelled' | 'received' | 'done' | 'picked';
   statusInfo?: {
     chefId?: mongoose.Types.ObjectId;
     receivedTime?: Date;

@@ -90,6 +90,10 @@ export default function FreshPlanOrdersPage() {
   } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+   const [editingTimeSlot, setEditingTimeSlot] = useState<string | null>(null);
+  const [newTimeSlot, setNewTimeSlot] = useState<string>('');
+  const [isTimeSlotEditOpen, setIsTimeSlotEditOpen] = useState(false);
+  
 
   useEffect(() => {
     fetchOrders();
@@ -503,11 +507,13 @@ export default function FreshPlanOrdersPage() {
                           
                           // Get the time slot from the first item (they should all be the same)
                           const timeSlot = day.items[0]?.timeSlot || day.timeSlot || "Not set";
+                          console.log("Rendering Day:", day,dayDate,day.status);
                           const status=day.status || 'pending';
                           console.log("Day Status:", status);
                           
                           // Check if this day is editable
                           const isEditable = (day as any).isEditable === true;
+                          console.log("Is Day Editable:", day,isEditable);
                           
                           return (
                             <div 
@@ -551,14 +557,9 @@ export default function FreshPlanOrdersPage() {
   {/* Add Day Status Badge */}
   <div className="flex items-center gap-2">
     {day.status && (
-      <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-        day.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-        day.status === 'received' ? 'bg-blue-100 text-blue-700' :
-        'bg-green-100 text-green-700'
+      <span className={`text-xs font-medium px-2 py-1 text-orange-800 bg-orange-200 rounded-full 
       }`}>
-        {day.status === 'pending' ? 'Pending' :
-         day.status === 'received' ? 'Received' :
-         'Done'}
+        {day.status.charAt(0).toUpperCase() + day.status.slice(1)}
       </span>
     )}
     {isExpanded ? (
@@ -582,6 +583,17 @@ export default function FreshPlanOrdersPage() {
                                       </div>
                                     </div>
                                   )}
+                                  {isEditable && (
+                                    <button
+                                      onClick={() => openTimePicker(order._id, day._id, timeSlot)
+                                      }
+                                      className="mb-3 px-3 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded-lg hover:bg-orange-200 transition-colors"
+                                    >
+                                      Edit delivery time
+                                    </button>
+                                  ) 
+                                        
+                                      }
                                   
                                   <div className="space-y-3">
                                     {day.items.map((item, itemIndex) => (

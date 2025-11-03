@@ -202,6 +202,30 @@ const updateNutrient = (size: 'regular' | 'large', index: number, field: string,
     setFormData(prev => ({ ...prev, imageUrl: '' }));
   };
 
+  const copyAndScaleNutrients = () => {
+    const scaledNutrients = formData.regularNutrients.map(nutrient => {
+      // Skip empty nutrients
+      if (!nutrient.name.trim() || !nutrient.amount.trim()) return nutrient;
+
+      const amount = parseFloat(nutrient.amount);
+      if (isNaN(amount)) return nutrient;
+
+      // Scale from 300ml to 500ml (5/3 times)
+      const scaledAmount = (amount * 5 / 3).toFixed(2);
+
+      return {
+        name: nutrient.name,
+        amount: scaledAmount.toString(),
+        unit: nutrient.unit
+      };
+    });
+
+    setFormData(prev => ({
+      ...prev,
+      largeNutrients: scaledNutrients
+    }));
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-white py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
@@ -394,14 +418,27 @@ const updateNutrient = (size: 'regular' | 'large', index: number, field: string,
   <div className="space-y-4">
     <div className="flex items-center justify-between">
       <h4 className="text-sm font-semibold text-gray-900">Large Size (500mL)</h4>
-      <button
-        type="button"
-        onClick={() => addNutrient('large')}
-        className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center"
-      >
-        <Plus className="w-4 h-4 mr-1" />
-        Add Nutrient
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={copyAndScaleNutrients}
+          className="text-sm bg-orange-100 text-orange-600 hover:bg-orange-200 px-3 py-1.5 rounded-lg font-medium flex items-center"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          Copy & Scale from Regular
+        </button>
+        <button
+          type="button"
+          onClick={() => addNutrient('large')}
+          className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center"
+        >
+          <Plus className="w-4 h-4 mr-1" />
+          Add Nutrient
+        </button>
+      </div>
     </div>
     
     {formData.largeNutrients.map((nutrient, index) => (

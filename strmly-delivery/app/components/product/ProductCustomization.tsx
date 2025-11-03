@@ -62,13 +62,13 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
 };
 
   // Update parent component when selections change
- useEffect(() => {
-  const customization: ProductCustomization = {
-    size: selectedSize.name,
-    quantity: selectedSize.quantity,
-    orderQuantity: orderQuantity, 
-    finalPrice: calculateFinalPrice()
-  };
+   useEffect(() => {
+    const customization: ProductCustomization = {
+      size: selectedSize.name,
+      quantity: selectedSize.quantity,
+      orderQuantity: orderQuantity, 
+      finalPrice: calculateFinalPrice()
+    };
 
     if (isJuice) {
       customization.ice = selectedIce;
@@ -79,13 +79,10 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
       customization.ice = selectedIce;
       customization.sugar = selectedSugar;
       customization.dilution = selectedDilution;
-      customization.fibre = fibreOption;
     }
 
-
-   onCustomizationChange(customization, calculateFinalPrice());
-}, [selectedSize, selectedIce, selectedSugar, selectedDilution, orderQuantity,fibreOption]); 
-
+    onCustomizationChange(customization, calculateFinalPrice());
+  }, [selectedSize, selectedIce, selectedSugar, selectedDilution, orderQuantity, fibreOption]);
   return (
     <div className="space-y-6 py-4">
       {/* Size Selection */}
@@ -125,7 +122,6 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
 
       {/* Ice Options - Available for both Juices and Shakes */}
       {(isJuice || isShake) && (
-        <>
         <div>
           <h3 className="text-sm font-medium text-gray-900 mb-3">Ice preference</h3>
           <RadioGroup value={selectedIce} onChange={setSelectedIce}>
@@ -165,8 +161,11 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
             </div>
           </RadioGroup>
         </div>
+      )}
+
 
         {/* Fibre Option - Available for both Juices and Shakes */}
+        {isJuice && (
         <div>
           <h3 className="text-sm font-medium text-gray-900 mb-3">Fibre preference</h3>
           <div className="grid grid-cols-2 gap-3">
@@ -221,7 +220,6 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
             </button>
           </div>
         </div>
-        </>
       )}
 
       {/* Sugar Options - Only for Shakes */}

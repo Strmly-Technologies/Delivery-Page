@@ -1020,7 +1020,7 @@ interface FreshPlan {
                       onClick={() => setShowDeliveryInfo(true)}
                       className=" text-black hover:text-gray-700 focus:outline-none ml-1"
                     >
-                      {getTotalPrice() >= 99 ? (<Info className="w-4 h-4" />): ( <p className='text-red-700 text-sm underline cursor-pointer'>(Remove it) </p>)}
+                      {getTotalPrice()-deliveryCharge >= 99 ? (<Info className="w-4 h-4" />): ( <p className='text-red-700 text-sm underline cursor-pointer'>(Remove it) </p>)}
                       
                     </button>
                   </div>
