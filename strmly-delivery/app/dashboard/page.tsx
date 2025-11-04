@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, Search, X, History, UserPlus, LogOut, Zap, Info, Plus, Minus } from 'lucide-react';
+import { ShoppingBag, Search, X, Zap, Info, Plus, Minus } from 'lucide-react';
 import ProductCustomization, { ProductCustomization as CustomizationType } from '../components/product/ProductCustomization';
 import Image from 'next/image';
-import { set } from 'mongoose';
 import { localCart } from '@/lib/cartStorage';
 import NutrientsModal from '../components/nutrients/NutrientModal';
 
@@ -47,9 +46,22 @@ interface LastCustomization {
   orderQuantity?: number;
 }
 
+// Loading Skeleton Component
+const ProductSkeleton = () => (
+  <div className="bg-gray-200 rounded-3xl p-4 sm:p-6 animate-pulse">
+    <div className="flex justify-between items-center gap-3">
+      <div className="flex-1">
+        <div className="h-6 bg-gray-300 rounded w-3/4 mb-2"></div>
+        <div className="h-8 bg-gray-300 rounded w-1/3 mb-4"></div>
+        <div className="h-10 bg-gray-300 rounded w-20"></div>
+      </div>
+      <div className="w-24 h-24 bg-gray-300 rounded-lg"></div>
+    </div>
+  </div>
+);
+
 export default function BesomMobileUI() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'juices' | 'shakes'>('all');
   const [cartLoading, setCartLoading] = useState<string | null>(null);
@@ -62,8 +74,6 @@ export default function BesomMobileUI() {
   });
   const [showNutrientsModal, setShowNutrientsModal] = useState(false);
   const [selectedProductForNutrients, setSelectedProductForNutrients] = useState<Product | null>(null);
-
-  // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [customization, setCustomization] = useState<CustomizationType | null>(null);
@@ -72,6 +82,18 @@ export default function BesomMobileUI() {
   const [cartItemCount, setCartItemCount] = useState(0);
   const [productQuantities, setProductQuantities] = useState<Record<string, number>>({});
   const [lastCustomizations, setLastCustomizations] = useState<Record<string, LastCustomization>>({});
+
+  // Memoized filtered products with debounced search
+  const filteredProducts = useMemo(() => {
+    if (searchQuery.trim() === '') {
+      return products;
+    }
+    const lowercaseQuery = searchQuery.toLowerCase();
+    return products.filter(product =>
+      product.name.toLowerCase().includes(lowercaseQuery) ||
+      product.description.toLowerCase().includes(lowercaseQuery)
+    );
+  }, [searchQuery, products]);
 
   useEffect(() => {
     if (!localStorage.getItem('latitude') && !localStorage.getItem('longitude')) {
@@ -116,82 +138,6 @@ export default function BesomMobileUI() {
     }
   };
 
-   const updateProductQuantities = async () => {
-    try {
-      if (isAuthenticated) {
-        const response = await fetch('/api/cart', { credentials: 'include' });
-        const data = await response.json();
-        if (data.success) {
-          const quantities: Record<string, number> = {};
-          const customizations: Record<string, LastCustomization> = {};
-          
-          // Group by product and find last customization
-          const productMap = new Map<string, any[]>();
-          
-          data.cart.forEach((item: any) => {
-            const productId = item.product._id;
-            if (!productMap.has(productId)) {
-              productMap.set(productId, []);
-            }
-            productMap.get(productId)?.push(item);
-          });
-          
-          // Calculate quantities and get last customization
-          productMap.forEach((items, productId) => {
-            quantities[productId] = items.reduce((sum, item) => sum + item.quantity, 0);
-            
-            // Get the most recent customization
-            const lastItem = items.reduce((latest, current) => 
-              new Date(current.addedAt) > new Date(latest.addedAt) ? current : latest
-            );
-            
-            customizations[productId] = {
-              ...lastItem.customization,
-              orderQuantity: lastItem.quantity
-            };
-          });
-          
-          setProductQuantities(quantities);
-          setLastCustomizations(customizations);
-        }
-      } else {
-        const localCartItems = localCart.getItems();
-        setCartItemCount(localCartItems.length);
-        const quantities: Record<string, number> = {};
-        const customizations: Record<string, LastCustomization> = {};
-        
-        // Group by product
-        const productMap = new Map<string, any[]>();
-        
-        localCartItems.forEach((item: any) => {
-          if (!productMap.has(item.productId)) {
-            productMap.set(item.productId, []);
-          }
-          productMap.get(item.productId)?.push(item);
-        });
-        
-        productMap.forEach((items, productId) => {
-          quantities[productId] = items.reduce((sum, item) => sum + item.quantity, 0);
-          
-          // Get the most recent customization
-          const lastItem = items.reduce((latest, current) => 
-            new Date(current.addedAt) > new Date(latest.addedAt) ? current : latest
-          );
-          
-          customizations[productId] = {
-            ...lastItem.customization,
-            orderQuantity: lastItem.quantity
-          };
-        });
-        
-        setProductQuantities(quantities);
-        setLastCustomizations(customizations);
-      }
-    } catch (error) {
-      console.error('Error updating product quantities:', error);
-    }
-  };
-
   const getLocation = async () => {
     const position = await new Promise<GeolocationPosition>((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(
@@ -225,6 +171,7 @@ export default function BesomMobileUI() {
     console.log('Location obtained:', { latitude, longitude });
   };
 
+  // Optimized: Single combined data fetch
   useEffect(() => {
     const initializeDashboard = async () => {
       setLoading(true);
@@ -242,8 +189,7 @@ export default function BesomMobileUI() {
         const response = await fetch(url, {
           credentials: 'include',
           headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
+            'Cache-Control': 'max-age=60', // Cache for 1 minute
           }
         });
 
@@ -251,18 +197,69 @@ export default function BesomMobileUI() {
 
         if (data.success) {
           setProducts(data.products);
-          console.log('Fetched products:', data.products);
-          setFilteredProducts(data.products);
           setUIHeader({
             text: data.header.text,
             image: data.header.image
           });
 
-          if (isAuthenticated) {
+          if (currentUser) {
             setCartItemCount(data.cart.length);
+            // Process cart data
+            const quantities: Record<string, number> = {};
+            const customizations: Record<string, LastCustomization> = {};
+            
+            const productMap = new Map<string, any[]>();
+            
+            data.cart.forEach((item: any) => {
+              const productId = item.product._id;
+              if (!productMap.has(productId)) {
+                productMap.set(productId, []);
+              }
+              productMap.get(productId)?.push(item);
+            });
+            
+            productMap.forEach((items, productId) => {
+              quantities[productId] = items.reduce((sum, item) => sum + item.quantity, 0);
+              const lastItem = items.reduce((latest, current) => 
+                new Date(current.addedAt) > new Date(latest.addedAt) ? current : latest
+              );
+              customizations[productId] = {
+                ...lastItem.customization,
+                orderQuantity: lastItem.quantity
+              };
+            });
+            
+            setProductQuantities(quantities);
+            setLastCustomizations(customizations);
           } else {
             const localCartItems = localCart.getItems();
             setCartItemCount(localCartItems.length);
+            
+            // Process local cart
+            const quantities: Record<string, number> = {};
+            const customizations: Record<string, LastCustomization> = {};
+            const productMap = new Map<string, any[]>();
+            
+            localCartItems.forEach((item: any) => {
+              if (!productMap.has(item.productId)) {
+                productMap.set(item.productId, []);
+              }
+              productMap.get(item.productId)?.push(item);
+            });
+            
+            productMap.forEach((items, productId) => {
+              quantities[productId] = items.reduce((sum, item) => sum + item.quantity, 0);
+              const lastItem = items.reduce((latest, current) => 
+                new Date(current.addedAt) > new Date(latest.addedAt) ? current : latest
+              );
+              customizations[productId] = {
+                ...lastItem.customization,
+                orderQuantity: lastItem.quantity
+              };
+            });
+            
+            setProductQuantities(quantities);
+            setLastCustomizations(customizations);
           }
         }
       } catch (error) {
@@ -273,183 +270,36 @@ export default function BesomMobileUI() {
     };
 
     initializeDashboard();
-  }, [filter, isAuthenticated]);
+  }, [filter]);
 
-
- const incrementLastCustomization = async (productId: string, e: React.MouseEvent) => {
-  e.stopPropagation();
-  const lastCustom = lastCustomizations[productId];
-  if (!lastCustom) return;
-
-  setCartLoading(productId);
-  try {
-    if (isAuthenticated) {
-      const response = await fetch('/api/cart/update-quantity', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productId,
-          customization: lastCustom,
-          action: 'increment'
-        })
-      });
-      const data = await response.json();
-      if (data.success) {
-        await fetchCartCount();
-        await updateProductQuantities();
-      }
-    } else {
-      // Update local cart
-      const localCartItems = localCart.getItems();
-      const itemIndex = localCartItems.findIndex((item: any) => 
-        item.productId === productId &&
-        item.customization.size === lastCustom.size &&
-        item.customization.quantity === lastCustom.quantity &&
-        item.customization.ice === lastCustom.ice &&
-        item.customization.sugar === lastCustom.sugar &&
-        item.customization.dilution === lastCustom.dilution
-      );
-
-      if (itemIndex !== -1) {
-        const unitPrice = localCartItems[itemIndex].customization.finalPrice;
-        
-        console.log("Before increment:", {
-          quantity: localCartItems[itemIndex].quantity,
-          unitPrice: unitPrice,
-          totalPrice: localCartItems[itemIndex].price
-        });
-        
-        // Increment quantity
-        localCartItems[itemIndex].quantity += 1;
-        // Recalculate total price
-        localCartItems[itemIndex].price = unitPrice * localCartItems[itemIndex].quantity;
-        
-        console.log("After increment:", {
-          quantity: localCartItems[itemIndex].quantity,
-          unitPrice: unitPrice,
-          totalPrice: localCartItems[itemIndex].price
-        });
-        
-        localStorage.setItem('cart', JSON.stringify(localCartItems));
-        await fetchCartCount();
-        await updateProductQuantities();
-      }
-    }
-  } catch (error) {
-    console.error('Error incrementing quantity:', error);
-  } finally {
-    setCartLoading(null);
-  }
-};
-
-const decrementLastCustomization = async (productId: string, e: React.MouseEvent) => {
-  e.stopPropagation();
-  const lastCustom = lastCustomizations[productId];
-  if (!lastCustom) return;
-
-  setCartLoading(productId);
-  try {
-    if (isAuthenticated) {
-      const response = await fetch('/api/cart/update-quantity', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productId,
-          customization: lastCustom,
-          action: 'decrement'
-        })
-      });
-      const data = await response.json();
-      if (data.success) {
-        await fetchCartCount();
-        await updateProductQuantities();
-      }
-    } else {
-      // Update local cart
-      const localCartItems = localCart.getItems();
-      const itemIndex = localCartItems.findIndex((item: any) => 
-        item.productId === productId &&
-        item.customization.size === lastCustom.size &&
-        item.customization.quantity === lastCustom.quantity &&
-        item.customization.ice === lastCustom.ice &&
-        item.customization.sugar === lastCustom.sugar &&
-        item.customization.dilution === lastCustom.dilution
-      );
-
-      if (itemIndex !== -1) {
-        const unitPrice = localCartItems[itemIndex].customization.finalPrice;
-        
-        console.log("Before decrement:", {
-          quantity: localCartItems[itemIndex].quantity,
-          unitPrice: unitPrice,
-          totalPrice: localCartItems[itemIndex].price
-        });
-        
-        if (localCartItems[itemIndex].quantity > 1) {
-          // Decrement quantity
-          localCartItems[itemIndex].quantity -= 1;
-          // Recalculate total price
-          localCartItems[itemIndex].price = unitPrice * localCartItems[itemIndex].quantity;
-          
-          console.log("After decrement:", {
-            quantity: localCartItems[itemIndex].quantity,
-            unitPrice: unitPrice,
-            totalPrice: localCartItems[itemIndex].price
-          });
-        } else {
-          console.log("Removing item from cart (quantity was 1)");
-          localCartItems.splice(itemIndex, 1);
-        }
-        
-        localStorage.setItem('cart', JSON.stringify(localCartItems));
-        await fetchCartCount();
-        await updateProductQuantities();
-      }
-    }
-  } catch (error) {
-    console.error('Error decrementing quantity:', error);
-  } finally {
-    setCartLoading(null);
-  }
-};
-
-// Fix addToCart to use correct price
-
-
-  useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredProducts(products);
-    } else {
-      const lowercaseQuery = searchQuery.toLowerCase();
-      const filtered = products.filter(product =>
-        product.name.toLowerCase().includes(lowercaseQuery) ||
-        product.description.toLowerCase().includes(lowercaseQuery)
-      );
-      setFilteredProducts(filtered);
-    }
-  }, [searchQuery, products]);
-
-  const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    localStorage.removeItem('user');
-    window.location.href = '/';
-  };
-
-  const fetchCartCount = async () => {
+  const updateProductQuantities = useCallback(async () => {
     try {
       if (isAuthenticated) {
         const response = await fetch('/api/cart', { credentials: 'include' });
         const data = await response.json();
         if (data.success) {
-          setCartItemCount(data.cart.length);
           const quantities: Record<string, number> = {};
           const customizations: Record<string, LastCustomization> = {};
           
+          const productMap = new Map<string, any[]>();
+          
           data.cart.forEach((item: any) => {
-            quantities[item.product._id] = (quantities[item.product._id] || 0) + 1;
-            customizations[item.product._id] = item.customization;
+            const productId = item.product._id;
+            if (!productMap.has(productId)) {
+              productMap.set(productId, []);
+            }
+            productMap.get(productId)?.push(item);
+          });
+          
+          productMap.forEach((items, productId) => {
+            quantities[productId] = items.reduce((sum, item) => sum + item.quantity, 0);
+            const lastItem = items.reduce((latest, current) => 
+              new Date(current.addedAt) > new Date(latest.addedAt) ? current : latest
+            );
+            customizations[productId] = {
+              ...lastItem.customization,
+              orderQuantity: lastItem.quantity
+            };
           });
           
           setProductQuantities(quantities);
@@ -461,22 +311,192 @@ const decrementLastCustomization = async (productId: string, e: React.MouseEvent
         const quantities: Record<string, number> = {};
         const customizations: Record<string, LastCustomization> = {};
         
+        const productMap = new Map<string, any[]>();
+        
         localCartItems.forEach((item: any) => {
-          quantities[item.productId] = (quantities[item.productId] || 0) + 1;
-          customizations[item.productId] = item.customization;
+          if (!productMap.has(item.productId)) {
+            productMap.set(item.productId, []);
+          }
+          productMap.get(item.productId)?.push(item);
+        });
+        
+        productMap.forEach((items, productId) => {
+          quantities[productId] = items.reduce((sum, item) => sum + item.quantity, 0);
+          const lastItem = items.reduce((latest, current) => 
+            new Date(current.addedAt) > new Date(latest.addedAt) ? current : latest
+          );
+          customizations[productId] = {
+            ...lastItem.customization,
+            orderQuantity: lastItem.quantity
+          };
         });
         
         setProductQuantities(quantities);
         setLastCustomizations(customizations);
       }
     } catch (error) {
+      console.error('Error updating product quantities:', error);
+    }
+  }, [isAuthenticated]);
+
+  const fetchCartCount = useCallback(async () => {
+    try {
+      if (isAuthenticated) {
+        const response = await fetch('/api/cart', { credentials: 'include' });
+        const data = await response.json();
+        if (data.success) {
+          setCartItemCount(data.cart.length);
+          // Update quantities and customizations
+          await updateProductQuantities();
+        }
+      } else {
+        const localCartItems = localCart.getItems();
+        setCartItemCount(localCartItems.length);
+        await updateProductQuantities();
+      }
+    } catch (error) {
       console.error('Error fetching cart count:', error);
+    }
+  }, [isAuthenticated, updateProductQuantities]);
+
+  const incrementLastCustomization = async (productId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const lastCustom = lastCustomizations[productId];
+    if (!lastCustom) return;
+
+    setCartLoading(productId);
+    try {
+      if (isAuthenticated) {
+        const response = await fetch('/api/cart/update-quantity', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productId,
+            customization: lastCustom,
+            action: 'increment'
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          await fetchCartCount();
+          await updateProductQuantities();
+        }
+      } else {
+        // Update local cart
+        const localCartItems = localCart.getItems();
+        const itemIndex = localCartItems.findIndex((item: any) => 
+          item.productId === productId &&
+          item.customization.size === lastCustom.size &&
+          item.customization.quantity === lastCustom.quantity &&
+          item.customization.ice === lastCustom.ice &&
+          item.customization.sugar === lastCustom.sugar &&
+          item.customization.dilution === lastCustom.dilution
+        );
+
+        if (itemIndex !== -1) {
+          const unitPrice = localCartItems[itemIndex].customization.finalPrice;
+          
+          console.log("Before increment:", {
+            quantity: localCartItems[itemIndex].quantity,
+            unitPrice: unitPrice,
+            totalPrice: localCartItems[itemIndex].price
+          });
+          
+          // Increment quantity
+          localCartItems[itemIndex].quantity += 1;
+          // Recalculate total price
+          localCartItems[itemIndex].price = unitPrice * localCartItems[itemIndex].quantity;
+          
+          console.log("After increment:", {
+            quantity: localCartItems[itemIndex].quantity,
+            unitPrice: unitPrice,
+            totalPrice: localCartItems[itemIndex].price
+          });
+          
+          localStorage.setItem('cart', JSON.stringify(localCartItems));
+          await fetchCartCount();
+          await updateProductQuantities();
+        }
+      }
+    } catch (error) {
+      console.error('Error incrementing quantity:', error);
+    } finally {
+      setCartLoading(null);
     }
   };
 
-  useEffect(() => {
-    updateProductQuantities();
-  }, [isAuthenticated, cartItemCount]);
+  const decrementLastCustomization = async (productId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const lastCustom = lastCustomizations[productId];
+    if (!lastCustom) return;
+
+    setCartLoading(productId);
+    try {
+      if (isAuthenticated) {
+        const response = await fetch('/api/cart/update-quantity', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productId,
+            customization: lastCustom,
+            action: 'decrement'
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          await fetchCartCount();
+          await updateProductQuantities();
+        }
+      } else {
+        // Update local cart
+        const localCartItems = localCart.getItems();
+        const itemIndex = localCartItems.findIndex((item: any) => 
+          item.productId === productId &&
+          item.customization.size === lastCustom.size &&
+          item.customization.quantity === lastCustom.quantity &&
+          item.customization.ice === lastCustom.ice &&
+          item.customization.sugar === lastCustom.sugar &&
+          item.customization.dilution === lastCustom.dilution
+        );
+
+        if (itemIndex !== -1) {
+          const unitPrice = localCartItems[itemIndex].customization.finalPrice;
+          
+          console.log("Before decrement:", {
+            quantity: localCartItems[itemIndex].quantity,
+            unitPrice: unitPrice,
+            totalPrice: localCartItems[itemIndex].price
+          });
+          
+          if (localCartItems[itemIndex].quantity > 1) {
+            // Decrement quantity
+            localCartItems[itemIndex].quantity -= 1;
+            // Recalculate total price
+            localCartItems[itemIndex].price = unitPrice * localCartItems[itemIndex].quantity;
+            
+            console.log("After decrement:", {
+              quantity: localCartItems[itemIndex].quantity,
+              unitPrice: unitPrice,
+              totalPrice: localCartItems[itemIndex].price
+            });
+          } else {
+            console.log("Removing item from cart (quantity was 1)");
+            localCartItems.splice(itemIndex, 1);
+          }
+          
+          localStorage.setItem('cart', JSON.stringify(localCartItems));
+          await fetchCartCount();
+          await updateProductQuantities();
+        }
+      }
+    } catch (error) {
+      console.error('Error decrementing quantity:', error);
+    } finally {
+      setCartLoading(null);
+    }
+  };
 
   const quickAddToCart = async (productId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -584,7 +604,6 @@ const decrementLastCustomization = async (productId: string, e: React.MouseEvent
       const data = await response.json();
       if (data.success) {
         setProducts(data.products);
-        setFilteredProducts(data.products);
       }
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -675,18 +694,43 @@ const decrementLastCustomization = async (productId: string, e: React.MouseEvent
   }
 };
 
-  const getCategoryColor = (category: 'juices' | 'shakes' | 'discount') => {
+  const getCategoryColor = useCallback((category: 'juices' | 'shakes' | 'discount') => {
     const colors = {
       juices: 'from-orange-400 to-orange-500',
       shakes: 'from-red-400 to-red-500',
       discount: 'from-yellow-400 to-yellow-500'
     };
     return colors[category] || 'from-orange-400 to-orange-500';
-  };
+  }, []);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 pb-20">
+        {/* Header Skeleton */}
+        <header className="bg-white px-5 py-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="h-6 w-32 bg-gray-200 rounded animate-pulse"></div>
+            <div className="flex gap-4">
+              <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
+              <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
+            </div>
+          </div>
+        </header>
+
+        <main className="px-5 py-6 space-y-5">
+          <div className="h-12 bg-gray-200 rounded-xl animate-pulse"></div>
+          <div className="h-48 bg-gray-200 rounded-2xl animate-pulse"></div>
+          <div className="flex gap-3">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-10 w-24 bg-gray-200 rounded-full animate-pulse"></div>
+            ))}
+          </div>
+          <div className="space-y-5">
+            {[1, 2, 3, 4].map(i => (
+              <ProductSkeleton key={i} />
+            ))}
+          </div>
+        </main>
       </div>
     );
   }
@@ -795,12 +839,12 @@ const decrementLastCustomization = async (productId: string, e: React.MouseEvent
             </div>
           )}
 
-          {/* Products Grid */}
-       <div className="space-y-5">
+          {/* Optimized Products Grid */}
+          <div className="space-y-5">
             {filteredProducts.map((product) => {
-              const quantityInCart = getProductQuantityInCart(product._id);
+              const quantityInCart = productQuantities[product._id] || 0;
               const lastCustomization = lastCustomizations[product._id];
-              const lastCustomQuantity = getLastCustomizationQuantity(product._id);
+              const lastCustomQuantity = lastCustomization?.orderQuantity || 0;
               const isLoading = cartLoading === product._id;
 
               return (
@@ -879,11 +923,9 @@ const decrementLastCustomization = async (productId: string, e: React.MouseEvent
                           alt={product.name}
                           fill
                           className="object-contain rounded-lg hover:scale-105 transition-transform duration-300 drop-shadow-xl"
-                          sizes="(max-width: 640px) 100px, 
-                (max-width: 768px) 120px, 
-                (max-width: 1024px) 140px, 
-                160px"
-                          priority
+                          sizes="(max-width: 640px) 80px, (max-width: 768px) 96px, (max-width: 1024px) 112px, 128px"
+                          loading="lazy"
+                          quality={75}
                         />
                       </div>
                     </div>
@@ -906,94 +948,95 @@ const decrementLastCustomization = async (productId: string, e: React.MouseEvent
         <>
           {/* Backdrop */}
           <div
-            className={`fixed inset-0 bg-black transition-opacity duration-300 z-50 ${isModalOpen ? 'opacity-50' : 'opacity-0 pointer-events-none'
-              }`}
+            className={`fixed inset-0 bg-black transition-opacity duration-300 z-50 ${isModalOpen ? 'opacity-50' : 'opacity-0 pointer-events-none'}`}
             onClick={closeModal}
           />
 
-         {/* Bottom Sheet */}
-<div
-  className={`fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl shadow-2xl transition-transform duration-300 ease-out max-h-[90vh] flex flex-col ${
-    isModalOpen ? 'translate-y-0' : 'translate-y-full'
-  }`}
->
-  {/* Drag Handle */}
-  <div className="flex justify-center pt-3 pb-2">
-    <div className="w-10 h-1 bg-gray-300 rounded-full" />
-  </div>
+          {/* Bottom Sheet */}
+          <div
+            className={`fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl shadow-2xl transition-transform duration-300 ease-out max-h-[90vh] flex flex-col ${
+              isModalOpen ? 'translate-y-0' : 'translate-y-full'
+            }`}
+          >
+            {/* Drag Handle */}
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-10 h-1 bg-gray-300 rounded-full" />
+            </div>
 
-  {/* Header - Fixed */}
-  <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
-    <h3 className="text-lg font-bold text-gray-900 flex-1 pr-4">
-      {selectedProduct.name}
-    </h3>
-    <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 flex-shrink-0">
-      <X size={24} />
-    </button>
-  </div>
+            {/* Header - Fixed */}
+            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+              <h3 className="text-lg font-bold text-gray-900 flex-1 pr-4">
+                {selectedProduct.name}
+              </h3>
+              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 flex-shrink-0">
+                <X size={24} />
+              </button>
+            </div>
 
-  {/* Single Scrollable Section - Description + Nutrients + Customization */}
-  <div className="flex-1 overflow-y-auto px-5 py-4">
-    {/* Description */}
-    <div className="mb-4">
-      <p className="text-sm text-gray-600 leading-relaxed">
-        {selectedProduct.description}
-      </p>
-    </div>
+            {/* Single Scrollable Section - Description + Nutrients + Customization */}
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+              {/* Description */}
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {selectedProduct.description}
+                </p>
+              </div>
 
-    {/* Nutrients Button */}
-    {((selectedProduct.regularNutrients && selectedProduct.regularNutrients.length > 0) ||
-      (selectedProduct.largeNutrients && selectedProduct.largeNutrients.length > 0)) && (
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          openNutrientsModal(selectedProduct);
-        }}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-200 transition-all border border-orange-200 hover:border-orange-300 group shadow-sm mb-4"
-      >
-        <div className="w-6 h-6 rounded-full bg-orange-200 group-hover:bg-orange-300 flex items-center justify-center transition-colors">
-          <Info className="w-3.5 h-3.5 text-orange-700" />
-        </div>
-        <span className="text-sm font-semibold text-orange-700 group-hover:text-orange-800 transition-colors">
-          View nutritional information
-        </span>
-      </button>
-    )}
+              {/* Nutrients Button */}
+              {((selectedProduct.regularNutrients && selectedProduct.regularNutrients.length > 0) ||
+                (selectedProduct.largeNutrients && selectedProduct.largeNutrients.length > 0)) && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openNutrientsModal(selectedProduct);
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-200 transition-all border border-orange-200 hover:border-orange-300 group shadow-sm mb-4"
+                >
+                  <div className="w-6 h-6 rounded-full bg-orange-200 group-hover:bg-orange-300 flex items-center justify-center transition-colors">
+                    <Info className="w-3.5 h-3.5 text-orange-700" />
+                  </div>
+                  <span className="text-sm font-semibold text-orange-700 group-hover:text-orange-800 transition-colors">
+                    View nutritional information
+                  </span>
+                </button>
+              )}
 
-    {/* Customization Options */}
-    <div className="border-t border-gray-100 pt-4 mt-2">
-      <ProductCustomization
-        category={selectedProduct.category}
-        smallPrice={selectedProduct.smallPrice ?? 0}
-        mediumPrice={selectedProduct.mediumPrice ?? 0}
-        onCustomizationChange={handleCustomizationChange}
-      />
-    </div>
-  </div>
+              {/* Customization Options */}
+              <div className="border-t border-gray-100 pt-4 mt-2">
+                <ProductCustomization
+                  category={selectedProduct.category}
+                  smallPrice={selectedProduct.smallPrice ?? 0}
+                  mediumPrice={selectedProduct.mediumPrice ?? 0}
+                  onCustomizationChange={handleCustomizationChange}
+                />
+              </div>
+            </div>
 
-  {/* Sticky Footer */}
-  <div className="border-t border-gray-100 bg-white px-5 py-4 shadow-lg flex-shrink-0">
-    <button
-      onClick={addToCart}
-      disabled={cartLoading === selectedProduct._id || !customization}
-      className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-xl transition shadow-md hover:shadow-lg flex items-center justify-between"
-    >
-      <span>Add to cart</span>
-      <span className="text-lg">₹{finalPrice || selectedProduct.price}</span>
-    </button>
-  </div>
-</div>
+            {/* Sticky Footer */}
+            <div className="border-t border-gray-100 bg-white px-5 py-4 shadow-lg flex-shrink-0">
+              <button
+                onClick={addToCart}
+                disabled={cartLoading === selectedProduct._id || !customization}
+                className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-xl transition shadow-md hover:shadow-lg flex items-center justify-between"
+              >
+                <span>{cartLoading === selectedProduct._id ? 'Adding...' : 'Add to cart'}</span>
+                <span className="text-lg">₹{finalPrice || selectedProduct.price}</span>
+              </button>
+            </div>
+          </div>
         </>
       )}
-     {selectedProductForNutrients && (
-  <NutrientsModal
-    isOpen={showNutrientsModal}
-    onClose={closeNutrientsModal}
-    productName={selectedProductForNutrients.name}
-    regularNutrients={selectedProductForNutrients.regularNutrients || []}
-    largeNutrients={selectedProductForNutrients.largeNutrients || []}
-  />
-)}
+
+      {/* Nutrients Modal */}
+      {selectedProductForNutrients && (
+        <NutrientsModal
+          isOpen={showNutrientsModal}
+          onClose={closeNutrientsModal}
+          productName={selectedProductForNutrients.name}
+          regularNutrients={selectedProductForNutrients.regularNutrients || []}
+          largeNutrients={selectedProductForNutrients.largeNutrients || []}
+        />
+      )}
     </>
   );
 }

@@ -3,6 +3,7 @@ import dbConnect from '@/lib/dbConnect';
 import OrderModel from '@/model/Order';
 import UserModel from '@/model/User';
 import { verifyAuth } from '@/lib/serverAuth';
+import "@/model/Product";
 
 // Define interfaces for type safety
 interface CartItem {

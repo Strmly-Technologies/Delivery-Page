@@ -55,3 +55,45 @@ export async function GET(
     );
   }
 }
+
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    await dbConnect();
+    // Verify authentication
+    console.log("Deleting order:", params.id);
+    const decodedToken = await verifyAuth(request);
+    const userId = decodedToken.userId;
+
+    const orderId = params.id;
+
+    // Delete the specific order
+    const deletedOrder = await OrderModel.findOneAndDelete({
+      _id: orderId,
+      user: userId
+    });
+
+    if (!deletedOrder) {
+      return NextResponse.json(
+        { error: 'Order not found or unauthorized' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Order deleted successfully'
+    });
+  }
+  catch (error) {
+    console.error('Delete order error:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete order' },
+      { status: 500 }
+    );
+   
+  }
+}

@@ -711,9 +711,21 @@ interface FreshPlan {
           }
         },
         modal: {
-          ondismiss: function() {
+          ondismiss: async function() {
             setSubmitting(false);
             alert('Payment cancelled');
+            const response=await fetch(`/api/orders/${orderData.orderId}`,{
+              method: 'DELETE',
+              headers: {
+                'Authorization': `Bearer ${token}`
+              },
+              credentials: 'include'
+            })
+            if(response.ok){
+              console.log("Order cancelled successfully");
+            }else{
+              console.error("Failed to cancel order after payment dismissal");
+            }
           }
         },
         prefill: {
