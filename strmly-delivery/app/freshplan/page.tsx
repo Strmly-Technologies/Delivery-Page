@@ -108,7 +108,7 @@ export default function FreshPlanPage() {
                 </div>
               </div>
               <Link
-                href="/orders"
+                href="/freshplan/orders"
                 className={`mt-4 inline-flex items-center px-5 py-2.5 rounded-lg ${
                   'bg-white text-blue-600'
                 } font-medium`}

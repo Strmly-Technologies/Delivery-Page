@@ -803,16 +803,6 @@ export default function BesomMobileUI() {
                   My cart
                 </span>
               </div>
-              <div className="group relative">
-                  <button
-                  onClick={logoutUser}
-                   className="text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors">
-                    <LogOut size={20} />
-                  </button>
-                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                  Logout
-                </span>
-              </div>
 
             </div>
           </header>
