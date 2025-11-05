@@ -40,11 +40,11 @@ export default function FreshPlanPage() {
         <h1 className="text-xl font-bold text-black">FreshPlan</h1>
       </div>
       <Link
-        href="/freshplan/orders"
+        href="/my-plans"
         className="flex items-center px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-lg transition-colors"
       >
         <Clock className="w-4 h-4 mr-1.5" />
-        <span className="text-sm font-medium">View orders</span>
+        <span className="text-sm font-medium">Draft Plans</span>
       </Link>
     </div>
   </div>
@@ -60,35 +60,7 @@ export default function FreshPlanPage() {
         {/* Cards Section */}
         <div className="space-y-5">
           {/* Current Plan Card */}
-          <div className={`rounded-2xl shadow-lg overflow-hidden transition-all duration-300 `}>
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center">
-                    <CalendarDays className="w-6 h-6 text-white opacity-90 mr-3" />
-                    <h3 className="text-xl font-bold text-white">Current freshplan</h3>
-                  </div>
-                  <p className="mt-2 text-blue-100">
-                    
-                       View and manage your active subscription plan
-                        
-                  </p>
-                </div>
-                <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-                  <CalendarDays className="w-6 h-6 text-white" />
-                </div>
-              </div>
-              <Link
-                href="/my-plans"
-                className={`mt-4 inline-flex items-center px-5 py-2.5 rounded-lg ${
-                  'bg-white text-blue-600'
-                } font-medium`}
-              >
-                View Plan
-                <ChevronRight className="ml-1 w-4 h-4" />
-              </Link>
-            </div>
-          </div>
+         
 
           {/* Create New Plan Card */}
           <div className="rounded-2xl shadow-lg overflow-hidden">
@@ -112,6 +84,36 @@ export default function FreshPlanPage() {
                 className="mt-4 inline-flex items-center px-5 py-2.5 rounded-lg bg-white text-orange-600 font-medium"
               >
                 Start new plan
+                <ChevronRight className="ml-1 w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+
+           <div className={`rounded-2xl shadow-lg overflow-hidden transition-all duration-300 `}>
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="flex items-center">
+                    <CalendarDays className="w-6 h-6 text-white opacity-90 mr-3" />
+                    <h3 className="text-xl font-bold text-white">Active freshplans</h3>
+                  </div>
+                  <p className="mt-2 text-blue-100">
+                    
+                       View and manage your active subscription plans
+                        
+                  </p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+                  <CalendarDays className="w-6 h-6 text-white" />
+                </div>
+              </div>
+              <Link
+                href="/orders"
+                className={`mt-4 inline-flex items-center px-5 py-2.5 rounded-lg ${
+                  'bg-white text-blue-600'
+                } font-medium`}
+              >
+                View Plan
                 <ChevronRight className="ml-1 w-4 h-4" />
               </Link>
             </div>

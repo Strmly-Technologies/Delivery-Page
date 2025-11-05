@@ -660,7 +660,7 @@ function EditFreshPlanPage() {
                             
                             <button
                               onClick={() => removeItemFromDay(day._id, item._id)}
-                              className="opacity-0 group-hover:opacity-100 p-1 rounded-full bg-red-100 text-red-500 hover:bg-red-200 transition-all"
+                              className=" p-1 rounded-full bg-red-100 text-red-500 hover:bg-red-200 transition-all"
                               aria-label="Remove item"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
