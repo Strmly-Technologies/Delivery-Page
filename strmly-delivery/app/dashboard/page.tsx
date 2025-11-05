@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, Search, X, Zap, Info, Plus, Minus } from 'lucide-react';
+import { ShoppingBag, Search, X, Zap, Info, Plus, Minus, LogOut } from 'lucide-react';
 import ProductCustomization, { ProductCustomization as CustomizationType } from '../components/product/ProductCustomization';
 import Image from 'next/image';
 import { localCart } from '@/lib/cartStorage';
 import NutrientsModal from '../components/nutrients/NutrientModal';
+import { logout } from '@/lib/auth';
 
 interface Product {
   _id: string;
@@ -94,6 +95,14 @@ export default function BesomMobileUI() {
       product.description.toLowerCase().includes(lowercaseQuery)
     );
   }, [searchQuery, products]);
+
+  const logoutUser = () => {
+    localStorage.removeItem('latitude');
+    localStorage.removeItem('longitude');
+    logout();
+    setIsAuthenticated(false);
+    setUser(null);
+  };
 
   useEffect(() => {
     if (!localStorage.getItem('latitude') && !localStorage.getItem('longitude')) {
@@ -758,9 +767,9 @@ export default function BesomMobileUI() {
         ) : (
           <header className="bg-white px-5 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
             <div className="flex flex-col">
-              <h1 className="text-xl font-bold text-gray-800">
-                JUICE RANI
-              </h1>
+             <Link href='/'>
+                <h1 className="text-xl font-bold text-gray-800">JUICE RANI</h1>
+             </Link>
               {user && (
                 <span className="text-sm text-gray-600 mt-0.5">Hi, {user.username}</span>
               )}
@@ -794,6 +803,17 @@ export default function BesomMobileUI() {
                   My cart
                 </span>
               </div>
+              <div className="group relative">
+                  <button
+                  onClick={logoutUser}
+                   className="text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors">
+                    <LogOut size={20} />
+                  </button>
+                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                  Logout
+                </span>
+              </div>
+
             </div>
           </header>
         )}
