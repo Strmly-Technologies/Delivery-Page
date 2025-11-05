@@ -200,36 +200,147 @@ interface FreshPlan {
   };
 
   const fetchSavedAddresses = async () => {
-  try {
-    const response = await fetch('/api/address', {
-      method: 'GET',
-      credentials: 'include',
-    });
-    const data = await response.json();
-    
-    if (data.success) {
-      const addresses = data.savedAddresses || [];
-      setSavedAddresses(addresses);
-      console.log("Fetched saved addresses:", addresses);
+    try {
+      const response = await fetch('/api/address', {
+        method: 'GET',
+        credentials: 'include',
+      });
+      const data = await response.json();
       
-      // Auto-select most recent address (first one) if available and no address is set
-      if (addresses.length > 0 && !customerDetails.address) {
-        const mostRecentAddress = addresses[addresses.length - 1];
-        console.log("Most recent address:", mostRecentAddress);
-        setCustomerDetails(prev => ({
-          ...prev,
-          name: mostRecentAddress.fullName,
-          address: mostRecentAddress.deliveryAddress,
-          phone: mostRecentAddress.phoneNumber || prev.phone,
-          additionalAddressInfo: mostRecentAddress.additionalAddressDetails || ''
-        }));
-        setDisableAddressInput(true);
+      if (data.success) {
+        const addresses = data.savedAddresses || [];
+        setSavedAddresses(addresses);
+        console.log("Fetched saved addresses:", addresses);
+        
+        // Auto-select most recent address if available and no address is set
+        if (addresses.length > 0 && !customerDetails.address) {
+          const mostRecentAddress = addresses[addresses.length - 1];
+          console.log("Most recent address:", mostRecentAddress);
+          setCustomerDetails(prev => ({
+            ...prev,
+            name: mostRecentAddress.fullName,
+            address: mostRecentAddress.deliveryAddress,
+            phone: mostRecentAddress.phoneNumber || prev.phone,
+            additionalAddressInfo: mostRecentAddress.additionalAddressDetails || ''
+          }));
+          setDisableAddressInput(true);
+          
+          // Calculate delivery fee for the auto-selected address
+          await calculateDeliveryFeeForAddress(mostRecentAddress.deliveryAddress);
+        } else if (addresses.length === 0) {
+          // No saved addresses - force user to add one
+          setShowAddressModal(true);
+          setAddressModalMode('add');
+        }
       }
+    } catch (error) {
+      console.error('Error fetching saved addresses:', error);
     }
-  } catch (error) {
-    console.error('Error fetching saved addresses:', error);
-  }
-};
+  };
+
+  // New function to calculate delivery fee for an address
+  const calculateDeliveryFeeForAddress = async (address: string) => {
+    try {
+      const storedLat = localStorage.getItem('latitude');
+      const storedLng = localStorage.getItem('longitude');
+
+      if (!storedLat || !storedLng) {
+        console.log('No stored coordinates found');
+        return;
+      }
+
+      const latitude = parseFloat(storedLat);
+      const longitude = parseFloat(storedLng);
+
+      const settingsData = await fetchDeliverySettings();
+      const DELIVERY_RANGES = settingsData || deliverySettings;
+      
+      const distance = calculateDistance(
+        latitude, 
+        longitude, 
+        SHOP_LOCATION.lat, 
+        SHOP_LOCATION.lng
+      );
+      
+      if (distance > DELIVERY_RANGES.MAX_RANGE) {
+        setLocationError(`Sorry, we don't deliver beyond ${DELIVERY_RANGES.MAX_RANGE}km from our shop (Your distance: ${distance.toFixed(2)}km)`);
+        return;
+      }
+
+      const calculatedCharge = calculateDeliveryCharge(distance, DELIVERY_RANGES.CHARGES);
+      setCalculatedDeliveryCharge(calculatedCharge);
+      
+      const itemsTotal = getItemsTotal();
+      if (itemsTotal >= 99) {
+        setDeliveryCharge(0);
+      } else {
+        setDeliveryCharge(calculatedCharge);
+      }
+      
+      setLocationError('');
+    } catch (error) {
+      console.error('Error calculating delivery fee:', error);
+    }
+  };
+
+  const fetchCustomisablePrices = async () => {
+    try {
+      const response = await fetch('/api/ui-header', {
+        method: 'GET',
+        credentials: 'include'
+      });
+      const data = await response.json();
+      if (data.success) {
+        const prices = data.customisablePricings || [];
+        setCustomisablePrices(prices);
+        return prices;
+      }
+    } catch (error) {
+      console.error('Error fetching customisable prices:', error);
+    }
+    return [];
+  };
+
+  const fetchCart = async () => {
+    try {
+      const token = await window.cookieStore.get('authToken').then((cookie) => cookie?.value);
+      const response = await fetch('/api/cart', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setCartItems(data.cart);
+        setProducts(data.cart.map((item: CartItem) => item.product._id));
+        setQuantities(data.cart.map((item: CartItem) => item.quantity));
+        return data.cart;
+      }
+    } catch (error) {
+      console.error('Error fetching cart:', error);
+    }
+    return [];
+  };
+  
+  const fetchFreshPlan = async () => {
+    try {
+      console.log("Fetching fresh plan with ID:", planId);
+      const response = await fetch(`/api/freshPlan/plan/${planId}`);
+      const data = await response.json();
+      
+      if (data.success && data.plan) {
+        setFreshPlan(data.plan);
+        return data.plan;
+      } else {
+        console.error('No active plan found');
+      }
+    } catch (error) {
+      console.error('Error fetching fresh plan:', error);
+    }
+    return null;
+  };
+
   const handleSelectSavedAddress = (address: any) => {
     setCustomerDetails(prev => ({
       ...prev,
@@ -243,10 +354,29 @@ interface FreshPlan {
   };
 
   const handleAddNewAddress = async () => {
-    // Validate new address fields
-    if (!newAddress.fullName.trim() || !newAddress.addressName.trim() || 
-        !newAddress.deliveryAddress.trim() || !newAddress.phoneNumber.trim()) {
-      alert('Please fill in all required fields');
+    // Validate new address fields - NOW INCLUDING FULL NAME AND PHONE
+    if (!newAddress.fullName.trim()) {
+      alert('Please enter your full name');
+      return;
+    }
+    
+    if (!newAddress.phoneNumber.trim()) {
+      alert('Please enter your phone number');
+      return;
+    }
+    
+    if (!/^[0-9]{10}$/.test(newAddress.phoneNumber.replace(/\D/g, ''))) {
+      alert('Please enter a valid 10-digit phone number');
+      return;
+    }
+    
+    if (!newAddress.addressName.trim()) {
+      alert('Please enter an address name (e.g., Home, Office)');
+      return;
+    }
+    
+    if (!newAddress.deliveryAddress.trim()) {
+      alert('Please use "Get Current Location" to fetch your delivery address');
       return;
     }
 
@@ -270,6 +400,9 @@ interface FreshPlan {
           address: newAddress.deliveryAddress,
           additionalAddressInfo: newAddress.additionalAddressDetails
         });
+        
+        // Calculate delivery fee for the new address
+        await calculateDeliveryFeeForAddress(newAddress.deliveryAddress);
         
         // Reset form and close modal
         setNewAddress({
@@ -494,64 +627,6 @@ interface FreshPlan {
       setLocationError('Failed to load saved location. Please try getting current location.');
       setDisableAddressInput(false);
     }
-  };
-
-  const fetchCustomisablePrices = async () => {
-    try {
-      const response = await fetch('/api/ui-header', {
-        method: 'GET',
-        credentials: 'include'
-      });
-      const data = await response.json();
-      if (data.success) {
-        const prices = data.customisablePricings || [];
-        setCustomisablePrices(prices);
-        return prices;
-      }
-    } catch (error) {
-      console.error('Error fetching customisable prices:', error);
-    }
-    return [];
-  };
-
-  const fetchCart = async () => {
-    try {
-      const token = await window.cookieStore.get('authToken').then((cookie) => cookie?.value);
-      const response = await fetch('/api/cart', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setCartItems(data.cart);
-        setProducts(data.cart.map((item: CartItem) => item.product._id));
-        setQuantities(data.cart.map((item: CartItem) => item.quantity));
-        return data.cart;
-      }
-    } catch (error) {
-      console.error('Error fetching cart:', error);
-    }
-    return [];
-  };
-  
-  const fetchFreshPlan = async () => {
-    try {
-      console.log("Fetching fresh plan with ID:", planId);
-      const response = await fetch(`/api/freshPlan/plan/${planId}`);
-      const data = await response.json();
-      
-      if (data.success && data.plan) {
-        setFreshPlan(data.plan);
-        return data.plan;
-      } else {
-        console.error('No active plan found');
-      }
-    } catch (error) {
-      console.error('Error fetching fresh plan:', error);
-    }
-    return null;
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -822,88 +897,89 @@ interface FreshPlan {
   }
   
   const handleGetLocation = async () => {
-  try {
-    if (!navigator.geolocation) {
-      throw new Error('Geolocation is not supported by your browser');
-    }
-
-    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-      });
-    });
-
-    const { latitude, longitude } = position.coords;
-    
-    // Store coordinates in localStorage
-    localStorage.setItem('latitude', latitude.toString());
-    localStorage.setItem('longitude', longitude.toString());
-
-    const DELIVERY_RANGES = deliverySettings || await fetchDeliverySettings();
-    
-    const distance = calculateDistance(
-      latitude, 
-      longitude, 
-      SHOP_LOCATION.lat, 
-      SHOP_LOCATION.lng
-    );
-
-    if (distance > DELIVERY_RANGES.MAX_RANGE) {
-      setLocationError(`Sorry, we don't deliver beyond ${DELIVERY_RANGES.MAX_RANGE}km from our shop (Your distance: ${distance.toFixed(2)}km)`);
-      return;
-    }
-
-    const calculatedCharge = calculateDeliveryCharge(distance, DELIVERY_RANGES.CHARGES);
-    setCalculatedDeliveryCharge(calculatedCharge);
-    
-    const itemsTotal = getItemsTotal();
-    if (itemsTotal >= 99) {
-      setDeliveryCharge(0);
-    } else {
-      setDeliveryCharge(calculatedCharge);
-    }
-
-    const address = await getAddressFromCoords(latitude, longitude);
-    if (!address) {
-      throw new Error('Failed to get address from coordinates');
-    }
-    
-    // Update the appropriate address field based on modal mode
-    if (showAddressModal && addressModalMode === 'add') {
-      setNewAddress(prev => ({
-        ...prev,
-        deliveryAddress: address
-      }));
-    } else {
-      setCustomerDetails(prev => ({
-        ...prev,
-        address
-      }));
-    }
-    
-    setLocationError('');
-    setDisableAddressInput(true);
-
-    // For freshplan checkout, recalculate delivery charge with updated location
-    if (checkoutType === 'freshplan' && selectedDayId && freshPlan) {
-      const selectedDay = freshPlan.schedule.find(day => day._id === selectedDayId);
-      if (selectedDay) {
-        await initializeLocationForPlan(selectedDay.items, DELIVERY_RANGES);
+    try {
+      if (!navigator.geolocation) {
+        throw new Error('Geolocation is not supported by your browser');
       }
-    }
 
-  } catch (error) {
-    console.error('Location error:', error instanceof Error ? error.message : String(error));
-    setLocationError(
-      error instanceof Error ? 
-      error.message : 
-      'Unable to get your location. Please ensure location services are enabled and try again.'
-    );
-    setDisableAddressInput(false);
-  }
-};
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+      
+      // Store coordinates in localStorage
+      localStorage.setItem('latitude', latitude.toString());
+      localStorage.setItem('longitude', longitude.toString());
+
+      const DELIVERY_RANGES = deliverySettings || await fetchDeliverySettings();
+      
+      const distance = calculateDistance(
+        latitude, 
+        longitude, 
+        SHOP_LOCATION.lat, 
+        SHOP_LOCATION.lng
+      );
+
+      if (distance > DELIVERY_RANGES.MAX_RANGE) {
+        setLocationError(`Sorry, we don't deliver beyond ${DELIVERY_RANGES.MAX_RANGE}km from our shop (Your distance: ${distance.toFixed(2)}km)`);
+        return;
+      }
+
+      const calculatedCharge = calculateDeliveryCharge(distance, DELIVERY_RANGES.CHARGES);
+      setCalculatedDeliveryCharge(calculatedCharge);
+      
+      // Calculate items total based on checkout type
+      const itemsTotal = getItemsTotal();
+      if (itemsTotal >= 99) {
+        setDeliveryCharge(0);
+      } else {
+        setDeliveryCharge(calculatedCharge);
+      }
+
+      const address = await getAddressFromCoords(latitude, longitude);
+      if (!address) {
+        throw new Error('Failed to get address from coordinates');
+      }
+      
+      // Update the appropriate address field based on modal mode
+      if (showAddressModal && addressModalMode === 'add') {
+        setNewAddress(prev => ({
+          ...prev,
+          deliveryAddress: address
+        }));
+      } else {
+        setCustomerDetails(prev => ({
+          ...prev,
+          address
+        }));
+      }
+      
+      setLocationError('');
+      setDisableAddressInput(true);
+
+      // For freshplan checkout, recalculate delivery charge with updated location
+      if (checkoutType === 'freshplan' && selectedDayId && freshPlan) {
+        const selectedDay = freshPlan.schedule.find(day => day._id === selectedDayId);
+        if (selectedDay) {
+          await initializeLocationForPlan(selectedDay.items, DELIVERY_RANGES);
+        }
+      }
+
+    } catch (error) {
+      console.error('Location error:', error instanceof Error ? error.message : String(error));
+      setLocationError(
+        error instanceof Error ? 
+        error.message : 
+        'Unable to get your location. Please ensure location services are enabled and try again.'
+      );
+      setDisableAddressInput(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -1005,19 +1081,29 @@ interface FreshPlan {
                     </div>
                   </div>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => openAddressModal(savedAddresses.length > 0 ? 'select' : 'add')}
-                    className="w-full border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-orange-400 hover:bg-orange-50 transition-all"
-                  >
-                    <div className="flex flex-col items-center">
-                      <MapPin className="w-8 h-8 text-gray-400 mb-2" />
-                      <p className="text-sm font-medium text-gray-900">Add delivery address</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {savedAddresses.length > 0 ? 'Choose from saved addresses or add new' : 'Click to add your address'}
-                      </p>
+                  <div className="border-2 border-red-200 rounded-xl p-6 bg-red-50">
+                    <div className="flex items-start mb-3">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="ml-3 flex-1">
+                        <h3 className="text-sm font-medium text-red-800">Delivery address required</h3>
+                        <p className="mt-1 text-sm text-red-700">
+                          Please add your delivery address with your name and phone number to continue.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => openAddressModal('add')}
+                          className="mt-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                        >
+                          <MapPin className="w-4 h-4 mr-2" />
+                          Add Delivery Address
+                        </button>
+                      </div>
                     </div>
-                  </button>
+                  </div>
                 )}
 
                 {/* Time Slot Selection - Only for QuickSip */}
@@ -1096,16 +1182,16 @@ interface FreshPlan {
                 
                 <button
                   type="submit"
-                  disabled={submitting || locationError !== '' || !customerDetails.address}
+                  disabled={submitting || locationError !== '' || !customerDetails.address || !customerDetails.name || !customerDetails.phone}
                   className={`w-full py-3 px-4 rounded-lg font-bold text-center ${
-                    submitting || locationError !== '' || !customerDetails.address
+                    submitting || locationError !== '' || !customerDetails.address || !customerDetails.name || !customerDetails.phone
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       : 'bg-orange-500 text-white hover:bg-orange-600 shadow-md hover:shadow-lg transition-all'
                   }`}
                 >
                   {submitting 
                     ? 'Processing...'
-                    : !customerDetails.address
+                    : !customerDetails.address || !customerDetails.name || !customerDetails.phone
                     ? 'Add delivery address to continue'
                     : `Proceed to Payment - ₹${getTotalPrice()}`}
                 </button>
@@ -1282,10 +1368,17 @@ interface FreshPlan {
             <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-orange-50 to-white">
               <div className="flex justify-between items-center">
                 <h3 className="text-xl font-bold text-gray-900">
-                  {addressModalMode === 'select' ? 'Select delivery address' : 'Add new address'}
+                  {addressModalMode === 'select' ? 'Select delivery address' : 'Add delivery address'}
                 </h3>
                 <button
-                  onClick={() => setShowAddressModal(false)}
+                  onClick={() => {
+                    // Only allow closing if user has saved addresses
+                    if (savedAddresses.length > 0) {
+                      setShowAddressModal(false);
+                    } else {
+                      alert('Please add a delivery address to continue');
+                    }
+                  }}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1293,6 +1386,11 @@ interface FreshPlan {
                   </svg>
                 </button>
               </div>
+              {savedAddresses.length === 0 && (
+                <p className="text-sm text-red-600 mt-2">
+                  * This is required to process your order
+                </p>
+              )}
             </div>
             
             {/* Modal Content */}
@@ -1346,7 +1444,7 @@ interface FreshPlan {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Full name *
+                      Full name <span className="text-red-600">*</span>
                     </label>
                     <input
                       type="text"
@@ -1354,25 +1452,28 @@ interface FreshPlan {
                       onChange={(e) => setNewAddress({...newAddress, fullName: e.target.value})}
                       placeholder="Enter your full name"
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900"
+                      required
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Phone number *
+                      Phone number <span className="text-red-600">*</span>
                     </label>
                     <input
                       type="tel"
                       value={newAddress.phoneNumber}
                       onChange={(e) => setNewAddress({...newAddress, phoneNumber: e.target.value})}
                       placeholder="10-digit phone number"
+                      maxLength={10}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900"
+                      required
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Address name *
+                      Address name <span className="text-red-600">*</span>
                     </label>
                     <input
                       type="text"
@@ -1380,30 +1481,46 @@ interface FreshPlan {
                       onChange={(e) => setNewAddress({...newAddress, addressName: e.target.value})}
                       placeholder="e.g., Home, Office, Gym"
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900"
+                      required
                     />
                   </div>
 
                   <div>
                     <div className="flex justify-between items-center mb-2">
                       <label className="block text-sm font-medium text-gray-700">
-                        Delivery address *
+                        Delivery address <span className="text-red-600">*</span>
                       </label>
                       <button
                         type="button"
                         onClick={handleGetLocation}
-                        className="text-xs text-orange-600 hover:text-orange-800 underline transition-colors"
+                        className="flex items-center text-sm text-white bg-orange-500 hover:bg-orange-600 px-3 py-1.5 rounded-lg transition-colors"
                       >
+                        <MapPin className="w-4 h-4 mr-1" />
                         Get Current Location
                       </button>
                     </div>
                     <textarea
                       value={newAddress.deliveryAddress}
                       onChange={(e) => setNewAddress({...newAddress, deliveryAddress: e.target.value})}
-                      placeholder="Enter complete address"
+                      placeholder="Click 'Get Current Location' to fetch your address"
                       rows={3}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900 resize-none"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 resize-none cursor-not-allowed"
+                      required
+                      
+                      disabled
                     />
                     {locationError && <p className="mt-1 text-sm text-red-600">{locationError}</p>}
+                    {!newAddress.deliveryAddress && (
+                      <p className="mt-1 text-sm text-orange-600 flex items-center">
+                        <MapPin className="w-3 h-3 mr-1" />
+                        Please use 'Get Current Location' button to fetch your address
+                      </p>
+                    )}
+                    {deliveryCharge > 0 && newAddress.deliveryAddress && (
+                      <p className="mt-1 text-sm text-green-600">
+                        ✓ Delivery fee calculated: ₹{deliveryCharge}
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -1425,16 +1542,16 @@ interface FreshPlan {
                       onClick={() => {
                         if (savedAddresses.length > 0) {
                           setAddressModalMode('select');
+                          setNewAddress({
+                            fullName: '',
+                            addressName: '',
+                            deliveryAddress: '',
+                            additionalAddressDetails: '',
+                            phoneNumber: ''
+                          });
                         } else {
-                          setShowAddressModal(false);
+                          alert('Please add a delivery address to continue');
                         }
-                        setNewAddress({
-                          fullName: '',
-                          addressName: '',
-                          deliveryAddress: '',
-                          additionalAddressDetails: '',
-                          phoneNumber: ''
-                        });
                       }}
                       className="flex-1 py-2.5 px-4 border-2 border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
                     >
@@ -1531,7 +1648,14 @@ interface FreshPlan {
 
 export default function Checkout() {
   return (
-    <Suspense fallback={<div>Loading orders...</div>}>
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading checkout...</p>
+        </div>
+      </div>
+    }>
       <CheckoutPage />
     </Suspense>
   );
