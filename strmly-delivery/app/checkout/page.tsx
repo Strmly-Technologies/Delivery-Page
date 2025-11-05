@@ -376,7 +376,7 @@ interface FreshPlan {
     }
     
     if (!newAddress.deliveryAddress.trim()) {
-      alert('Please enter your delivery address');
+      alert('Please use "Get Current Location" to fetch your delivery address');
       return;
     }
 
@@ -1493,21 +1493,29 @@ interface FreshPlan {
                       <button
                         type="button"
                         onClick={handleGetLocation}
-                        className="flex items-center text-xs text-orange-600 hover:text-orange-800 underline transition-colors"
+                        className="flex items-center text-sm text-white bg-orange-500 hover:bg-orange-600 px-3 py-1.5 rounded-lg transition-colors"
                       >
-                        <MapPin className="w-3 h-3 mr-1" />
+                        <MapPin className="w-4 h-4 mr-1" />
                         Get Current Location
                       </button>
                     </div>
                     <textarea
                       value={newAddress.deliveryAddress}
                       onChange={(e) => setNewAddress({...newAddress, deliveryAddress: e.target.value})}
-                      placeholder="Enter complete address"
+                      placeholder="Click 'Get Current Location' to fetch your address"
                       rows={3}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900 resize-none"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 resize-none cursor-not-allowed"
                       required
+                      
+                      disabled
                     />
                     {locationError && <p className="mt-1 text-sm text-red-600">{locationError}</p>}
+                    {!newAddress.deliveryAddress && (
+                      <p className="mt-1 text-sm text-orange-600 flex items-center">
+                        <MapPin className="w-3 h-3 mr-1" />
+                        Please use 'Get Current Location' button to fetch your address
+                      </p>
+                    )}
                     {deliveryCharge > 0 && newAddress.deliveryAddress && (
                       <p className="mt-1 text-sm text-green-600">
                         ✓ Delivery fee calculated: ₹{deliveryCharge}
