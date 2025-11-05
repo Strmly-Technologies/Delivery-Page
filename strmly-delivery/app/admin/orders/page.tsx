@@ -848,7 +848,27 @@ function OrdersList() {
                                                     </li>
                                                   ))}
                                                 </ul>
+                                                  <div>
+                                          {order.planRelated?.daySchedule && (
+                                             <>{day?.statusInfo?.receivedTime && (
+                                    <>
+                                    <p><span className="font-medium text-gray-900">Received:</span> {formatDate(String(day?.statusInfo?.receivedTime))}</p>
+                                    <p><span className="font-medium text-gray-900">Prepared:</span> {formatDate(String(day?.statusInfo?.doneTime))}</p>
+                                    </>
+                                  )}
+                                  {day?.deliveryInfo && (
+                                    <>
+                                    <p><span className="font-medium text-gray-900">Picked:</span> {formatDate(String(day?.deliveryInfo?.pickedTime))}</p>
+                                    <p><span className="font-medium text-gray-900">Delivered:</span> {formatDate(String(day?.deliveryInfo?.deliveredTime))}</p>
+                                    </>
+                                  )
+                                  }
+                                  </>
+                                          )}
+
+                                        </div>
                                               </div>
+                                              
                                             )}
                                           </div>
                                         ))}
@@ -856,6 +876,7 @@ function OrdersList() {
                                           <span>Total</span>
                                           <span>₹{order.totalAmount}</span>
                                         </div>
+                                      
                                       </div>
                                     ) : (
                                       // Single day checkout for FreshPlan

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { Info } from 'lucide-react';
+import { Info, User, Phone, MapPin } from 'lucide-react';
 import DeliveryInfoModal from '../components/delivery/DeliveryInfoModal';
 import { Home, ShoppingBag, CalendarDays, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
 import Image from 'next/image';
@@ -122,6 +122,15 @@ interface FreshPlan {
    const [showSavedAddresses, setShowSavedAddresses] = useState(false);
   const [showSaveAddressModal, setShowSaveAddressModal] = useState(false);
   const [newAddressName, setNewAddressName] = useState('');
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [addressModalMode, setAddressModalMode] = useState<'select' | 'add'>('select');
+  const [newAddress, setNewAddress] = useState({
+    fullName: '',
+    addressName: '',
+    deliveryAddress: '',
+    additionalAddressDetails: '',
+    phoneNumber: ''
+  });
 
 
   const router = useRouter();
@@ -201,16 +210,18 @@ interface FreshPlan {
     if (data.success) {
       const addresses = data.savedAddresses || [];
       setSavedAddresses(addresses);
+      console.log("Fetched saved addresses:", addresses);
       
-      // Auto-fill first address if available and no address is set yet
+      // Auto-select most recent address (first one) if available and no address is set
       if (addresses.length > 0 && !customerDetails.address) {
-        const firstSavedAddress = addresses[0];
+        const mostRecentAddress = addresses[addresses.length - 1];
+        console.log("Most recent address:", mostRecentAddress);
         setCustomerDetails(prev => ({
           ...prev,
-          name: firstSavedAddress.fullName,
-          address: firstSavedAddress.deliveryAddress,
-          phone: firstSavedAddress.phoneNumber || prev.phone,
-          additionalAddressInfo: firstSavedAddress.additionalAddressDetails || ''
+          name: mostRecentAddress.fullName,
+          address: mostRecentAddress.deliveryAddress,
+          phone: mostRecentAddress.phoneNumber || prev.phone,
+          additionalAddressInfo: mostRecentAddress.additionalAddressDetails || ''
         }));
         setDisableAddressInput(true);
       }
@@ -222,22 +233,70 @@ interface FreshPlan {
   const handleSelectSavedAddress = (address: any) => {
     setCustomerDetails(prev => ({
       ...prev,
-      name:address.fullName,
+      name: address.fullName,
       address: address.deliveryAddress,
       phone: address.phoneNumber || prev.phone,
       additionalAddressInfo: address.additionalAddressDetails || ''
     }));
-    setShowSavedAddresses(false);
+    setShowAddressModal(false);
     setDisableAddressInput(true);
   };
 
- 
+  const handleAddNewAddress = async () => {
+    // Validate new address fields
+    if (!newAddress.fullName.trim() || !newAddress.addressName.trim() || 
+        !newAddress.deliveryAddress.trim() || !newAddress.phoneNumber.trim()) {
+      alert('Please fill in all required fields');
+      return;
+    }
 
-  // Fetch saved addresses on mount
-  useEffect(() => {
-   fetchSavedAddresses();
+    try {
+      const response = await fetch('/api/address', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newAddress)
+      });
 
-  }, []);
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update customer details with new address
+        setCustomerDetails({
+          name: newAddress.fullName,
+          phone: newAddress.phoneNumber,
+          address: newAddress.deliveryAddress,
+          additionalAddressInfo: newAddress.additionalAddressDetails
+        });
+        
+        // Reset form and close modal
+        setNewAddress({
+          fullName: '',
+          addressName: '',
+          deliveryAddress: '',
+          additionalAddressDetails: '',
+          phoneNumber: ''
+        });
+        setShowAddressModal(false);
+        setDisableAddressInput(true);
+        
+        // Refresh saved addresses
+        await fetchSavedAddresses();
+      } else {
+        alert(data.error || 'Failed to save address');
+      }
+    } catch (error) {
+      console.error('Error saving address:', error);
+      alert('Failed to save address');
+    }
+  };
+
+  const openAddressModal = (mode: 'select' | 'add') => {
+    setAddressModalMode(mode);
+    setShowAddressModal(true);
+  };
 
   const initialise = async () => {
   setLoading(true);
@@ -282,6 +341,7 @@ interface FreshPlan {
 
   useEffect(() => {
     initialise();
+    fetchSavedAddresses();
   }, [checkoutType, selectedDayId]);
 
   useEffect(() => {
@@ -711,9 +771,21 @@ interface FreshPlan {
           }
         },
         modal: {
-          ondismiss: function() {
+          ondismiss: async function() {
             setSubmitting(false);
             alert('Payment cancelled');
+            const response=await fetch(`/api/orders/${orderData.orderId}`,{
+              method: 'DELETE',
+              headers: {
+                'Authorization': `Bearer ${token}`
+              },
+              credentials: 'include'
+            })
+            if(response.ok){
+              console.log("Order cancelled successfully");
+            }else{
+              console.error("Failed to cancel order after payment dismissal");
+            }
           }
         },
         prefill: {
@@ -798,10 +870,19 @@ interface FreshPlan {
       throw new Error('Failed to get address from coordinates');
     }
     
-    setCustomerDetails(prev => ({
-      ...prev,
-      address
-    }));
+    // Update the appropriate address field based on modal mode
+    if (showAddressModal && addressModalMode === 'add') {
+      setNewAddress(prev => ({
+        ...prev,
+        deliveryAddress: address
+      }));
+    } else {
+      setCustomerDetails(prev => ({
+        ...prev,
+        address
+      }));
+    }
+    
     setLocationError('');
     setDisableAddressInput(true);
 
@@ -880,164 +961,124 @@ interface FreshPlan {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Customer Details Form */}
-        <div className="lg:col-span-2">
+          <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl text-black font-semibold">Delivery details</h2>
-                
-                {/* Saved Addresses Button */}
-                <button
-                  type="button"
-                  onClick={() => setShowSavedAddresses(true)}
-                  className="text-sm text-orange-600 hover:text-orange-700 font-medium underline"
-                >
-                  Choose saved address
-                </button>
-              </div>
+              <h2 className="text-xl text-black font-semibold mb-6">Delivery details</h2>
               
               <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                    Full name *
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    value={customerDetails.name}
-                    onChange={handleInputChange}
-                    className={`mt-1 block w-full px-3 py-2 border text-black ${errors.name ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500`}
-                    placeholder="Enter your full name"
-                  />
-                  {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
-                </div>
-                
-                <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone number *
-                  </label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    value={customerDetails.phone}
-                    onChange={handleInputChange}
-                    className={`mt-1 block w-full px-3 py-2 border text-black ${errors.phone ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500`}
-                    placeholder="10-digit phone number"
-                  />
-                  {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
-                </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label htmlFor="address" className="block text-sm font-medium text-gray-700">
-                        Delivery address *
-                      </label>
+                {/* Delivery Address Box */}
+                {customerDetails.address ? (
+                  <div className="border-2 border-orange-200 rounded-xl p-4 bg-orange-50">
+                    <div className="flex justify-between items-start mb-3">
+                      <h3 className="text-sm font-semibold text-gray-700">Delivering to</h3>
                       <button
                         type="button"
-                        onClick={handleGetLocation}
-                        className="text-xs text-orange-600 hover:text-orange-800 underline transition-colors"
+                        onClick={() => openAddressModal('select')}
+                        className="text-xs text-orange-600 hover:text-orange-700 font-medium underline"
                       >
-                        Get Current Location
+                        Change
                       </button>
                     </div>
-                    <textarea
-                      id="address"
-                      name="address"
-                      value={customerDetails.address}
-                      onChange={handleInputChange}
-                      disabled={disableAddressInput}
-                      className={`mt-1 block text-black w-full px-3 py-2 border ${errors.address ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500 ${disableAddressInput ? 'bg-gray-50' : 'bg-white'}`}
-                      rows={3}
-                      placeholder="Enter your delivery address"
-                    />
-                    {errors.address && <p className="mt-1 text-sm text-red-600">{errors.address}</p>}
-                    {locationError && <p className="mt-1 text-sm text-red-600">{locationError}</p>}
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center">
+                        <User className="w-4 h-4 text-gray-600 mr-2" />
+                        <p className="text-sm font-medium text-gray-900">{customerDetails.name}</p>
+                      </div>
+                      
+                      {customerDetails.phone && (
+                        <div className="flex items-center">
+                          <Phone className="w-4 h-4 text-gray-600 mr-2" />
+                          <p className="text-sm text-gray-700">{customerDetails.phone}</p>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-start">
+                        <MapPin className="w-4 h-4 text-gray-600 mr-2 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm text-gray-700">{customerDetails.address}</p>
+                          {customerDetails.additionalAddressInfo && (
+                            <p className="text-xs text-gray-500 mt-1">{customerDetails.additionalAddressInfo}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => openAddressModal(savedAddresses.length > 0 ? 'select' : 'add')}
+                    className="w-full border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-orange-400 hover:bg-orange-50 transition-all"
+                  >
+                    <div className="flex flex-col items-center">
+                      <MapPin className="w-8 h-8 text-gray-400 mb-2" />
+                      <p className="text-sm font-medium text-gray-900">Add delivery address</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {savedAddresses.length > 0 ? 'Choose from saved addresses or add new' : 'Click to add your address'}
+                      </p>
+                    </div>
+                  </button>
+                )}
+
+                {/* Time Slot Selection - Only for QuickSip */}
+                {checkoutType === 'quicksip' && (
                   <div>
-                    <label htmlFor="additionalAddressInfo" className="block text-sm font-medium text-gray-700 mb-2">
-                      Additional address info <span className="text-xs text-gray-500">(optional)</span>
-                    </label>
-                    <input
-                      type="text"
-                      id="additionalAddressInfo"
-                      name="additionalAddressInfo"
-                      value={customerDetails.additionalAddressInfo || ''}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full px-3 py-2 border text-black border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-                      placeholder="Apartment number, landmarks, etc."
-                    />
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Delivery Time Slot *
+                      </label>
+                      {errors.timeSlot && <p className="text-sm text-red-600">{errors.timeSlot}</p>}
+                    </div>
+                    
+                    {availableTimeSlots && availableTimeSlots.length === 0 ? (
+                      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-sm text-red-600">
+                          No time slots available for today. Please try again tomorrow or contact support.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-3">
+                        {TIME_SLOTS.map((slot) => {
+                          const isDisabled = !availableTimeSlots.includes(slot);
+                          const isSelected = selectedTimeSlot === slot.range;
+                          
+                          return (
+                            <button
+                              key={slot.range}
+                              type="button"
+                              onClick={(e) => handleTimeSlotSelect(e, slot.range)}
+                              disabled={isDisabled}
+                              className={`px-4 py-3 rounded-lg border text-sm font-medium focus:outline-none transition-colors ${
+                                isDisabled
+                                  ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                                  : isSelected
+                                    ? 'bg-orange-500 text-white border-orange-500 hover:bg-orange-600'
+                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                              }`}
+                            >
+                              {slot.range}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
+                )}
 
-                  {/* Save Address Button */}
-                  {customerDetails.address && (
-                    <button
-                      type="button"
-                      onClick={() => setShowSaveAddressModal(true)}
-                      className="text-sm text-orange-600 hover:text-orange-700 font-medium underline"
-                    >
-                      Save this address for future orders
-                    </button>
-                  )}
-                </div>
-                
-              {checkoutType === 'quicksip' ? (
-  <div>
-    <div className="flex justify-between items-center mb-2">
-      <label htmlFor="timeSlot" className="block text-sm font-medium text-gray-700">
-        Delivery Time Slot *
-      </label>
-      {errors.timeSlot && <p className="text-sm text-red-600">{errors.timeSlot}</p>}
-    </div>
-    
-    {availableTimeSlots && availableTimeSlots.length === 0 ? (
-      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-        <p className="text-sm text-red-600">
-          No time slots available for today. Please try again tomorrow or contact support.
-        </p>
-      </div>
-    ) : (
-      <div className="grid grid-cols-2 gap-3">
-        {TIME_SLOTS.map((slot) => {
-          const isDisabled = !availableTimeSlots.includes(slot);
-          const isSelected = selectedTimeSlot === slot.range;
-          
-          return (
-            <button
-              key={slot.range}
-              type="button"
-              onClick={(e) => handleTimeSlotSelect(e, slot.range)}
-              disabled={isDisabled}
-              className={`px-4 py-3 rounded-lg border text-sm font-medium focus:outline-none transition-colors ${
-                isDisabled
-                  ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                  : isSelected
-                    ? 'bg-orange-500 text-white border-orange-500 hover:bg-orange-600'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              {slot.range}
-            </button>
-          );
-        })}
-      </div>
-    )}
-  </div>
-) : null}
-
-                
+                {/* Delivery Fee */}
                 <div className="flex items-center justify-between border-t border-b border-gray-200 py-4 mt-4">
                   <div className="flex items-center">
                     <span className="text-sm text-gray-600 mr-1">Delivery fee:</span>
                     <button
                       type="button"
                       onClick={() => setShowDeliveryInfo(true)}
-                      className=" text-black hover:text-gray-700 focus:outline-none ml-1"
+                      className="text-black hover:text-gray-700 focus:outline-none ml-1"
                     >
-                      {getTotalPrice()-deliveryCharge >= 99 ? (<Info className="w-4 h-4" />): ( <p className='text-red-700 text-sm underline cursor-pointer'>(Remove it) </p>)}
-                      
+                      {getTotalPrice()-deliveryCharge >= 99 ? (
+                        <Info className="w-4 h-4" />
+                      ) : (
+                        <p className='text-red-700 text-sm underline cursor-pointer'>(Remove it)</p>
+                      )}
                     </button>
                   </div>
                   
@@ -1053,17 +1094,19 @@ interface FreshPlan {
                   </div>
                 </div>
                 
-                 <button
+                <button
                   type="submit"
-                  disabled={submitting || locationError !== ''}
+                  disabled={submitting || locationError !== '' || !customerDetails.address}
                   className={`w-full py-3 px-4 rounded-lg font-bold text-center ${
-                    submitting || locationError !== ''
+                    submitting || locationError !== '' || !customerDetails.address
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       : 'bg-orange-500 text-white hover:bg-orange-600 shadow-md hover:shadow-lg transition-all'
                   }`}
                 >
                   {submitting 
                     ? 'Processing...'
+                    : !customerDetails.address
+                    ? 'Add delivery address to continue'
                     : `Proceed to Payment - ₹${getTotalPrice()}`}
                 </button>
               </form>
@@ -1232,15 +1275,18 @@ interface FreshPlan {
           </div>
         </div>
       </div>
-      {showSavedAddresses && (
-        <div className="fixed inset-0 bg-gray-300  bg-opacity-60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden">
-            <div className="p-6 border-b border-gray-200">
+      {/* Address Modal */}
+      {showAddressModal && (
+<div className="fixed inset-0  bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-orange-50 to-white">
               <div className="flex justify-between items-center">
-                <h3 className="text-xl font-bold text-gray-900">Saved addresses</h3>
+                <h3 className="text-xl font-bold text-gray-900">
+                  {addressModalMode === 'select' ? 'Select delivery address' : 'Add new address'}
+                </h3>
                 <button
-                  onClick={() => setShowSavedAddresses(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  onClick={() => setShowAddressModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1249,35 +1295,165 @@ interface FreshPlan {
               </div>
             </div>
             
-            <div className="p-6 overflow-y-auto max-h-[60vh]">
-              {savedAddresses.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">No saved addresses yet</p>
-                </div>
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(85vh-140px)]">
+              {addressModalMode === 'select' ? (
+                <>
+                  {savedAddresses.length > 0 && (
+                    <div className="space-y-3 mb-4">
+                      {savedAddresses.map((address) => (
+                        <button
+                          key={address._id}
+                          onClick={() => handleSelectSavedAddress(address)}
+                          className={`w-full text-left p-4 border-2 rounded-xl transition-all ${
+                            customerDetails.address === address.deliveryAddress
+                              ? 'border-orange-500 bg-orange-50'
+                              : 'border-gray-200 hover:border-orange-300 hover:bg-orange-50'
+                          }`}
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <h4 className="font-semibold text-gray-900">{address.addressName}</h4>
+                            {customerDetails.address === address.deliveryAddress && customerDetails.name===address.fullName && customerDetails.phone===address.phoneNumber &&  (
+                              <span className="text-xs bg-orange-500 text-white px-2 py-1 rounded-full">
+                                Selected
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm font-medium text-gray-800 mb-1">{address.fullName}</p>
+                          <p className="text-sm text-gray-600">{address.deliveryAddress}</p>
+                          {address.additionalAddressDetails && (
+                            <p className="text-xs text-gray-500 mt-1">{address.additionalAddressDetails}</p>
+                          )}
+                          {address.phoneNumber && (
+                            <p className="text-xs text-gray-600 mt-2 flex items-center">
+                              <Phone className="w-3 h-3 mr-1" />
+                              {address.phoneNumber}
+                            </p>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <button
+                    onClick={() => setAddressModalMode('add')}
+                    className="w-full py-3 px-4 border-2 border-dashed border-orange-300 rounded-xl text-orange-600 hover:bg-orange-50 transition-all font-medium"
+                  >
+                    + Add new address
+                  </button>
+                </>
               ) : (
-                <div className="space-y-3">
-                  {savedAddresses.map((address, index) => (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Full name *
+                    </label>
+                    <input
+                      type="text"
+                      value={newAddress.fullName}
+                      onChange={(e) => setNewAddress({...newAddress, fullName: e.target.value})}
+                      placeholder="Enter your full name"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Phone number *
+                    </label>
+                    <input
+                      type="tel"
+                      value={newAddress.phoneNumber}
+                      onChange={(e) => setNewAddress({...newAddress, phoneNumber: e.target.value})}
+                      placeholder="10-digit phone number"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Address name *
+                    </label>
+                    <input
+                      type="text"
+                      value={newAddress.addressName}
+                      onChange={(e) => setNewAddress({...newAddress, addressName: e.target.value})}
+                      placeholder="e.g., Home, Office, Gym"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Delivery address *
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleGetLocation}
+                        className="text-xs text-orange-600 hover:text-orange-800 underline transition-colors"
+                      >
+                        Get Current Location
+                      </button>
+                    </div>
+                    <textarea
+                      value={newAddress.deliveryAddress}
+                      onChange={(e) => setNewAddress({...newAddress, deliveryAddress: e.target.value})}
+                      placeholder="Enter complete address"
+                      rows={3}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900 resize-none"
+                    />
+                    {locationError && <p className="mt-1 text-sm text-red-600">{locationError}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Additional details <span className="text-xs text-gray-500">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={newAddress.additionalAddressDetails}
+                      onChange={(e) => setNewAddress({...newAddress, additionalAddressDetails: e.target.value})}
+                      placeholder="Apartment, floor, landmarks, etc."
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900"
+                    />
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
                     <button
-                      key={address._id || index}
-                      onClick={() => handleSelectSavedAddress(address)}
-                      className="w-full text-left p-4 border border-gray-200 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all"
+                      type="button"
+                      onClick={() => {
+                        if (savedAddresses.length > 0) {
+                          setAddressModalMode('select');
+                        } else {
+                          setShowAddressModal(false);
+                        }
+                        setNewAddress({
+                          fullName: '',
+                          addressName: '',
+                          deliveryAddress: '',
+                          additionalAddressDetails: '',
+                          phoneNumber: ''
+                        });
+                      }}
+                      className="flex-1 py-2.5 px-4 border-2 border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
                     >
-                      <h3 className='font-semibold text-black mb-1'>{address.fullName}</h3>
-                      <h4 className="font-semibold text-black mb-1">{address.addressName}</h4>
-                      <p className="text-sm text-gray-600">{address.deliveryAddress}</p>
-                      {address.additionalAddressDetails && (
-                        <p className="text-xs text-gray-500 mt-1">{address.additionalAddressDetails}</p>
-                      )}
-                      {address.phoneNumber && (<p className="text-xs text-gray-500 mt-1">Phone: {address.phoneNumber}</p>)}
+                      {savedAddresses.length > 0 ? 'Back' : 'Cancel'}
                     </button>
-                  ))}
+                    <button
+                      type="button"
+                      onClick={handleAddNewAddress}
+                      className="flex-1 py-2.5 px-4 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-colors"
+                    >
+                      Save & use address
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
           </div>
         </div>
       )}
-
 
       {/* Save Address Modal */}
       {showSaveAddressModal && (
