@@ -697,7 +697,11 @@ interface FreshPlan {
     return getItemsTotal() + deliveryCharge;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Add this at the top of CheckoutPage function
+const ENABLE_RAZORPAY = process.env.NEXT_PUBLIC_ENABLE_RAZORPAY === 'true';
+
+// Update handleSubmit function
+const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   
   if (!validateForm()) {
@@ -729,165 +733,217 @@ interface FreshPlan {
     
     // Create order - different payload based on checkout type
     const orderPayload = checkoutType === 'quicksip' 
-  ? {
-      customerDetails,
-      cartItems,
-      totalAmount: getTotalPrice(),
-      deliveryCharge,
-      customisablePrices,
-      deliveryTimeSlot: selectedTimeSlot
+      ? {
+          customerDetails,
+          cartItems,
+          totalAmount: getTotalPrice(),
+          deliveryCharge,
+          customisablePrices,
+          deliveryTimeSlot: selectedTimeSlot
+        }
+      : {
+          customerDetails,
+          planItems, 
+          planId,
+          totalAmount: getTotalPrice(),
+          deliveryCharge,
+          checkoutType: 'freshplan',
+          completeCheckout: true,
+          planDays: freshPlan?.schedule.map(day => ({
+            date: day.date,
+            items: day.items.map(item => ({
+              product: item.product._id,
+              quantity: item.quantity,
+              price: item.customization.finalPrice,
+              customization: item.customization,
+              timeSlot: item.timeSlot
+            }))
+          }))
+        };
+      
+    const orderResponse = await fetch('/api/orders', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(orderPayload)
+    });
+
+    const orderData = await orderResponse.json();
+    
+    if (!orderData.success) {
+      throw new Error(orderData.error || 'Failed to place order');
     }
-  : {
-      customerDetails,
-      planItems, 
-      planId,
-      totalAmount: getTotalPrice(),
-      deliveryCharge,
-      checkoutType: 'freshplan',
-      completeCheckout: true,
-      planDays: freshPlan?.schedule.map(day => ({
-        date: day.date,
-        items: day.items.map(item => ({
-          product: item.product._id,
-          quantity: item.quantity,
-          price: item.customization.finalPrice,
-          customization: item.customization,
-          timeSlot: item.timeSlot
-        }))
-      }))
-    };
-      
-      const orderResponse = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(orderPayload)
-      });
 
-      const orderData = await orderResponse.json();
-      
-      if (!orderData.success) {
-        throw new Error(orderData.error || 'Failed to place order');
-      }
-
-      // Create Razorpay order
-      const paymentResponse = await fetch('/api/payment', {
+    // ==================== COD MODE ====================
+    if (!ENABLE_RAZORPAY) {
+      // COD Mode - Skip payment and mark order as COD
+      const codConfirmResponse = await fetch('/api/orders/confirm-cod', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          amount: orderData.totalAmount,
-          orderId: orderData.orderId,
-          receipt: `receipt_${orderData.orderId}`
+          orderId: orderData.orderId
         })
       });
+
+      const codData = await codConfirmResponse.json();
       
-      const paymentData = await paymentResponse.json();
-      
-      if (!paymentData.success) {
-        throw new Error(paymentData.error || 'Failed to create payment');
+      if (codData.success) {
+        // For QuickSip orders, clear the cart
+        if (checkoutType === 'quicksip') {
+          await fetch('/api/cart/clear', {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+        }
+
+        // Send email after order placement
+        const emailResponse = await fetch('/api/email/order-confirmation', {
+          method: 'POST',
+          credentials: 'include',
+          body: JSON.stringify({ orderId: orderData.orderId, type: checkoutType }),
+        });
+        
+        if (emailResponse.ok) {
+          console.log("Order confirmation email sent");
+        } else {
+          console.error("Failed to send order confirmation email");
+        }
+        
+        router.push(`/order-confirmation?orderId=${orderData.orderId}`);
+      } else {
+        throw new Error('Failed to confirm COD order');
       }
-      
-      // Initialize Razorpay checkout
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: paymentData.order.amount,
-        currency: paymentData.order.currency,
-        name: "STRMLY Delivery",
-        description: "Payment for your order",
-        order_id: paymentData.order.id,
-        handler: async function (response: any) {
-          try {
-            const verifyResponse = await fetch('/api/payment/verify', {
+      return;
+    }
+
+    // ==================== RAZORPAY MODE ====================
+    // Create Razorpay order
+    const paymentResponse = await fetch('/api/payment', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        amount: orderData.totalAmount,
+        orderId: orderData.orderId,
+        receipt: `receipt_${orderData.orderId}`
+      })
+    });
+    
+    const paymentData = await paymentResponse.json();
+    
+    if (!paymentData.success) {
+      throw new Error(paymentData.error || 'Failed to create payment');
+    }
+    
+    // Initialize Razorpay checkout
+    const options = {
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      amount: paymentData.order.amount,
+      currency: paymentData.order.currency,
+      name: "STRMLY Delivery",
+      description: "Payment for your order",
+      order_id: paymentData.order.id,
+      handler: async function (response: any) {
+        try {
+          const verifyResponse = await fetch('/api/payment/verify', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              orderId: orderData.orderId
+            })
+          });
+          
+          const verifyData = await verifyResponse.json();
+          
+          if (verifyData.success) {
+            // For QuickSip orders, clear the cart
+            if (checkoutType === 'quicksip') {
+              await fetch('/api/cart/clear', {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                }
+              });
+            }
+
+            // send email after order placement
+            const response = await fetch('/api/email/order-confirmation', {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                orderId: orderData.orderId
-              })
+              credentials: 'include',
+              body: JSON.stringify({ orderId: orderData.orderId, type: checkoutType}),
             });
             
-            const verifyData = await verifyResponse.json();
-            
-            if (verifyData.success) {
-              // For QuickSip orders, clear the cart
-              if (checkoutType === 'quicksip') {
-                await fetch('/api/cart/clear', {
-                  method: 'DELETE',
-                  headers: {
-                    'Authorization': `Bearer ${token}`
-                  }
-                });
-              }
-
-              // send email after order placement
-              const response = await fetch('/api/email/order-confirmation', {
-                method: 'POST',
-                credentials: 'include',
-                body: JSON.stringify({ orderId: orderData.orderId, type: checkoutType}),
-              }
-              )
-              if(response.ok){
-                console.log("Order confirmation email sent");
-              }else{
-                console.error("Failed to send order confirmation email");
-              }
-              router.push(`/order-confirmation?orderId=${orderData.orderId}`);
-            } else {
-              alert('Payment verification failed. Please contact support.');
-              setSubmitting(false);
+            if(response.ok){
+              console.log("Order confirmation email sent");
+            }else{
+              console.error("Failed to send order confirmation email");
             }
-          } catch (error) {
-            console.error('Payment verification error:', error);
+            
+            router.push(`/order-confirmation?orderId=${orderData.orderId}`);
+          } else {
             alert('Payment verification failed. Please contact support.');
             setSubmitting(false);
           }
-        },
-        modal: {
-          ondismiss: async function() {
-            setSubmitting(false);
-            alert('Payment cancelled');
-            const response=await fetch(`/api/orders/${orderData.orderId}`,{
-              method: 'DELETE',
-              headers: {
-                'Authorization': `Bearer ${token}`
-              },
-              credentials: 'include'
-            })
-            if(response.ok){
-              console.log("Order cancelled successfully");
-            }else{
-              console.error("Failed to cancel order after payment dismissal");
-            }
-          }
-        },
-        prefill: {
-          name: customerDetails.name,
-          contact: customerDetails.phone
-        },
-        theme: {
-          color: "#f97316"
+        } catch (error) {
+          console.error('Payment verification error:', error);
+          alert('Payment verification failed. Please contact support.');
+          setSubmitting(false);
         }
-      };
-      
-      const razorpayWindow = new (window as any).Razorpay(options);
-      razorpayWindow.open();
-      
-    } catch (error) {
-      console.error('Error during checkout:', error);
-      alert(error instanceof Error ? error.message : 'Failed to complete checkout');
-      setSubmitting(false);
-    }
-  };
+      },
+      modal: {
+        ondismiss: async function() {
+          setSubmitting(false);
+          alert('Payment cancelled');
+          const response = await fetch(`/api/orders/${orderData.orderId}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            credentials: 'include'
+          });
+          
+          if(response.ok){
+            console.log("Order cancelled successfully");
+          }else{
+            console.error("Failed to cancel order after payment dismissal");
+          }
+        }
+      },
+      prefill: {
+        name: customerDetails.name,
+        contact: customerDetails.phone
+      },
+      theme: {
+        color: "#f97316"
+      }
+    };
+    
+    const razorpayWindow = new (window as any).Razorpay(options);
+    razorpayWindow.open();
+    
+  } catch (error) {
+    console.error('Error during checkout:', error);
+    alert(error instanceof Error ? error.message : 'Failed to complete checkout');
+    setSubmitting(false);
+  }
+};
+
+
 
   function handleTimeSlotSelect(e: React.MouseEvent, range: string): void {
     // Prevent form submission
@@ -1187,21 +1243,23 @@ interface FreshPlan {
                   </div>
                 </div>
                 
-                <button
-                  type="submit"
-                  disabled={ submitting ||  locationError !== '' || !customerDetails.address || !customerDetails.name || !customerDetails.phone}
-                  className={`w-full py-3 px-4 rounded-lg font-bold text-center ${
-                    submitting || locationError !== '' || !customerDetails.address || !customerDetails.name || !customerDetails.phone
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-orange-500 text-white hover:bg-orange-600 shadow-md hover:shadow-lg transition-all'
-                  }`}
-                >
-                  {submitting 
-                    ? 'Processing...'
-                    : !customerDetails.address || !customerDetails.name || !customerDetails.phone
-                    ? 'Add delivery address to continue'
-                    : `Proceed to Payment - ₹${getTotalPrice()}`}
-                </button>
+               <button
+                type="submit"
+                disabled={submitting || locationError !== '' || !customerDetails.address || !customerDetails.name || !customerDetails.phone}
+                className={`w-full py-3 px-4 rounded-lg font-bold text-center ${
+                  submitting || locationError !== '' || !customerDetails.address || !customerDetails.name || !customerDetails.phone
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-orange-500 text-white hover:bg-orange-600 shadow-md hover:shadow-lg transition-all'
+                }`}
+              >
+                {submitting 
+                  ? 'Processing...'
+                  : !customerDetails.address || !customerDetails.name || !customerDetails.phone
+                  ? 'Add delivery address to continue'
+                  : ENABLE_RAZORPAY 
+                    ? `Proceed to Payment - ₹${getTotalPrice()}`
+                    : `Place Order (COD) - ₹${getTotalPrice()}`}
+              </button>
               </form>
             </div>
           </div>

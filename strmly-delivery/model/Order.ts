@@ -28,6 +28,7 @@ export interface Order extends Document {
     address: string;
     additionalAddressInfo?: string;
   };
+  paymentStatus: 'pending' | 'completed' | 'failed' | 'cod';
   status: 'pending' | 'accepted'  | 'delivered' | 'cancelled' | 'received' | 'done' | 'picked';
   statusInfo?: {
     chefId?: mongoose.Types.ObjectId;
@@ -118,6 +119,11 @@ const orderSchema: Schema<Order> = new Schema({
     enum: ['pending', 'accepted', 'out-for-delivery', 'delivered', 'cancelled','received','done','picked','not-delivered'],
     default: 'pending'
   },
+  paymentStatus: {
+  type: String,
+  enum: ['pending', 'completed', 'failed', 'cod'],
+  default: 'pending'
+},
   statusInfo: {
     chefId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     receivedTime: { type: Date },

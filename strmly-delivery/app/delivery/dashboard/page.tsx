@@ -40,6 +40,7 @@ interface OrderItem {
 }
 
 interface DeliveryOrder {
+  paymentStatus: string;
   _id: string;
   orderNumber: string;
   orderType: 'quicksip' | 'freshplan';
@@ -70,11 +71,43 @@ export default function DeliveryOrders() {
   const [timeSlotFilter, setTimeSlotFilter] = useState<string>('all');
   const [isTimeSlotOpen, setIsTimeSlotOpen] = useState(false);
   const [stats, setStats] = useState({ done: 0, picked: 0, delivered: 0 });
+  const [confirmingPayment, setConfirmingPayment] = useState<string | null>(null);
+
   const router = useRouter();
 
   useEffect(() => {
     fetchOrders();
   }, [selectedDate, statusFilter, timeSlotFilter]);
+
+  const confirmPayment = async (orderId: string, dayId: string | undefined) => {
+  const confirmKey = dayId ? `${orderId}-${dayId}` : orderId;
+  setConfirmingPayment(confirmKey);
+  
+  try {
+    const response = await fetch('/api/delivery/confirm-payment', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId, dayId })
+    });
+
+    const data = await response.json();
+    
+    if (data.success) {
+      // Refresh orders and stats
+      await fetchOrders();
+      await fetchStats();
+      alert('Payment confirmed successfully!');
+    } else {
+      alert(data.error || 'Failed to confirm payment');
+    }
+  } catch (error) {
+    console.error('Error confirming payment:', error);
+    alert('Failed to confirm payment');
+  } finally {
+    setConfirmingPayment(null);
+  }
+};
 
   const getGoogleMapsLink = (address: string) => {
     const encodedAddress = encodeURIComponent(address);
@@ -143,6 +176,8 @@ export default function DeliveryOrders() {
         pickedRes.json(),
         deliveredRes.json()
       ]);
+
+      console.log("delivedData:", deliveredData);
 
       setStats({
         done: doneData.success ? doneData.count : 0,
@@ -525,65 +560,111 @@ export default function DeliveryOrders() {
                     </div>
 
                     {/* Delivery Action Buttons - Only for 'done' status filter */}
-                    {statusFilter === 'done' && order.status === 'done' && (
-                      <button
-                        onClick={() => {
-                          const orderId = order.dayId ? order.orderId : order._id;
-                          updateDeliveryStatus(orderId, order.dayId, 'picked');
-                        }}
-                        disabled={isUpdating}
-                        className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg font-semibold text-sm transition disabled:opacity-50 flex items-center justify-center"
-                      >
-                        {isUpdating ? (
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <>
-                            <Truck className="w-4 h-4 mr-2" />
-                            Pick Order
-                          </>
-                        )}
-                      </button>
-                    )}
+                   {statusFilter === 'done' && order.status === 'done' && (
+  <button
+    onClick={() => {
+      const orderId = order.dayId ? order.orderId : order._id;
+      updateDeliveryStatus(orderId, order.dayId, 'picked');
+    }}
+    disabled={isUpdating}
+    className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg font-semibold text-sm transition disabled:opacity-50 flex items-center justify-center"
+  >
+    {isUpdating ? (
+      <RefreshCw className="w-4 h-4 animate-spin" />
+    ) : (
+      <>
+        <Truck className="w-4 h-4 mr-2" />
+        Pick Order
+      </>
+    )}
+  </button>
+)}
 
-                    {statusFilter === 'picked' && order.status === 'picked' && (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            const orderId = order.dayId ? order.orderId : order._id;
-                            updateDeliveryStatus(orderId, order.dayId, 'delivered');
-                          }}
-                          disabled={isUpdating}
-                          className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-lg font-semibold text-sm transition disabled:opacity-50 flex items-center justify-center"
-                        >
-                          {isUpdating ? (
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <>
-                              <CheckCircle className="w-4 h-4 mr-2" />
-                              Delivered
-                            </>
-                          )}
-                        </button>
-                        <button
-                          onClick={() => {
-                            const orderId = order.dayId ? order.orderId : order._id;
-                            updateDeliveryStatus(orderId, order.dayId, 'not-delivered');
-                          }}
-                          disabled={isUpdating}
-                          className="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-3 rounded-lg font-semibold text-sm transition disabled:opacity-50 flex items-center justify-center"
-                        >
-                          {isUpdating ? (
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <>
-                              <XCircle className="w-4 h-4 mr-2" />
-                              Not Delivered
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    )}
+{statusFilter === 'picked' && order.status === 'picked' && (
+  <div className="space-y-2">
+    <div className="flex gap-2">
+      <button
+        onClick={() => {
+          const orderId = order.dayId ? order.orderId : order._id;
+          updateDeliveryStatus(orderId, order.dayId, 'delivered');
+        }}
+        disabled={isUpdating}
+        className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-lg font-semibold text-sm transition disabled:opacity-50 flex items-center justify-center"
+      >
+        {isUpdating ? (
+          <RefreshCw className="w-4 h-4 animate-spin" />
+        ) : (
+          <>
+            <CheckCircle className="w-4 h-4 mr-2" />
+            Delivered
+          </>
+        )}
+      </button>
+      <button
+        onClick={() => {
+          const orderId = order.dayId ? order.orderId : order._id;
+          updateDeliveryStatus(orderId, order.dayId, 'not-delivered');
+        }}
+        disabled={isUpdating}
+        className="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-3 rounded-lg font-semibold text-sm transition disabled:opacity-50 flex items-center justify-center"
+      >
+        {isUpdating ? (
+          <RefreshCw className="w-4 h-4 animate-spin" />
+        ) : (
+          <>
+            <XCircle className="w-4 h-4 mr-2" />
+            Not Delivered
+          </>
+        )}
+      </button>
+    </div>
+  </div>
+)}
 
+{/* Payment Confirmation Button - Show after delivery for COD orders */}
+{statusFilter === 'delivered' && order.status === 'delivered' && order.paymentStatus === "cod" && (
+  <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+    <div className="flex items-start mb-2">
+      <AlertCircle className="w-4 h-4 text-yellow-600 mr-2 mt-0.5" />
+      <div className="flex-1">
+        <p className="text-sm font-medium text-yellow-900">Cash on Delivery</p>
+        <p className="text-xs text-yellow-700 mt-0.5">
+          Confirm payment received from customer
+        </p>
+      </div>
+    </div>
+    <button
+      onClick={() => {
+        const orderId = order.dayId ? order.orderId : order._id;
+        if (confirm('Have you received payment from the customer?')) {
+          confirmPayment(orderId, order.dayId);
+        }
+      }}
+      disabled={confirmingPayment === (order.dayId ? `${order.orderId}-${order.dayId}` : order._id)}
+      className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg font-semibold text-sm transition disabled:opacity-50 flex items-center justify-center"
+    >
+      {confirmingPayment === (order.dayId ? `${order.orderId}-${order.dayId}` : order._id) ? (
+        <RefreshCw className="w-4 h-4 animate-spin" />
+      ) : (
+        <>
+          <CheckCircle className="w-4 h-4 mr-2" />
+          Confirm Payment Received
+        </>
+      )}
+    </button>
+  </div>
+)}
+
+{/* Show payment completed status */}
+{statusFilter === 'delivered' && order.status === 'delivered' && order.paymentStatus === 'completed' && (
+  <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center">
+    <CheckCircle className="w-4 h-4 text-green-600 mr-2" />
+    <div>
+      <p className="text-sm font-medium text-green-900">Payment Confirmed</p>
+      <p className="text-xs text-green-700">Cash received from customer</p>
+    </div>
+  </div>
+)}
                     {/* Timestamps for completed orders */}
                     {(order.pickedTime || order.deliveredTime || order.notDeliveredTime) && (
                       <div className="mt-4 pt-3 border-t">
