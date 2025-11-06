@@ -770,7 +770,7 @@ function OrdersList() {
                                     </ul>
                                     
                                     {order.deliveryTimeSlot && (
-                                      <div className="text-sm mb-4">
+                                      <div className="text-sm mb-4 text-black">
                                         <h5 className="text-xs font-medium text-gray-700 mb-1">Delivery Time:</h5>
                                         <div className="flex items-center">
                                           <Clock className="h-4 w-4 text-gray-500 mr-1" />

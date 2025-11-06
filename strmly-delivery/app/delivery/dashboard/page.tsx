@@ -7,6 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { format } from 'date-fns';
 import { TIME_SLOTS } from '@/constants/timeSlots';
+import { ExternalLink } from 'lucide-react';
 
 interface Customer {
   name: string;
@@ -74,6 +75,11 @@ export default function DeliveryOrders() {
   useEffect(() => {
     fetchOrders();
   }, [selectedDate, statusFilter, timeSlotFilter]);
+
+  const getGoogleMapsLink = (address: string) => {
+    const encodedAddress = encodeURIComponent(address);
+    return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+  };
 
   const fetchOrders = async () => {
     try {
@@ -433,31 +439,41 @@ export default function DeliveryOrders() {
                   </div>
 
                   <div className="p-4">
-                    {/* Customer Info */}
-                    <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                      <h4 className="text-sm font-medium text-gray-900 mb-2 flex items-center">
-                        <User className="w-4 h-4 mr-1" />
-                        Customer Details
-                      </h4>
-                      <div className="space-y-1 text-sm text-gray-600">
-                        <p className="font-medium">{order.customer.name}</p>
-                        <div className="flex items-center">
-                          <Phone className="w-3 h-3 mr-1" />
-                          <a href={`tel:${order.customer.phone}`} className="text-blue-600 hover:underline">
-                            {order.customer.phone}
-                          </a>
-                        </div>
-                        <div className="flex items-start">
-                          <MapPin className="w-3 h-3 mr-1 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p>{order.customer.address}</p>
-                            {order.customer.additionalInfo && (
-                              <p className="text-xs text-gray-500 mt-1">{order.customer.additionalInfo}</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                                  {/* Customer Info */}
+              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                <h4 className="text-sm font-medium text-gray-900 mb-2 flex items-center">
+                  <User className="w-4 h-4 mr-1" />
+                  Customer Details
+                </h4>
+                <div className="space-y-1 text-sm text-gray-600">
+                  <p className="font-medium">{order.customer.name}</p>
+                  <div className="flex items-center">
+                    <Phone className="w-3 h-3 mr-1" />
+                    <a href={`tel:${order.customer.phone}`} className="text-blue-600 hover:underline">
+                      {order.customer.phone}
+                    </a>
+                  </div>
+                  <div className="flex items-start">
+                    <MapPin className="w-3 h-3 mr-1 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p>{order.customer.address}</p>
+                      {order.customer.additionalInfo && (
+                        <p className="text-xs text-gray-500 mt-1">{order.customer.additionalInfo}</p>
+                      )}
+                      {/* Add Google Maps Button */}
+                      <a
+                        href={getGoogleMapsLink(order.customer.address)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center mt-2 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-lg transition-colors"
+                      >
+                        <ExternalLink className="w-3 h-3 mr-1" />
+                        Open in Google Maps
+                      </a>
                     </div>
+                  </div>
+                </div>
+              </div>
 
                     {/* Order Items */}
                     <div className="mb-4">
