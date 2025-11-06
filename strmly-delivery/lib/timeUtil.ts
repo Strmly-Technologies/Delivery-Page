@@ -3,27 +3,46 @@ import { TimeSlot } from "@/constants/timeSlots";
 
 export function getAvailableTimeSlots(slots: TimeSlot[]): TimeSlot[] {
   const now = new Date();
-  const currentHour = now.getHours()// testing
+  const currentHour = now.getHours();
   const currentMinutes = now.getMinutes();
   console.log("Current time:", currentHour, currentMinutes);
-  
-  if (currentHour >= 18) return [];
+
+  if (currentHour >= 20) return [];
   
   const available = slots.filter(slot => {
-    // Extract both parts and meridiem
-    const [start, endWithMeridiem] = slot.range.split('-');
-    const meridiem = endWithMeridiem.trim().split(' ')[1]; // "AM" or "PM"
-    let slotHour = parseInt(start.trim(), 10);
+    // Extract start time with its meridiem
+    const [startPart, endPart] = slot.range.split('-');
+    const startTrimmed = startPart.trim();
+    const endTrimmed = endPart.trim();
     
-    // Convert to 24-hour format
-    if (meridiem === 'PM' && slotHour !== 12) slotHour += 12;
-    if (meridiem === 'AM' && slotHour === 12) slotHour = 0;
+    // Check if start has its own meridiem
+    const startHasMeridiem = startTrimmed.includes('AM') || startTrimmed.includes('PM');
     
-    // If slot is in the current hour, only show if more than 15 mins remaining
-    if (slotHour === currentHour && currentMinutes > 15) return false;
+    let slotHour: number;
     
-    // Show slots that are 1+ hour away, or exactly 1 hour away if 15 mins or less have passed
-    return slotHour >= currentHour + 1 || (slotHour > currentHour && currentMinutes <= 15);
+    if (startHasMeridiem) {
+      // Start has its own meridiem (e.g., "11 AM-12 PM")
+      const startMeridiem = startTrimmed.includes('AM') ? 'AM' : 'PM';
+      slotHour = parseInt(startTrimmed.replace(/[^\d]/g, ''), 10);
+      
+      if (startMeridiem === 'PM' && slotHour !== 12) slotHour += 12;
+      if (startMeridiem === 'AM' && slotHour === 12) slotHour = 0;
+    } else {
+      // Start inherits meridiem from end (e.g., "11-12 PM")
+      const endMeridiem = endTrimmed.includes('AM') ? 'AM' : 'PM';
+      slotHour = parseInt(startTrimmed, 10);
+      
+      if (endMeridiem === 'PM' && slotHour !== 12) slotHour += 12;
+      if (endMeridiem === 'AM' && slotHour === 12) slotHour = 0;
+    }
+    
+    // If slot is in the current hour, only show if 15 mins or less have passed
+    if (slotHour === currentHour) {
+      return currentMinutes <= 15;
+    }
+    
+    // Show slots that are in the future
+    return slotHour > currentHour;
   });
   
   console.log("Available slots:", available);
