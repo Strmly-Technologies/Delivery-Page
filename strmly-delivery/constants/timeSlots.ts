@@ -6,11 +6,10 @@ export interface TimeSlot {
     }
 
 
-
 export const TIME_SLOTS: TimeSlot[] = [
   { id: '1', range: '9-10 AM', type: 'morning' },
   { id: '2', range: '10-11 AM', type: 'morning' },
-  { id: '3', range: '11-12 PM', type: 'morning' },
+  { id: '3', range: '11 AM-12 PM', type: 'morning' },  
   { id: '4', range: '12-1 PM', type: 'morning' },
   { id: '5', range: '1-2 PM', type: 'morning' },
   { id: '6', range: '2-3 PM', type: 'morning' },
