@@ -341,17 +341,21 @@ interface FreshPlan {
     return null;
   };
 
-  const handleSelectSavedAddress = (address: any) => {
-    setCustomerDetails(prev => ({
-      ...prev,
-      name: address.fullName,
-      address: address.deliveryAddress,
-      phone: address.phoneNumber || prev.phone,
-      additionalAddressInfo: address.additionalAddressDetails || ''
-    }));
-    setShowAddressModal(false);
-    setDisableAddressInput(true);
-  };
+ const handleSelectSavedAddress = async (address: any) => {
+  setCustomerDetails(prev => ({
+    ...prev,
+    name: address.fullName,
+    address: address.deliveryAddress,
+    phone: address.phoneNumber || prev.phone,
+    additionalAddressInfo: address.additionalAddressDetails || ''
+  }));
+  
+  // Calculate delivery fee for the selected address
+  await calculateDeliveryFeeForAddress(address.deliveryAddress);
+  
+  setShowAddressModal(false);
+  setDisableAddressInput(true);
+};
 
   const handleAddNewAddress = async () => {
     // Validate new address fields - NOW INCLUDING FULL NAME AND PHONE
@@ -667,6 +671,7 @@ interface FreshPlan {
 
   const getItemsTotal = () => {
   if (checkoutType === 'quicksip') {
+    console.log("Cart items:", cartItems);
     // Calculate for cart items
     let itemsTotal = cartItems.reduce((total, item) => 
       total + item.price, 0
@@ -676,6 +681,8 @@ interface FreshPlan {
       const item = customisablePrices[i];
       itemsTotal += item.price;
     }
+
+    console.log("Items total calculated:", itemsTotal);
     
     return itemsTotal;
   } else {
@@ -1182,7 +1189,7 @@ interface FreshPlan {
                 
                 <button
                   type="submit"
-                  disabled={submitting || locationError !== '' || !customerDetails.address || !customerDetails.name || !customerDetails.phone}
+                  disabled={ submitting ||  locationError !== '' || !customerDetails.address || !customerDetails.name || !customerDetails.phone}
                   className={`w-full py-3 px-4 rounded-lg font-bold text-center ${
                     submitting || locationError !== '' || !customerDetails.address || !customerDetails.name || !customerDetails.phone
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -1344,6 +1351,19 @@ interface FreshPlan {
                   )}
                 </div>
               )}
+              {customisablePrices && customisablePrices.length > 0 && (
+                customisablePrices.map((item,index)=>{
+                  return(
+                  <div key={index} className="flex items-center justify-between text-gray-700 mb-2">
+                    <span>{item.category}</span>
+                    <span className="font-semibold text-gray-900">₹{item.price}</span>
+                  </div>
+                  )
+                }
+
+                )
+              )
+                  }
               
               {/* Total */}
               <div className="border-t border-gray-200 pt-4 mt-4">

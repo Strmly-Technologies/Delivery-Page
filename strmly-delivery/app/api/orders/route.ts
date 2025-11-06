@@ -163,21 +163,12 @@ export async function POST(request: NextRequest) {
       orderType = 'freshplan';
     }
 
-    // Add additional customizable items if present
-    const additionalItems = customisablePrices.map((item: any) => ({
-      product: null, // No product reference for customizable items
-      quantity: 1,
-      price: item.price,
-      customization: {
-        category: item.category,
-        finalPrice: item.price
-      }
-    }));
+ 
 
     // Combine all items (except for complete FreshPlan checkout which uses daySchedule)
     const finalOrderItems = orderType === 'freshplan' 
-      ? [...additionalItems]
-      : [...orderItems, ...additionalItems];
+      ? []
+      : [...orderItems, ];
 
     // Create the order
     const order = await OrderModel.create({
