@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { verifyAuth } from '@/lib/serverAuth';
+import OrderModel from '@/model/Order';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,7 +12,8 @@ export async function POST(request: NextRequest) {
     const { 
       razorpay_order_id, 
       razorpay_payment_id, 
-      razorpay_signature 
+      razorpay_signature ,
+      orderId
     } = await request.json();
     
     // Verify the payment signature
@@ -24,6 +26,11 @@ export async function POST(request: NextRequest) {
     const isAuthentic = expectedSignature === razorpay_signature;
     
     if (isAuthentic) {
+      const order= await OrderModel.findById(orderId);
+      if(order){
+        order.paymentStatus = "completed";
+        await order.save();
+      }
       return NextResponse.json({
         success: true,
         message: "Payment verified successfully"
