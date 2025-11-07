@@ -1,4 +1,3 @@
-
 import { TimeSlot } from "@/constants/timeSlots";
 
 export function getAvailableTimeSlots(slots: TimeSlot[]): TimeSlot[] {
@@ -7,6 +6,7 @@ export function getAvailableTimeSlots(slots: TimeSlot[]): TimeSlot[] {
   const currentMinutes = now.getMinutes();
   console.log("Current time:", currentHour, currentMinutes);
 
+  // No deliveries after 8 PM
   if (currentHour >= 20) return [];
   
   const available = slots.filter(slot => {
@@ -36,20 +36,15 @@ export function getAvailableTimeSlots(slots: TimeSlot[]): TimeSlot[] {
       if (endMeridiem === 'AM' && slotHour === 12) slotHour = 0;
     }
     
-    // If slot is in the current hour, only show if 15 mins or less have passed
-    if (slotHour === currentHour) {
-      return currentMinutes <= 15;
-    }
-    
-    // Show slots that are in the future
+    // Show slots that start at least 1 hour from now
+    // Example: At 4:12 PM (16:12), slot 4-5 PM (starts at 16) is NOT available
+    // Next available slot is 5-6 PM (starts at 17)
     return slotHour > currentHour;
   });
   
   console.log("Available slots:", available);
   return available;
 }
-
-
 
 export function formatTimeSlot(slot: string): string {
   return slot;
