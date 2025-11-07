@@ -131,6 +131,8 @@ interface FreshPlan {
     additionalAddressDetails: '',
     phoneNumber: ''
   });
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'razorpay'>('razorpay');
+
 
 
   const router = useRouter();
@@ -698,9 +700,9 @@ interface FreshPlan {
   };
 
   // Add this at the top of CheckoutPage function
-const ENABLE_RAZORPAY = process.env.NEXT_PUBLIC_ENABLE_RAZORPAY === 'true';
+const ENABLE_RAZORPAY = process.env.NEXT_PUBLIC_ENABLE_RAZORPAY !== 'false'; // Default to true
 
-// Update handleSubmit function
+// Update handleSubmit to handle both payment methods
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   
@@ -777,7 +779,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     }
 
     // ==================== COD MODE ====================
-    if (!ENABLE_RAZORPAY) {
+    if (paymentMethod === 'cod') {
       // COD Mode - Skip payment and mark order as COD
       const codConfirmResponse = await fetch('/api/orders/confirm-cod', {
         method: 'POST',
@@ -1242,24 +1244,77 @@ const handleSubmit = async (e: React.FormEvent) => {
                     )}
                   </div>
                 </div>
+{/* Payment Method Selection */}
+<div className="mb-6">
+  <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Method</h3>
+  <div className="space-y-3">
+    {/* Razorpay Option */}
+    <label className={`flex items-center space-x-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+      paymentMethod === 'razorpay' 
+        ? 'border-orange-500 bg-orange-50' 
+        : 'border-gray-200 hover:border-gray-300 bg-white'
+    }`}>
+      <input 
+        type="radio" 
+        name="paymentMethod" 
+        value="razorpay" 
+        checked={paymentMethod === 'razorpay'} 
+        onChange={() => setPaymentMethod('razorpay')}
+        className="h-5 w-5 text-orange-500 focus:ring-orange-500"
+      />
+      <div className="flex-1 flex items-center justify-between">
+        <div>
+          <p className="font-semibold text-gray-900">Pay Online</p>
+          <p className="text-sm text-gray-600">Pay securely via Razorpay (Cards, UPI, Wallets)</p>
+        </div>
+       
+      </div>
+    </label>
+
+    {/* COD Option */}
+    <label className={`flex items-center space-x-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+      paymentMethod === 'cod' 
+        ? 'border-orange-500 bg-orange-50' 
+        : 'border-gray-200 hover:border-gray-300 bg-white'
+    }`}>
+      <input 
+        type="radio" 
+        name="paymentMethod" 
+        value="cod" 
+        checked={paymentMethod === 'cod'} 
+        onChange={() => setPaymentMethod('cod')}
+        className="h-5 w-5 text-orange-500 focus:ring-orange-500"
+      />
+      <div className="flex-1 flex items-center justify-between">
+        <div>
+          <p className="font-semibold text-gray-900">Cash on Delivery</p>
+          <p className="text-sm text-gray-600">Pay when your order is delivered</p>
+        </div>
+       
+      </div>
+    </label>
+  </div>
+
+  {/* Payment Method Info */}
+</div>
                 
-               <button
-                type="submit"
-                disabled={submitting || locationError !== '' || !customerDetails.address || !customerDetails.name || !customerDetails.phone}
-                className={`w-full py-3 px-4 rounded-lg font-bold text-center ${
-                  submitting || locationError !== '' || !customerDetails.address || !customerDetails.name || !customerDetails.phone
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-orange-500 text-white hover:bg-orange-600 shadow-md hover:shadow-lg transition-all'
-                }`}
-              >
-                {submitting 
-                  ? 'Processing...'
-                  : !customerDetails.address || !customerDetails.name || !customerDetails.phone
-                  ? 'Add delivery address to continue'
-                  : ENABLE_RAZORPAY 
-                    ? `Proceed to Payment - ₹${getTotalPrice()}`
-                    : `Place Order (COD) - ₹${getTotalPrice()}`}
-              </button>
+              <button
+              type="submit"
+              disabled={submitting || locationError !== '' || !customerDetails.address || !customerDetails.name || !customerDetails.phone}
+              className={`w-full py-3 px-4 rounded-lg font-bold text-center ${
+                submitting || locationError !== '' || !customerDetails.address || !customerDetails.name || !customerDetails.phone
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-orange-500 text-white hover:bg-orange-600 shadow-md hover:shadow-lg transition-all'
+              }`}
+            >
+              {submitting 
+                ? 'Processing...'
+                : !customerDetails.address || !customerDetails.name || !customerDetails.phone
+                ? 'Add delivery address to continue'
+                : paymentMethod === 'cod'
+                  ? `Place Order (COD) - ₹${getTotalPrice()}`
+                  : `Proceed to Payment - ₹${getTotalPrice()}`}
+            </button>
               </form>
             </div>
           </div>
