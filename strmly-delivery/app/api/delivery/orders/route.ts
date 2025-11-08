@@ -55,7 +55,9 @@ export async function GET(request: NextRequest) {
       // === QuickSip Orders ===
       if (order.orderType === "quicksip" && order.status === "done") {
         const orderTimeSlot = order.deliveryTimeSlot || "ASAP";
-         const orderDate = new Date(order.createdAt);
+         const orderDate = order.scheduledDeliveryDate
+            ? new Date(order.scheduledDeliveryDate)
+            : new Date(order.createdAt);
         if (orderDate >= todayStart && orderDate <= todayEnd){
         
         // Filter by time slot if specified

@@ -44,6 +44,7 @@ export interface Order extends Document {
 };
   createdAt: Date;
   updatedAt: Date;
+  scheduledDeliveryDate?: Date;
   deliveryCharge?: number;
   deliveryTimeSlot?: string;
   customisablePrices?: {
@@ -138,6 +139,11 @@ const orderSchema: Schema<Order> = new Schema({
   },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
+  scheduledDeliveryDate: {
+  type: Date,
+  default: null,
+  index: true // Add index for efficient querying
+},
   deliveryCharge: { type: Number, default: 0 },
   customisablePrices: [{
     category: { type: String },

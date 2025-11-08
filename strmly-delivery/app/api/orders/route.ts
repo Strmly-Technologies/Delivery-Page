@@ -71,7 +71,8 @@ export async function POST(request: NextRequest) {
       deliveryCharge,
       deliveryTimeSlot,
       checkoutType = 'quicksip',
-      completeCheckout = false
+      completeCheckout = false,
+      scheduledDeliveryDate
     } = requestBody;
 
     // Extract items based on checkout type
@@ -181,7 +182,10 @@ export async function POST(request: NextRequest) {
       paymentStatus: 'pending',
       customerDetails,
       orderType,
-      planRelated
+      planRelated,
+      ...(scheduledDeliveryDate && {
+          scheduledDeliveryDate: new Date(scheduledDeliveryDate)
+        })
     });
 
     // Update FreshPlan status if this is a complete checkout
