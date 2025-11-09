@@ -132,6 +132,10 @@ interface FreshPlan {
     phoneNumber: ''
   });
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'razorpay'>('razorpay');
+  const [isOrderingForTomorrow, setIsOrderingForTomorrow] = useState(false);
+  const [tomorrowDate, setTomorrowDate] = useState<Date | null>(null);
+
+
 
 
 
@@ -241,49 +245,7 @@ interface FreshPlan {
   };
 
   // New function to calculate delivery fee for an address
-  const calculateDeliveryFeeForAddress = async (address: string) => {
-    try {
-      const storedLat = localStorage.getItem('latitude');
-      const storedLng = localStorage.getItem('longitude');
-
-      if (!storedLat || !storedLng) {
-        console.log('No stored coordinates found');
-        return;
-      }
-
-      const latitude = parseFloat(storedLat);
-      const longitude = parseFloat(storedLng);
-
-      const settingsData = await fetchDeliverySettings();
-      const DELIVERY_RANGES = settingsData || deliverySettings;
-      
-      const distance = calculateDistance(
-        latitude, 
-        longitude, 
-        SHOP_LOCATION.lat, 
-        SHOP_LOCATION.lng
-      );
-      
-      if (distance > DELIVERY_RANGES.MAX_RANGE) {
-        setLocationError(`Sorry, we don't deliver beyond ${DELIVERY_RANGES.MAX_RANGE}km from our shop (Your distance: ${distance.toFixed(2)}km)`);
-        return;
-      }
-
-      const calculatedCharge = calculateDeliveryCharge(distance, DELIVERY_RANGES.CHARGES);
-      setCalculatedDeliveryCharge(calculatedCharge);
-      
-      const itemsTotal = getItemsTotal();
-      if (itemsTotal >= 99) {
-        setDeliveryCharge(0);
-      } else {
-        setDeliveryCharge(calculatedCharge);
-      }
-      
-      setLocationError('');
-    } catch (error) {
-      console.error('Error calculating delivery fee:', error);
-    }
-  };
+  
 
   const fetchCustomisablePrices = async () => {
     try {
@@ -484,156 +446,263 @@ interface FreshPlan {
   }, [checkoutType, selectedDayId]);
 
   useEffect(() => {
-    // Update available time slots every minute
-    const updateTimeSlots = () => {
-      setAvailableTimeSlots(getAvailableTimeSlots(TIME_SLOTS));
-    };
+  // Update available time slots every minute
+  const updateTimeSlots = () => {
+    const availableSlots = getAvailableTimeSlots(TIME_SLOTS);
+    setAvailableTimeSlots(availableSlots);
+    
+    // Check if ordering for tomorrow
+    if (availableSlots.length === 0) {
+      setIsOrderingForTomorrow(true);
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      setTomorrowDate(tomorrow);
+      // When ordering for tomorrow, all slots are available
+      setAvailableTimeSlots(TIME_SLOTS);
+    } else {
+      setIsOrderingForTomorrow(false);
+      setTomorrowDate(null);
+    }
+  };
 
-    updateTimeSlots(); // Initial update
-    const interval = setInterval(updateTimeSlots, 60000); // Update every minute
+  updateTimeSlots(); // Initial update
+  const interval = setInterval(updateTimeSlots, 60000); // Update every minute
 
-    return () => clearInterval(interval);
-  }, []);
+  return () => clearInterval(interval);
+}, []);
 
-  const initializeLocationFromStorage = async (
-    cartData: CartItem[] = [],
-    pricesData: CustomisablePrices[] = [],
-    settingsData: any = null
-  ) => {
-    try {
-      const storedLat = localStorage.getItem('latitude');
-      const storedLng = localStorage.getItem('longitude');
+ // Remove the free delivery calculation logic
+const initializeLocationFromStorage = async (
+  cartData: CartItem[] = [],
+  pricesData: CustomisablePrices[] = [],
+  settingsData: any = null
+) => {
+  try {
+    const storedLat = localStorage.getItem('latitude');
+    const storedLng = localStorage.getItem('longitude');
 
-      if (!storedLat || !storedLng) {
-        console.log('No stored coordinates found');
-        return;
-      }
+    if (!storedLat || !storedLng) {
+      console.log('No stored coordinates found');
+      return;
+    }
 
-      const latitude = parseFloat(storedLat);
-      const longitude = parseFloat(storedLng);
+    const latitude = parseFloat(storedLat);
+    const longitude = parseFloat(storedLng);
 
-      const DELIVERY_RANGES = settingsData || await fetchDeliverySettings();
-      
-      const distance = calculateDistance(
-        latitude, 
-        longitude, 
-        SHOP_LOCATION.lat, 
-        SHOP_LOCATION.lng
-      );
-      
-      if (distance > DELIVERY_RANGES.MAX_RANGE) {
-        setLocationError(`Sorry, we don't deliver beyond ${DELIVERY_RANGES.MAX_RANGE}km from our shop (Your distance: ${distance.toFixed(2)}km)`);
-        return;
-      }
+    const DELIVERY_RANGES = settingsData || await fetchDeliverySettings();
+    
+    const distance = calculateDistance(
+      latitude, 
+      longitude, 
+      SHOP_LOCATION.lat, 
+      SHOP_LOCATION.lng
+    );
+    
+    if (distance > DELIVERY_RANGES.MAX_RANGE) {
+      setLocationError(`Sorry, we don't deliver beyond ${DELIVERY_RANGES.MAX_RANGE}km from our shop (Your distance: ${distance.toFixed(2)}km)`);
+      return;
+    }
 
-      // Calculate items total using the passed data (not state)
-      const cartTotal = cartData.reduce((total, item) => 
-        total + (item.customization?.finalPrice || 0), 0
-      );
-      
-      let additionalTotal = 0;
-      for(let i = 0; i < pricesData.length; i++) {
-        additionalTotal += pricesData[i].price;
-      }
-      
-      const itemsTotal = cartTotal + additionalTotal;
-      
-      // Always calculate what the charge would be
-      const calculatedCharge = calculateDeliveryCharge(distance, DELIVERY_RANGES.CHARGES);
-      setCalculatedDeliveryCharge(calculatedCharge);
-      
-      if (itemsTotal >= 99) {
-        setDeliveryCharge(0);
-        console.log("✓ Free delivery applied - items total is ₹" + itemsTotal);
-      } else {
-        setDeliveryCharge(calculatedCharge);
-        console.log("✓ Delivery charge applied: ₹" + calculatedCharge + " - items total is ₹" + itemsTotal);
-      }
-     
-      const address = await getAddressFromCoords(latitude, longitude);
-      if (!address) {
-        throw new Error('Failed to get address from coordinates');
-      }
-      
+    // Always apply delivery charge - remove the ₹99 minimum check
+    const calculatedCharge = calculateDeliveryCharge(distance, DELIVERY_RANGES.CHARGES);
+    setCalculatedDeliveryCharge(calculatedCharge);
+    setDeliveryCharge(calculatedCharge);
+    console.log("✓ Delivery charge applied: ₹" + calculatedCharge);
+   
+    const address = await getAddressFromCoords(latitude, longitude);
+    if (!address) {
+      throw new Error('Failed to get address from coordinates');
+    }
+    
+    setCustomerDetails(prev => ({
+      ...prev,
+      address
+    }));
+    setLocationError('');
+    setDisableAddressInput(true);
+
+  } catch (error) {
+    console.error('Error initializing location:', error);
+    setLocationError('Failed to load saved location. Please try getting current location.');
+    setDisableAddressInput(false);
+  }
+};
+
+// Update initializeLocationForPlan similarly
+const initializeLocationForPlan = async (
+  planItems: PlanItem[] = [],
+  settingsData: any = null
+) => {
+  try {
+    const storedLat = localStorage.getItem('latitude');
+    const storedLng = localStorage.getItem('longitude');
+
+    if (!storedLat || !storedLng) {
+      console.log('No stored coordinates found');
+      return;
+    }
+
+    const latitude = parseFloat(storedLat);
+    const longitude = parseFloat(storedLng);
+
+    const DELIVERY_RANGES = settingsData || await fetchDeliverySettings();
+    
+    const distance = calculateDistance(
+      latitude, 
+      longitude, 
+      SHOP_LOCATION.lat, 
+      SHOP_LOCATION.lng
+    );
+    
+    if (distance > DELIVERY_RANGES.MAX_RANGE) {
+      setLocationError(`Sorry, we don't deliver beyond ${DELIVERY_RANGES.MAX_RANGE}km from our shop (Your distance: ${distance.toFixed(2)}km)`);
+      return;
+    }
+
+    // Always apply delivery charge - remove the ₹99 minimum check
+    const calculatedCharge = calculateDeliveryCharge(distance, DELIVERY_RANGES.CHARGES);
+    setCalculatedDeliveryCharge(calculatedCharge);
+    setDeliveryCharge(calculatedCharge);
+    console.log("✓ Delivery charge applied: ₹" + calculatedCharge);
+   
+    const address = await getAddressFromCoords(latitude, longitude);
+    if (!address) {
+      throw new Error('Failed to get address from coordinates');
+    }
+    
+    setCustomerDetails(prev => ({
+      ...prev,
+      address
+    }));
+    setLocationError('');
+    setDisableAddressInput(true);
+
+  } catch (error) {
+    console.error('Error initializing location for plan:', error);
+    setLocationError('Failed to load saved location. Please try getting current location.');
+    setDisableAddressInput(false);
+  }
+};
+
+// Update calculateDeliveryFeeForAddress
+const calculateDeliveryFeeForAddress = async (address: string) => {
+  try {
+    const storedLat = localStorage.getItem('latitude');
+    const storedLng = localStorage.getItem('longitude');
+
+    if (!storedLat || !storedLng) {
+      console.log('No stored coordinates found');
+      return;
+    }
+
+    const latitude = parseFloat(storedLat);
+    const longitude = parseFloat(storedLng);
+
+    const settingsData = await fetchDeliverySettings();
+    const DELIVERY_RANGES = settingsData || deliverySettings;
+    
+    const distance = calculateDistance(
+      latitude, 
+      longitude, 
+      SHOP_LOCATION.lat, 
+      SHOP_LOCATION.lng
+    );
+    
+    if (distance > DELIVERY_RANGES.MAX_RANGE) {
+      setLocationError(`Sorry, we don't deliver beyond ${DELIVERY_RANGES.MAX_RANGE}km from our shop (Your distance: ${distance.toFixed(2)}km)`);
+      return;
+    }
+
+    // Always apply delivery charge - remove the ₹99 minimum check
+    const calculatedCharge = calculateDeliveryCharge(distance, DELIVERY_RANGES.CHARGES);
+    setCalculatedDeliveryCharge(calculatedCharge);
+    setDeliveryCharge(calculatedCharge);
+    
+    setLocationError('');
+  } catch (error) {
+    console.error('Error calculating delivery fee:', error);
+  }
+};
+
+// Update handleGetLocation
+const handleGetLocation = async () => {
+  try {
+    if (!navigator.geolocation) {
+      throw new Error('Geolocation is not supported by your browser');
+    }
+
+    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      });
+    });
+
+    const { latitude, longitude } = position.coords;
+    
+    // Store coordinates in localStorage
+    localStorage.setItem('latitude', latitude.toString());
+    localStorage.setItem('longitude', longitude.toString());
+
+    const DELIVERY_RANGES = deliverySettings || await fetchDeliverySettings();
+    
+    const distance = calculateDistance(
+      latitude, 
+      longitude, 
+      SHOP_LOCATION.lat, 
+      SHOP_LOCATION.lng
+    );
+
+    if (distance > DELIVERY_RANGES.MAX_RANGE) {
+      setLocationError(`Sorry, we don't deliver beyond ${DELIVERY_RANGES.MAX_RANGE}km from our shop (Your distance: ${distance.toFixed(2)}km)`);
+      return;
+    }
+
+    // Always apply delivery charge - remove the ₹99 minimum check
+    const calculatedCharge = calculateDeliveryCharge(distance, DELIVERY_RANGES.CHARGES);
+    setCalculatedDeliveryCharge(calculatedCharge);
+    setDeliveryCharge(calculatedCharge);
+
+    const address = await getAddressFromCoords(latitude, longitude);
+    if (!address) {
+      throw new Error('Failed to get address from coordinates');
+    }
+    
+    // Update the appropriate address field based on modal mode
+    if (showAddressModal && addressModalMode === 'add') {
+      setNewAddress(prev => ({
+        ...prev,
+        deliveryAddress: address
+      }));
+    } else {
       setCustomerDetails(prev => ({
         ...prev,
         address
       }));
-      setLocationError('');
-      setDisableAddressInput(true);
-
-    } catch (error) {
-      console.error('Error initializing location:', error);
-      setLocationError('Failed to load saved location. Please try getting current location.');
-      setDisableAddressInput(false);
     }
-  };
-  
-  const initializeLocationForPlan = async (
-    planItems: PlanItem[] = [],
-    settingsData: any = null
-  ) => {
-    try {
-      const storedLat = localStorage.getItem('latitude');
-      const storedLng = localStorage.getItem('longitude');
+    
+    setLocationError('');
+    setDisableAddressInput(true);
 
-      if (!storedLat || !storedLng) {
-        console.log('No stored coordinates found');
-        return;
+    // For freshplan checkout, recalculate delivery charge with updated location
+    if (checkoutType === 'freshplan' && selectedDayId && freshPlan) {
+      const selectedDay = freshPlan.schedule.find(day => day._id === selectedDayId);
+      if (selectedDay) {
+        await initializeLocationForPlan(selectedDay.items, DELIVERY_RANGES);
       }
-
-      const latitude = parseFloat(storedLat);
-      const longitude = parseFloat(storedLng);
-
-      const DELIVERY_RANGES = settingsData || await fetchDeliverySettings();
-      
-      const distance = calculateDistance(
-        latitude, 
-        longitude, 
-        SHOP_LOCATION.lat, 
-        SHOP_LOCATION.lng
-      );
-      
-      if (distance > DELIVERY_RANGES.MAX_RANGE) {
-        setLocationError(`Sorry, we don't deliver beyond ${DELIVERY_RANGES.MAX_RANGE}km from our shop (Your distance: ${distance.toFixed(2)}km)`);
-        return;
-      }
-
-      // Calculate items total from plan items
-      const itemsTotal = planItems.reduce((total, item) => 
-        total + (item.customization?.finalPrice || 0), 0
-      );
-      
-      // Always calculate what the charge would be
-      const calculatedCharge = calculateDeliveryCharge(distance, DELIVERY_RANGES.CHARGES);
-      setCalculatedDeliveryCharge(calculatedCharge);
-      
-      if (itemsTotal >= 99) {
-        setDeliveryCharge(0);
-        console.log("✓ Free delivery applied - plan items total is ₹" + itemsTotal);
-      } else {
-        setDeliveryCharge(calculatedCharge);
-        console.log("✓ Delivery charge applied: ₹" + calculatedCharge + " - plan items total is ₹" + itemsTotal);
-      }
-     
-      const address = await getAddressFromCoords(latitude, longitude);
-      if (!address) {
-        throw new Error('Failed to get address from coordinates');
-      }
-      
-      setCustomerDetails(prev => ({
-        ...prev,
-        address
-      }));
-      setLocationError('');
-      setDisableAddressInput(true);
-
-    } catch (error) {
-      console.error('Error initializing location for plan:', error);
-      setLocationError('Failed to load saved location. Please try getting current location.');
-      setDisableAddressInput(false);
     }
-  };
+
+  } catch (error) {
+    console.error('Location error:', error instanceof Error ? error.message : String(error));
+    setLocationError(
+      error instanceof Error ? 
+      error.message : 
+      'Unable to get your location. Please ensure location services are enabled and try again.'
+    );
+    setDisableAddressInput(false);
+  }
+};
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -741,7 +810,10 @@ const handleSubmit = async (e: React.FormEvent) => {
           totalAmount: getTotalPrice(),
           deliveryCharge,
           customisablePrices,
-          deliveryTimeSlot: selectedTimeSlot
+          deliveryTimeSlot: selectedTimeSlot,
+          ...(isOrderingForTomorrow && tomorrowDate && {
+            scheduledDeliveryDate: tomorrowDate.toISOString()
+          })
         }
       : {
           customerDetails,
@@ -961,90 +1033,6 @@ const handleSubmit = async (e: React.FormEvent) => {
     }
   }
   
-  const handleGetLocation = async () => {
-    try {
-      if (!navigator.geolocation) {
-        throw new Error('Geolocation is not supported by your browser');
-      }
-
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        });
-      });
-
-      const { latitude, longitude } = position.coords;
-      
-      // Store coordinates in localStorage
-      localStorage.setItem('latitude', latitude.toString());
-      localStorage.setItem('longitude', longitude.toString());
-
-      const DELIVERY_RANGES = deliverySettings || await fetchDeliverySettings();
-      
-      const distance = calculateDistance(
-        latitude, 
-        longitude, 
-        SHOP_LOCATION.lat, 
-        SHOP_LOCATION.lng
-      );
-
-      if (distance > DELIVERY_RANGES.MAX_RANGE) {
-        setLocationError(`Sorry, we don't deliver beyond ${DELIVERY_RANGES.MAX_RANGE}km from our shop (Your distance: ${distance.toFixed(2)}km)`);
-        return;
-      }
-
-      const calculatedCharge = calculateDeliveryCharge(distance, DELIVERY_RANGES.CHARGES);
-      setCalculatedDeliveryCharge(calculatedCharge);
-      
-      // Calculate items total based on checkout type
-      const itemsTotal = getItemsTotal();
-      if (itemsTotal >= 99) {
-        setDeliveryCharge(0);
-      } else {
-        setDeliveryCharge(calculatedCharge);
-      }
-
-      const address = await getAddressFromCoords(latitude, longitude);
-      if (!address) {
-        throw new Error('Failed to get address from coordinates');
-      }
-      
-      // Update the appropriate address field based on modal mode
-      if (showAddressModal && addressModalMode === 'add') {
-        setNewAddress(prev => ({
-          ...prev,
-          deliveryAddress: address
-        }));
-      } else {
-        setCustomerDetails(prev => ({
-          ...prev,
-          address
-        }));
-      }
-      
-      setLocationError('');
-      setDisableAddressInput(true);
-
-      // For freshplan checkout, recalculate delivery charge with updated location
-      if (checkoutType === 'freshplan' && selectedDayId && freshPlan) {
-        const selectedDay = freshPlan.schedule.find(day => day._id === selectedDayId);
-        if (selectedDay) {
-          await initializeLocationForPlan(selectedDay.items, DELIVERY_RANGES);
-        }
-      }
-
-    } catch (error) {
-      console.error('Location error:', error instanceof Error ? error.message : String(error));
-      setLocationError(
-        error instanceof Error ? 
-        error.message : 
-        'Unable to get your location. Please ensure location services are enabled and try again.'
-      );
-      setDisableAddressInput(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -1172,77 +1160,78 @@ const handleSubmit = async (e: React.FormEvent) => {
                 )}
 
                 {/* Time Slot Selection - Only for QuickSip */}
-                {checkoutType === 'quicksip' && (
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Delivery Time Slot *
-                      </label>
-                      {errors.timeSlot && <p className="text-sm text-red-600">{errors.timeSlot}</p>}
-                    </div>
-                    
-                    {availableTimeSlots && availableTimeSlots.length === 0 ? (
-                      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                        <p className="text-sm text-red-600">
-                          No time slots available for today. Please try again tomorrow or contact support.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-3">
-                        {TIME_SLOTS.map((slot) => {
-                          const isDisabled = !availableTimeSlots.includes(slot);
-                          const isSelected = selectedTimeSlot === slot.range;
-                          
-                          return (
-                            <button
-                              key={slot.range}
-                              type="button"
-                              onClick={(e) => handleTimeSlotSelect(e, slot.range)}
-                              disabled={isDisabled}
-                              className={`px-4 py-3 rounded-lg border text-sm font-medium focus:outline-none transition-colors ${
-                                isDisabled
-                                  ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                                  : isSelected
-                                    ? 'bg-orange-500 text-white border-orange-500 hover:bg-orange-600'
-                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                              }`}
-                            >
-                              {slot.range}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
+                {/* Time Slot Selection - Only for QuickSip */}
+{checkoutType === 'quicksip' && (
+  <div>
+    <div className="flex justify-between items-center mb-2">
+      <label className="block text-sm font-medium text-gray-700">
+        Delivery Time Slot *
+      </label>
+      {errors.timeSlot && <p className="text-sm text-red-600">{errors.timeSlot}</p>}
+    </div>
+    
+    {/* Tomorrow's Order Banner */}
+    {isOrderingForTomorrow && tomorrowDate && (
+      <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="flex items-start">
+          <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+          </svg>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-blue-900">Ordering for Tomorrow</p>
+            <p className="text-xs text-blue-700 mt-1">
+              No slots available for today. Your order will be delivered tomorrow ({format(tomorrowDate, 'EEEE, MMM d')}).
+            </p>
+          </div>
+        </div>
+      </div>
+    )}
 
+    <div className="grid grid-cols-2 gap-3">
+      {TIME_SLOTS.map((slot) => {
+        const isDisabled = !availableTimeSlots.includes(slot);
+        const isSelected = selectedTimeSlot === slot.range;
+        
+        return (
+          <button
+            key={slot.range}
+            type="button"
+            onClick={(e) => handleTimeSlotSelect(e, slot.range)}
+            disabled={isDisabled}
+            className={`px-4 py-3 rounded-lg border text-sm font-medium focus:outline-none transition-colors ${
+              isDisabled
+                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                : isSelected
+                  ? 'bg-orange-500 text-white border-orange-500 hover:bg-orange-600'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            {slot.range}
+          </button>
+        );
+      })}
+    </div>
+  </div>
+)}
                 {/* Delivery Fee */}
-                <div className="flex items-center justify-between border-t border-b border-gray-200 py-4 mt-4">
-                  <div className="flex items-center">
-                    <span className="text-sm text-gray-600 mr-1">Delivery fee:</span>
-                    <button
-                      type="button"
-                      onClick={() => setShowDeliveryInfo(true)}
-                      className="text-black hover:text-gray-700 focus:outline-none ml-1"
-                    >
-                      {getTotalPrice()-deliveryCharge >= 99 ? (
-                        <Info className="w-4 h-4" />
-                      ) : (
-                        <p className='text-red-700 text-sm underline cursor-pointer'>(Remove it)</p>
-                      )}
-                    </button>
-                  </div>
+               {/* Delivery Fee - Remove free delivery conditional */}
+<div className="flex items-center justify-between border-t border-b border-gray-200 py-4 mt-4">
+  <div className="flex items-center">
+    <span className="text-sm text-gray-600 mr-1">Delivery fee:</span>
+    <button
+      type="button"
+      onClick={() => setShowDeliveryInfo(true)}
+      className="text-black hover:text-gray-700 focus:outline-none ml-1"
+    >
+      <Info className='w-4 h-4'/>
+    </button>
+  </div>
+  
+  <div>
+    <span className="text-sm font-semibold text-gray-900">₹{deliveryCharge}</span>
+  </div>
                   
-                  <div>
-                    {deliveryCharge === 0 && calculatedDeliveryCharge > 0 ? (
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-500 line-through">₹{calculatedDeliveryCharge}</span>
-                        <span className="text-sm font-semibold text-green-600">FREE</span>
-                      </div>
-                    ) : (
-                      <span className="text-sm font-semibold text-black">₹{deliveryCharge}</span>
-                    )}
-                  </div>
+                  
                 </div>
 {/* Payment Method Selection */}
 <div className="mb-6">
@@ -1322,10 +1311,22 @@ const handleSubmit = async (e: React.FormEvent) => {
           {/* Right Column - Order Summary */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-md p-6 sticky top-8">
-              <h2 className="text-xl font-semibold text-black mb-6">
-                {checkoutType === 'quicksip' ? 'Order Summary' : 'FreshPlan Summary'}
-              </h2>
-              
+  <h2 className="text-xl font-semibold text-black mb-6">
+    {checkoutType === 'quicksip' ? 'Order Summary' : 'FreshPlan Summary'}
+  </h2>
+  
+  {/* Add Tomorrow's Delivery Notice */}
+  {isOrderingForTomorrow && tomorrowDate && (
+    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+      <div className="flex items-center">
+        <CalendarDays className="w-4 h-4 text-blue-600 mr-2" />
+        <div>
+          <p className="text-sm font-medium text-blue-900">Tomorrow's Delivery</p>
+          <p className="text-xs text-blue-700">{format(tomorrowDate, 'EEEE, MMMM d')}</p>
+        </div>
+      </div>
+    </div>
+  )}
               {/* QuickSip Order Summary */}
               {checkoutType === 'quicksip' && (
                 <div className="space-y-4 mb-6">
@@ -1451,19 +1452,14 @@ const handleSubmit = async (e: React.FormEvent) => {
               )}
               
               {/* Delivery Charge Price */}
-              {deliveryCharge >= 0 && (
-                <div className="flex items-center justify-between text-gray-700 mb-2">
-                  <span>Delivery fee</span>
-                  {deliveryCharge === 0 && calculatedDeliveryCharge > 0 ? (
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-500 line-through">₹{calculatedDeliveryCharge}</span>
-                      <span className="font-semibold text-green-600">FREE</span>
-                    </div>
-                  ) : (
-                    <span className="font-semibold text-gray-900">₹{deliveryCharge}</span>
-                  )}
-                </div>
-              )}
+               <div>
+                    {deliveryCharge >= 0 && (
+  <div className="flex items-center justify-between text-gray-700 mb-2">
+    <span>Delivery fee</span>
+    <span className="font-semibold text-gray-900">₹{deliveryCharge}</span>
+  </div>
+)}
+                  </div>
               {customisablePrices && customisablePrices.length > 0 && (
                 customisablePrices.map((item,index)=>{
                   return(
@@ -1480,16 +1476,11 @@ const handleSubmit = async (e: React.FormEvent) => {
               
               {/* Total */}
               <div className="border-t border-gray-200 pt-4 mt-4">
-                <div className="flex justify-between text-lg font-bold text-gray-900 mb-1">
-                  <span>Total</span>
-                  <span>₹{getTotalPrice()}</span>
-                </div>
-                {deliveryCharge === 0 && calculatedDeliveryCharge > 0 && (
-                  <p className="text-xs text-green-600 text-right mt-1">
-                    Free delivery on orders above ₹99!
-                  </p>
-                )}
-              </div>
+  <div className="flex justify-between text-lg font-bold text-gray-900">
+    <span>Total</span>
+    <span>₹{getTotalPrice()}</span>
+  </div>
+</div>
             </div>
           </div>
         </div>

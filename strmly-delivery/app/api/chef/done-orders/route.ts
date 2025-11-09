@@ -33,7 +33,13 @@ export async function GET(request: NextRequest) {
           orderType: "quicksip",
           status: "done",
           "statusInfo.chefId": chefId,
-          createdAt: { $gte: todayStart, $lte: todayEnd }
+$or: [
+            { scheduledDeliveryDate: { $gte: todayStart, $lte: todayEnd } },
+            { 
+              scheduledDeliveryDate: { $exists: false },
+              createdAt: { $gte: todayStart, $lte: todayEnd }
+            }
+          ]
         },
         {
           orderType: "freshplan",
@@ -60,7 +66,9 @@ export async function GET(request: NextRequest) {
       // === QuickSip Orders ===
       if (order.orderType === "quicksip" && order.status === "done" 
           && order.statusInfo?.chefId?.toString() === chefId) {
-        const orderDate = new Date(order.createdAt);
+        const orderDate = order.scheduledDeliveryDate
+            ? new Date(order.scheduledDeliveryDate)
+            : new Date(order.createdAt);
         
         if (orderDate >= todayStart && orderDate <= todayEnd) {
           // Push each product as individual item

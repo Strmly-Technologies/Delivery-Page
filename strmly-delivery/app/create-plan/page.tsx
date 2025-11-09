@@ -10,6 +10,7 @@ import Image from 'next/image';
 import ProductCustomization, { ProductCustomization as CustomizationType } from '@/app/components/product/ProductCustomization';
 import { getAvailableTimeSlots } from '@/lib/timeUtil';
 import NutrientsModal from '../components/nutrients/NutrientModal';
+import { useSound } from '@/hooks/useSound';
 
 
 interface PlanStep {
@@ -81,6 +82,7 @@ export default function FreshPlanPage() {
   const [ProductsToAllDays,setProductsToAllDays]=useState<Boolean>(false);
   const [showNutrientsModal, setShowNutrientsModal] = useState(false);
     const [selectedProductForNutrients, setSelectedProductForNutrients] = useState<Product | null>(null);
+    const { play: playAddToCartSound } = useSound('/sounds/ding.mp3', 0.6);
   
 
   useEffect(() => {
@@ -310,6 +312,7 @@ const addProductToAllDays=()=>{
     }
     return newDay;
   });
+  playAddToCartSound()  
   setSchedule(updatedSchedule);
   setProductsToAllDays(false);
   closeProductCustomization();
@@ -381,7 +384,7 @@ const addProductToAllDays=()=>{
     
     updatedSchedule[activeDayIndex].items.push(newItem);
     setSchedule(updatedSchedule);
-    
+    playAddToCartSound()
     // Reset selection
     closeProductCustomization();
   };
@@ -1056,8 +1059,7 @@ const renderProductCustomizationModal = () => {
             <Plus className="w-5 h-5 text-orange-600" />
           </div>
           <div className="text-left">
-            <p className="font-semibold text-sm text-gray-800">Copy items to all days</p>
-            <p className="text-xs text-gray-500"> Add items to all days</p>
+            <p className="font-semibold text-sm text-gray-800">Add items to all days</p>
           </div>
         </div>
         <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />

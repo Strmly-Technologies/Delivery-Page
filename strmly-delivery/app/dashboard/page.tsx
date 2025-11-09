@@ -8,6 +8,8 @@ import Image from 'next/image';
 import { localCart } from '@/lib/cartStorage';
 import NutrientsModal from '../components/nutrients/NutrientModal';
 import { logout } from '@/lib/auth';
+import { useSound } from '@/hooks/useSound';
+import ViewCartSlider from '../components/dashboard/ViewCartSlider';
 
 interface Product {
   _id: string;
@@ -83,6 +85,10 @@ export default function BesomMobileUI() {
   const [cartItemCount, setCartItemCount] = useState(0);
   const [productQuantities, setProductQuantities] = useState<Record<string, number>>({});
   const [lastCustomizations, setLastCustomizations] = useState<Record<string, LastCustomization>>({});
+  const { play: playAddToCartSound } = useSound('/sounds/ding.mp3', 0.6);
+  const [showCartSlider, setShowCartSlider] = useState(true);
+  const [cartSliderItems, setCartSliderItems] = useState<any[]>([]);
+  const [hasShownSlider, setHasShownSlider] = useState(false);
 
   // Memoized filtered products with debounced search
   const filteredProducts = useMemo(() => {
@@ -102,6 +108,59 @@ export default function BesomMobileUI() {
     logout();
     setIsAuthenticated(false);
     setUser(null);
+  };
+  
+
+  const fetchCartItemsForSlider = async () => {
+    try {
+      if (isAuthenticated) {
+        const response = await fetch('/api/cart', {
+          credentials: 'include'
+        });
+        const data = await response.json();
+        if (data.success) {
+          setCartSliderItems(data.cart);
+          return data.cart;
+        }
+      } else {
+        const localItems = localCart.getItems();
+        // Fetch product details for local cart items
+        const productIds = [...new Set(localItems.map((item:any) => item.productId))];
+        const productsData = await Promise.all(
+          productIds.map(async (id) => {
+            const res = await fetch(`/api/products/${id}`);
+            return res.json();
+          })
+        );
+        
+        const itemsWithDetails = localItems.map((item:any) => {
+          const productData = productsData.find(p => p.product._id === item.productId);
+          return {
+            product: productData?.product,
+            quantity: item.quantity,
+            price: item.price,
+            customization: item.customization
+          };
+        });
+        
+        setCartSliderItems(itemsWithDetails);
+        return itemsWithDetails;
+      }
+    } catch (error) {
+      console.error('Error fetching cart items for slider:', error);
+      return [];
+    }
+  };
+
+   const showCartSliderOnce = async () => {
+      const items = await fetchCartItemsForSlider();
+      if (items && items.length > 0) {
+        setShowCartSlider(true);
+    }
+  };
+
+    const getSliderTotalPrice = () => {
+    return cartSliderItems.reduce((total, item) => total + item.price, 0);
   };
 
   useEffect(() => {
@@ -271,6 +330,12 @@ export default function BesomMobileUI() {
             setLastCustomizations(customizations);
           }
         }
+        if (data.cart.length > 0) {
+              const items = await fetchCartItemsForSlider();
+              if (items && items.length > 0) {
+                setShowCartSlider(true);
+              }
+            }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -523,6 +588,7 @@ export default function BesomMobileUI() {
         });
         const data = await response.json();
         if (data.success) {
+          playAddToCartSound();
           fetchCartCount();
         }
       } else {
@@ -622,6 +688,7 @@ export default function BesomMobileUI() {
   };
 
   const openCustomizationModal = (product: Product) => {
+    setShowCartSlider(false)
     setSelectedProduct(product);
     setIsModalOpen(true);
   };
@@ -629,6 +696,7 @@ export default function BesomMobileUI() {
   const closeModal = () => {
     setIsModalOpen(false);
     setTimeout(() => {
+      setShowCartSlider(true)
       setSelectedProduct(null);
       setCustomization(null);
     }, 300);
@@ -662,8 +730,11 @@ export default function BesomMobileUI() {
       });
       const data = await response.json();
       if (data.success) {
+        playAddToCartSound();
         closeModal();
         fetchCartCount();
+
+        await showCartSliderOnce();
       } else {
         alert(data.error || 'Failed to add to cart');
       }
@@ -683,8 +754,10 @@ export default function BesomMobileUI() {
           quantity: itemQuantity,
           addedAt: new Date().toISOString()
         });
+        playAddToCartSound();
         closeModal();
         fetchCartCount();
+        await showCartSliderOnce();
         console.log('Added to local cart:', {
           unitPrice,
           quantity: itemQuantity,
@@ -810,17 +883,7 @@ export default function BesomMobileUI() {
 
         {/* Main Content */}
         <main className="px-5 py-6 space-y-5">
-          {!isSearchOpen && searchQuery === '' && (
-            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-center mb-4">
-              <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center mr-3 flex-shrink-0">
-                <Zap className="w-5 h-5 text-orange-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">Quicksip delivery</h3>
-                <p className="text-sm text-gray-600">Free delivery on orders above ₹99</p>
-              </div>
-            </div>
-          )}
+         
           {!isSearchOpen && searchQuery === '' && (
             <div className="relative">
               <Image
@@ -1047,6 +1110,14 @@ export default function BesomMobileUI() {
           largeNutrients={selectedProductForNutrients.largeNutrients || []}
         />
       )}
+      {cartSliderItems.length>0 &&
+      <ViewCartSlider
+        show={showCartSlider}
+        onClose={() => setShowCartSlider(false)}
+        cartItems={cartSliderItems}
+        totalItems={cartSliderItems.length}
+      />
+}
     </>
   );
 }

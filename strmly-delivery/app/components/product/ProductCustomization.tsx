@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Description, RadioGroup, Label, Radio } from '@headlessui/react';
+import { useSound } from '@/hooks/useSound';
 
 interface SizeOption {
   name: string;
@@ -54,6 +55,7 @@ const ProductCustomization: React.FC<ProductCustomizationProps> = ({
   const [selectedSugar, setSelectedSugar] = useState(sugarOptions[2]); // Normal Sugar by default
   const [selectedDilution, setSelectedDilution] = useState(dilutionOptions[0]); // Normal by default
   const [orderQuantity, setOrderQuantity] = useState(1);
+  const { play: playAddToCartSound } = useSound('/sounds/ding.mp3', 0.6);
 
 
   // Calculate final price based on selections

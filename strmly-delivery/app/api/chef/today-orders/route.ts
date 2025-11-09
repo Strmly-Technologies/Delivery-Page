@@ -24,8 +24,7 @@ export async function GET(request: NextRequest) {
     const todayEnd = endOfDay(today);
 
     // Fetch all active orders (not cancelled/refunded)
-    const orders = await OrderModel.find({
-    })
+    const orders = await OrderModel.find({})
       .populate('products.product')
       .populate('planRelated.daySchedule.items.product')
       .lean();
@@ -37,7 +36,10 @@ export async function GET(request: NextRequest) {
 
       // === QUICK SIP ORDERS ===
       if (order.orderType === 'quicksip') {
-        const orderDate = new Date(order.createdAt);
+        // Use scheduledDeliveryDate if it exists, otherwise use createdAt
+        const orderDate = order.scheduledDeliveryDate 
+          ? new Date(order.scheduledDeliveryDate)
+          : new Date(order.createdAt);
         
         if (orderDate >= todayStart && orderDate <= todayEnd) {
           console.log("Today's QuickSip order found:", order._id);
@@ -60,28 +62,19 @@ export async function GET(request: NextRequest) {
 
       // === FRESH PLAN ORDERS ===
       if (order.orderType === 'freshplan' && Array.isArray(order.planRelated?.daySchedule)) {
-        if(String(order._id).toString()==="6903517edc9d736fc89d0510"){
-        }
-        
         for (const day of order.planRelated.daySchedule) {
           const dayDate = new Date(day.date);
 
           if (dayDate >= todayStart && dayDate <= todayEnd) {
-            if(String(order._id).toString()==="69026a182fd0a07dee39c385"){
-              // console.log("DAY:",day);
-              // console.log("ITEMS:",day.items);
-            }
-            
             for (const item of day.items || []) {
               todaysItems.push({
                 _id: `${order._id}-${day._id}-${item._id || Math.random()}`,
                 product: item.product || null,
                 customization: item.customization,
                 quantity: item.quantity,
-                // Prefer item.timeSlot → fallback to order.deliveryTimeSlot → default
                 timeSlot: item.timeSlot || order.deliveryTimeSlot || 'ASAP',
                 dayStatus: day.status || 'pending',
-                 status: day.status || 'pending',  
+                status: day.status || 'pending',  
                 orderNumber,
                 orderType: 'freshplan',
                 deliveryDate: dayDate.toISOString(),
@@ -93,8 +86,6 @@ export async function GET(request: NextRequest) {
         }
       }
     }
-
-    
 
     // === TIME SLOT SORTING ===
     const timeSlotOrder = [
@@ -115,7 +106,6 @@ export async function GET(request: NextRequest) {
       return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
     });
 
-
     return NextResponse.json({
       success: true,
       items: todaysItems,
@@ -123,7 +113,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching today’s orders:', error);
+    console.error('Error fetching todays order', error);
     return NextResponse.json(
       { error: 'Failed to fetch orders' },
       { status: 500 }

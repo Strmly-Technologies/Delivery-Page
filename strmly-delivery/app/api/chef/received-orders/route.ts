@@ -33,7 +33,14 @@ export async function GET(request: NextRequest) {
           orderType: "quicksip",
           status: "received",
           "statusInfo.chefId": chefId,
-          createdAt: { $gte: todayStart, $lte: todayEnd }
+          // Check both scheduledDeliveryDate and createdAt
+          $or: [
+            { scheduledDeliveryDate: { $gte: todayStart, $lte: todayEnd } },
+            { 
+              scheduledDeliveryDate: { $exists: false },
+              createdAt: { $gte: todayStart, $lte: todayEnd }
+            }
+          ]
         },
         { 
           orderType: "freshplan",
@@ -59,7 +66,10 @@ export async function GET(request: NextRequest) {
       // === QuickSip Orders ===
       if (order.orderType === "quicksip" && order.status === "received" 
           && order.statusInfo?.chefId?.toString() === chefId) {
-        const orderDate = new Date(order.createdAt);
+        // Use scheduledDeliveryDate if it exists, otherwise use createdAt
+        const orderDate = order.scheduledDeliveryDate 
+          ? new Date(order.scheduledDeliveryDate)
+          : new Date(order.createdAt);
         
         if (orderDate >= todayStart && orderDate <= todayEnd) {
           for (const item of order.products) {
@@ -68,12 +78,12 @@ export async function GET(request: NextRequest) {
               product: item.product,
               customization: item.customization,
               quantity: item.quantity,
-              timeSlot: order.deliveryTimeSlot || 'ASAP',
+              timeSlot: order.deliveryTimeSlot || "ASAP",
               status: order.status,
               orderNumber,
-              orderType: 'quicksip',
+              orderType: "quicksip",
               deliveryDate: orderDate.toISOString(),
-              orderId: order._id,
+              orderId: order._id
             });
           }
         }
@@ -82,44 +92,37 @@ export async function GET(request: NextRequest) {
       // === FreshPlan Orders ===
       if (order.orderType === "freshplan" && order.planRelated?.daySchedule) {
         for (const day of order.planRelated.daySchedule) {
-          const dayDate = new Date(day.date);
-          
-          if (dayDate >= todayStart && dayDate <= todayEnd 
-              && day.status === "received"
-              && day.statusInfo?.chefId?.toString() === chefId) {
+          if (day.status === "received" && 
+              day.statusInfo?.chefId?.toString() === chefId) {
+            const dayDate = new Date(day.date);
             
-            for (const item of day.items || []) {
-              receivedItems.push({
-                _id: `${order._id}-${day._id}-${item._id || Math.random()}`,
-                product: item.product,
-                customization: item.customization,
-                quantity: item.quantity,
-                timeSlot: item.timeSlot || day.timeSlot || '7-8 AM',
-                dayStatus: day.status,
-                status: day.status,
-                orderNumber,
-                orderType: 'freshplan',
-                deliveryDate: dayDate.toISOString(),
-                orderId: order._id,
-                dayId: day._id,
-              });
+            if (dayDate >= todayStart && dayDate <= todayEnd) {
+              for (const item of day.items || []) {
+                receivedItems.push({
+                  _id: `${order._id}-${day._id}-${item._id || Math.random()}`,
+                  product: item.product,
+                  customization: item.customization,
+                  quantity: item.quantity,
+                  timeSlot: item.timeSlot || "ASAP",
+                  status: day.status,
+                  dayStatus: day.status,
+                  orderNumber,
+                  orderType: "freshplan",
+                  deliveryDate: dayDate.toISOString(),
+                  orderId: order._id,
+                  dayId: day._id
+                });
+              }
             }
           }
         }
       }
     }
 
-    // Sort by time slot order
+    // Sort by time slot
     const timeSlotOrder = [
-      '7-8 AM',
-      '8-9 AM',
-      '9-10 AM',
-      '10-11 AM',
-      '3-4 PM',
-      '4-5 PM',
-      '5-6 PM',
-      '6-7 PM',
-      'ASAP',
+      '7-8 AM', '8-9 AM', '9-10 AM', '10-11 AM',
+      '3-4 PM', '4-5 PM', '5-6 PM', '6-7 PM', 'ASAP'
     ];
 
     receivedItems.sort((a, b) => {
@@ -128,11 +131,9 @@ export async function GET(request: NextRequest) {
       return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
     });
 
-
     return NextResponse.json({
       success: true,
-      date: targetDate.toISOString(),
-      items: receivedItems  // ✅ Changed from 'orders' to 'items'
+      items: receivedItems
     });
 
   } catch (error) {
