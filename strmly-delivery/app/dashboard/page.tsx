@@ -156,7 +156,6 @@ export default function BesomMobileUI() {
       const items = await fetchCartItemsForSlider();
       if (items && items.length > 0) {
         setShowCartSlider(true);
-        setHasShownSlider(true);
     }
   };
 
