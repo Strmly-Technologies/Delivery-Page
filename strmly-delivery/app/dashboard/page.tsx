@@ -951,7 +951,7 @@ export default function BesomMobileUI() {
                         </button>
 
                         {/* Show quantity controls only if last customization exists in cart */}
-                        {lastCustomization && lastCustomQuantity > 0 && (
+                        {/* {lastCustomization && lastCustomQuantity > 0 && (
                           <div className="flex items-center bg-white rounded-full shadow-md">
                             <button
                               onClick={(e) => decrementLastCustomization(product._id, e)}
@@ -971,22 +971,22 @@ export default function BesomMobileUI() {
                               <Plus className="w-4 h-4 text-gray-700" />
                             </button>
                           </div>
-                        )}
+                        )} */}
                       </div>
 
                       {/* Last Customization Info */}
-                      {lastCustomization && lastCustomQuantity > 0 && (
+                      {/* {lastCustomization && lastCustomQuantity > 0 && (
                         <p className="text-white/90 text-xs mt-2 font-medium">
                           {lastCustomization.size} • {lastCustomization.quantity} • ₹{lastCustomization.finalPrice}
                         </p>
-                      )}
+                      )} */}
 
                       {/* Total items in cart badge */}
-                      {quantityInCart > lastCustomQuantity && lastCustomQuantity > 0 && (
+                      {/* {quantityInCart > lastCustomQuantity && lastCustomQuantity > 0 && (
                         <p className="text-white/80 text-xs mt-1">
                           +{quantityInCart - lastCustomQuantity} other variant(s)
                         </p>
-                      )}
+                      )} */}
                     </div>
 
                     <div className="relative flex-shrink-0">

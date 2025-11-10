@@ -27,19 +27,30 @@ export async function GET(request: NextRequest) {
     console.log("Fetching all pending orders for date:", targetDate.toDateString());
 
     // Find ALL pending orders (no chef filter)
-    const orders = await OrderModel.find({
+   const orders = await OrderModel.find({
       $or: [
+        // QuickSip with scheduledDeliveryDate
         { 
           orderType: "quicksip",
           status: "pending",
-         $or: [
-            { scheduledDeliveryDate: { $gte: todayStart, $lte: todayEnd } },
-            { 
-              scheduledDeliveryDate: { $exists: false },
-              createdAt: { $gte: todayStart, $lte: todayEnd }
-            }
-          ]
+          scheduledDeliveryDate: { 
+            $exists: true,
+            $ne: null,
+            $gte: todayStart, 
+            $lte: todayEnd 
+          }
         },
+        // QuickSip without scheduledDeliveryDate (use createdAt)
+        { 
+          orderType: "quicksip",
+          status: "pending",
+          $or: [
+            { scheduledDeliveryDate: { $exists: false } },
+            { scheduledDeliveryDate: null }
+          ],
+          createdAt: { $gte: todayStart, $lte: todayEnd }
+        },
+        // FreshPlan orders
         { 
           orderType: "freshplan",
           "planRelated.daySchedule": {

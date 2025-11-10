@@ -1261,7 +1261,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     </label>
 
     {/* COD Option */}
-    <label className={`flex items-center space-x-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+    {/* <label className={`flex items-center space-x-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
       paymentMethod === 'cod' 
         ? 'border-orange-500 bg-orange-50' 
         : 'border-gray-200 hover:border-gray-300 bg-white'
@@ -1281,7 +1281,7 @@ const handleSubmit = async (e: React.FormEvent) => {
         </div>
        
       </div>
-    </label>
+    </label> */}
   </div>
 
   {/* Payment Method Info */}
