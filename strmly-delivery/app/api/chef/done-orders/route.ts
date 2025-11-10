@@ -28,34 +28,46 @@ export async function GET(request: NextRequest) {
     console.log("Fetching done orders for chef:", chefId);
 
     const orders = await OrderModel.find({
-      $or: [
-        {
-          orderType: "quicksip",
-          status: "done",
-          "statusInfo.chefId": chefId,
-$or: [
-            { scheduledDeliveryDate: { $gte: todayStart, $lte: todayEnd } },
+          $or: [
+            // QuickSip with scheduledDeliveryDate
             { 
-              scheduledDeliveryDate: { $exists: false },
-              createdAt: { $gte: todayStart, $lte: todayEnd }
-            }
-          ]
-        },
-        {
-          orderType: "freshplan",
-          "planRelated.daySchedule": {
-            $elemMatch: {
+              orderType: "quicksip",
               status: "done",
               "statusInfo.chefId": chefId,
-              date: { $gte: todayStart, $lte: todayEnd }
+              scheduledDeliveryDate: { 
+                $exists: true,
+                $ne: null,
+                $gte: todayStart, 
+                $lte: todayEnd 
+              }
+            },
+            // QuickSip without scheduledDeliveryDate (use createdAt)
+            { 
+              orderType: "quicksip",
+              status: "done",
+              "statusInfo.chefId": chefId,
+              $or: [
+                { scheduledDeliveryDate: { $exists: false } },
+                { scheduledDeliveryDate: null }
+              ],
+              createdAt: { $gte: todayStart, $lte: todayEnd }
+            },
+            // FreshPlan orders
+            { 
+              orderType: "freshplan",
+              "planRelated.daySchedule": {
+                $elemMatch: {
+                  status: "done",
+                  "statusInfo.chefId": chefId,
+                  date: { $gte: todayStart, $lte: todayEnd }
+                }
+              }
             }
-          }
-        }
-      ]
-    })
-      .populate("products.product")
-      .populate("planRelated.daySchedule.items.product")
-      .lean();
+          ]
+        })
+          .populate("products.product")
+          .populate("planRelated.daySchedule.items.product")
+          .lean();
 
 
     const doneItems: any[] = [];
