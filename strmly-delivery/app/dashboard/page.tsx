@@ -89,6 +89,10 @@ export default function BesomMobileUI() {
   const [showCartSlider, setShowCartSlider] = useState(true);
   const [cartSliderItems, setCartSliderItems] = useState<any[]>([]);
   const [hasShownSlider, setHasShownSlider] = useState(false);
+  const oneTimeProductId = process.env.NEXT_PUBLIC_PRODUCT_ID || '';
+  const [showOneTimeProductAlert, setShowOneTimeProductAlert] = useState(false);
+  const [oneTimeProductAlertMessage, setOneTimeProductAlertMessage] = useState('');
+  const [hasPurchasedJuiceX, setHasPurchasedJuiceX] = useState(false);
 
   // Memoized filtered products with debounced search
   const filteredProducts = useMemo(() => {
@@ -269,6 +273,10 @@ export default function BesomMobileUI() {
             text: data.header.text,
             image: data.header.image
           });
+          if(data.hasPurchasedJuiceX){
+            console.log("User has purchased Juice X before.");
+            setHasPurchasedJuiceX(true);
+          }
 
           if (currentUser) {
             setCartItemCount(data.cart.length);
@@ -718,6 +726,7 @@ export default function BesomMobileUI() {
         customization,
         finalPrice
       });
+      
       const response = await fetch('/api/cart', {
         method: 'POST',
         credentials: 'include',
@@ -733,10 +742,16 @@ export default function BesomMobileUI() {
         playAddToCartSound();
         closeModal();
         fetchCartCount();
-
         await showCartSliderOnce();
       } else {
-        alert(data.error || 'Failed to add to cart');
+        // Show specific error message for one-time purchase
+        if (data.isOneTimePurchase) {
+          setOneTimeProductAlertMessage(data.error);
+          setShowOneTimeProductAlert(true);
+          closeModal();
+        } else {
+          alert(data.error || 'Failed to add to cart');
+        }
       }
     } else {
       try {
@@ -748,9 +763,9 @@ export default function BesomMobileUI() {
           productId: selectedProduct._id,
           customization: {
             ...customization,
-            finalPrice: unitPrice // Store unit price in customization
+            finalPrice: unitPrice
           },
-          price: totalPrice, // Store total price in item
+          price: totalPrice,
           quantity: itemQuantity,
           addedAt: new Date().toISOString()
         });
@@ -765,7 +780,14 @@ export default function BesomMobileUI() {
         });
       } catch (error: any) {
         console.error('Error adding to local cart:', error);
-        alert(error.message || 'Failed to add to cart');
+        // Check if it's a one-time product error
+        if (error.message && error.message.includes('special product')) {
+          setOneTimeProductAlertMessage(error.message);
+          setShowOneTimeProductAlert(true);
+          closeModal();
+        } else {
+          alert(error.message || 'Failed to add to cart');
+        }
       }
     }
   } catch (error) {
@@ -1118,6 +1140,60 @@ export default function BesomMobileUI() {
         totalItems={cartSliderItems.length}
       />
 }
+{showOneTimeProductAlert && (
+  <>
+    {/* Backdrop */}
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 transition-opacity duration-300 z-50"
+      onClick={() => setShowOneTimeProductAlert(false)}
+    />
+
+    {/* Alert Modal */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full transform transition-all duration-300 scale-100 animate-in">
+        {/* Icon Header */}
+        <div className="bg-gradient-to-br from-red-400 to-red-500 rounded-t-3xl p-6 text-center">
+          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
+            <X className="w-8 h-8 text-red-500" />
+          </div>
+          <h3 className="text-xl font-bold text-white">Cannot Add Product</h3>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 text-center">
+          <p className="text-gray-700 mb-2 font-medium">
+            {oneTimeProductAlertMessage}
+          </p>
+          <p className="text-sm text-gray-500 leading-relaxed">
+            {hasPurchasedJuiceX 
+              ? "You've already purchased this special product in a previous order."
+              : "This item is already in your cart and can only be added once."}
+          </p>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="px-6 pb-6 space-y-3">
+          {!hasPurchasedJuiceX && (
+            <Link href="/cart">
+              <button
+                onClick={() => setShowOneTimeProductAlert(false)}
+                className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold py-3 px-6 rounded-xl transition shadow-md hover:shadow-lg"
+              >
+                View Cart
+              </button>
+            </Link>
+          )}
+          <button
+            onClick={() => setShowOneTimeProductAlert(false)}
+            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-xl transition"
+          >
+            {hasPurchasedJuiceX ? 'Close' : 'Continue Shopping'}
+          </button>
+        </div>
+      </div>
+    </div>
+  </>
+)}
     </>
   );
 }

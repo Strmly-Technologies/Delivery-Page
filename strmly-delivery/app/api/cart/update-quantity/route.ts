@@ -50,7 +50,6 @@ export async function POST(request: NextRequest) {
 
     // Update quantity based on action
     if (action === 'increment') {
-        // also increase the price accordingly
       user.cart[cartItemIndex].quantity += 1;
       user.cart[cartItemIndex].price += user.cart[cartItemIndex].customization.finalPrice;
     } else if (action === 'decrement') {
@@ -59,7 +58,13 @@ export async function POST(request: NextRequest) {
         user.cart[cartItemIndex].price -= user.cart[cartItemIndex].customization.finalPrice;
       } else {
         // Remove item if quantity becomes 0
+        const removedProductId = user.cart[cartItemIndex].product.toString();
         user.cart.splice(cartItemIndex, 1);
+        
+        // If removing JuiceX, mark it as not in cart
+        if (removedProductId === process.env.PRODUCT_ID) {
+          user.hasJuiceXInCart = false;
+        }
       }
     }
 

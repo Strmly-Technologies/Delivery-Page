@@ -3,6 +3,8 @@ import UserModel, { CartItem } from '@/model/User';
 import { verifyAuth } from '@/lib/serverAuth';
 import dbConnect from '@/lib/dbConnect';
 
+const JUICE_X_PRODUCT_ID = process.env.PRODUCT_ID || '';
+
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
@@ -13,6 +15,11 @@ export async function POST(request: NextRequest) {
 
     const { items } = await request.json();
     console.log('Received cart items:', items);
+
+    // Check if JuiceX is in the items
+    const hasJuiceXInItems = items.some((item: any) => 
+      (item.product?._id || item.productId) === JUICE_X_PRODUCT_ID
+    );
 
     const formattedItems = items.map((item: any) => ({
       product: item.product?._id || item.productId,
@@ -39,7 +46,12 @@ export async function POST(request: NextRequest) {
 
     const result = await UserModel.updateOne(
       { _id: authData.userId },
-      { $set: { cart: formattedItems } }
+      { 
+        $set: { 
+          cart: formattedItems,
+          hasJuiceXInCart: hasJuiceXInItems
+        } 
+      }
     );
 
     console.log('Cart update result:', result);

@@ -58,6 +58,8 @@ export interface User extends Document {
     additionalAddressDetails?: string;
     phoneNumber?: string;
   }>;
+  hasPurchasedProductJuiceX?:boolean;
+  hasJuiceXInCart?:boolean; // New field to track if JuiceX is in cart
   
 }
 
@@ -177,6 +179,14 @@ const userSchema = new Schema<User>({
     type: Date,
     default: Date.now,
   },
+  hasPurchasedProductJuiceX:{
+    type:Boolean,
+    default:false
+  },
+  hasJuiceXInCart:{ // New field
+    type:Boolean,
+    default:false
+  },
   cart: [cartItemSchema], // now allows full objects
   purchaseHistory: [
     {
@@ -199,6 +209,7 @@ const userSchema = new Schema<User>({
       phoneNumber: { type: String }
     }
   ],
+
  
 });
 

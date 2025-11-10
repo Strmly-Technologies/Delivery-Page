@@ -6,6 +6,8 @@ import "@/model/Product";
 import { add, addDays, isAfter, isBefore, isEqual } from "date-fns";
 import mongoose from "mongoose";
 
+const JUICE_X_PRODUCT_ID = process.env.PRODUCT_ID || '';
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,6 +23,14 @@ export async function POST(req: NextRequest) {
     const user = await UserModel.findById(userId);
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const hasPurchasedJuiceX = user.hasPurchasedProductJuiceX || false;
+    if(!hasPurchasedJuiceX && schedule.some((item: any) => item.productId === JUICE_X_PRODUCT_ID)){
+      return NextResponse.json(
+        { error: "You have already purchased free item once" },
+        { status: 400 }
+      );
     }
 
     // Check for active or overlapping plans

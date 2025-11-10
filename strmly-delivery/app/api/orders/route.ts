@@ -82,6 +82,22 @@ export async function POST(request: NextRequest) {
     const planDayId = requestBody.planDayId;
     const planDays = requestBody.planDays || []; // New field for day-wise data
     
+    // Check if any item is the one-time free product "Juice X"
+    const JUICE_X_PRODUCT_ID = process.env.PRODUCT_ID || '';
+    let hasOrderedJuiceX = false;
+    
+    if (checkoutType === 'quicksip') {
+      hasOrderedJuiceX = cartItems.some((item: CartItem) => item.product._id === JUICE_X_PRODUCT_ID);
+    } else if (checkoutType === 'freshplan') {
+      if (completeCheckout) {
+        hasOrderedJuiceX = planDays.some((day: any) => 
+          day.items.some((item: PlanItem) => item.product._id === JUICE_X_PRODUCT_ID)
+        );
+      } else {
+        hasOrderedJuiceX = planItems.some((item: PlanItem) => item.product._id === JUICE_X_PRODUCT_ID);
+      }
+    }
+    
     // Validate required fields
     if (!customerDetails || 
         (!cartItems.length && !planItems.length && !planDays.length) || 
@@ -213,12 +229,26 @@ export async function POST(request: NextRequest) {
           userId,
           {
             $set: {
-              freshPlans:freshplans
+              freshPlans:freshplans,
+              ...(hasOrderedJuiceX && { 
+                hasPurchasedProductJuiceX: true,
+                hasJuiceXInCart: false 
+              })
             }
           }
         );  
       }
-
+    } else if (checkoutType === 'quicksip' && hasOrderedJuiceX) {
+      // Mark JuiceX as purchased for QuickSip orders
+      await UserModel.findByIdAndUpdate(
+        userId,
+        {
+          $set: {
+            hasPurchasedProductJuiceX: true,
+            hasJuiceXInCart: false
+          }
+        }
+      );
     }
 
     return NextResponse.json({
