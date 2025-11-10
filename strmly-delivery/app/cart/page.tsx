@@ -154,6 +154,9 @@ const handleCheckoutClick = (e: React.MouseEvent) => {
     } finally {
       setRemoving(null);
     }}else{
+      // For local cart - check if removing JuiceX and handle appropriately
+      const JUICE_X_PRODUCT_ID = process.env.NEXT_PUBLIC_PRODUCT_ID || '';
+      
       localCart.removeItem(productId,price);
       const updatedItems = await localFetchProductDetails();
       setCartItems(updatedItems);
