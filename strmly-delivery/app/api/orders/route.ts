@@ -163,14 +163,12 @@ export async function POST(request: NextRequest) {
     } else {
       // Process FreshPlan order
       if (completeCheckout && planDays.length > 0) {
-        // Complete plan checkout with day-wise data
-        orderItems = []; // Empty since we're using daySchedule instead
+        orderItems = []; 
         
         // Format the day schedule data for storage
         const daySchedule = planDays.map((day: any) => ({
           date: new Date(day.date),
           items: day.items.map((item: PlanItem) => {
-            // Ensure we have a valid product reference
             let productId;
             
             // Handle different formats of product data that might be passed
@@ -180,11 +178,10 @@ export async function POST(request: NextRequest) {
               productId = item.product._id;
             } else {
               console.error('Invalid product data:', item.product);
-              // If we can't get a valid ID, this will cause validation errors
             }
     
     return {
-      product: productId, // Make sure we're storing the ID, not the whole object
+      product: productId, 
       quantity: item.quantity,
       price: item.customization.finalPrice,
       customization: { ...item.customization },
