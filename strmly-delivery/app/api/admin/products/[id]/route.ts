@@ -19,8 +19,7 @@ export async function GET(
         { error: 'Unauthorized: Admin access required' },
         { status: 403 }
       );
-    }
-    
+    }    
     const product = await ProductModel.findById(params.id);
     console.log('Fetched product:', product);
     if (!product) {
@@ -45,6 +44,8 @@ export async function GET(
 }
 
 // Update a product
+// ...existing code...
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -60,44 +61,37 @@ export async function PUT(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
-    const { 
-      name, 
-      description, 
-      price, 
-      category, 
-      image, 
-      smallPrice, 
-      mediumPrice,
-      regularNutrients,
-      largeNutrients
-    } = body;
 
-    // Validation
-    if (!name || !description || !category || !image) {
-      return NextResponse.json(
-        { error: 'All required fields must be provided' },
-        { status: 400 }
-      );
-    }
+    console.log('Update product request body:', body);
+
+    // Build update object with only provided fields
+    const updateData: any = {
+      updatedAt: new Date()
+    };
+
+    // Only add fields that are actually provided
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.description !== undefined) updateData.description = body.description;
+    if (body.price !== undefined) updateData.price = body.price;
+    if (body.category !== undefined) updateData.category = body.category;
+    if (body.image !== undefined) updateData.image = body.image;
+    if (body.smallPrice !== undefined) updateData.smallPrice = body.smallPrice;
+    if (body.mediumPrice !== undefined) updateData.mediumPrice = body.mediumPrice;
+    if (body.regularNutrients !== undefined) updateData.regularNutrients = body.regularNutrients;
+    if (body.largeNutrients !== undefined) updateData.largeNutrients = body.largeNutrients;
+    if (typeof body.isActive === 'boolean') updateData.isActive = body.isActive;
+
+    console.log('Update data:', updateData);
 
     const updatedProduct = await ProductModel.findByIdAndUpdate(
       id,
-      {
-        name,
-        description,
-        price,
-        category,
-        image,
-        smallPrice,
-        mediumPrice,
-        regularNutrients: regularNutrients || [],
-        largeNutrients: largeNutrients || [],
-        updatedAt: new Date()
-      },
+      { $set: updateData }, // Use $set explicitly
       { new: true, runValidators: true }
     );
+
+    console.log('Updated product after save:', updatedProduct);
 
     if (!updatedProduct) {
       return NextResponse.json(
@@ -105,6 +99,10 @@ export async function PUT(
         { status: 404 }
       );
     }
+
+    // Verify the update actually worked
+    const verifyProduct = await ProductModel.findById(id);
+    console.log('Verified product from DB:', verifyProduct);
 
     return NextResponse.json({
       success: true,
@@ -120,6 +118,7 @@ export async function PUT(
     );
   }
 }
+
 
 
 // Delete a product

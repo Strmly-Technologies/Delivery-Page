@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const user = await UserModel.findById(userId).populate({
     path: "cart.product", // path inside the subdocument array
     model: "Product",     // explicitly set model name (optional if ref is defined)
-    select: "name price image category stock" // select only needed fields
+    select: "name price image category stock isActive" // select only needed fields
   });
     
     if (!user) {

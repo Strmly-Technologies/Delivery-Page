@@ -38,6 +38,7 @@ interface CartItem {
     _id: string;
     name: string;
     image: string;
+    isActive: boolean;
   };
   customization: Customization;
   price: number;
@@ -134,6 +135,8 @@ interface FreshPlan {
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'razorpay'>('razorpay');
   const [isOrderingForTomorrow, setIsOrderingForTomorrow] = useState(false);
   const [tomorrowDate, setTomorrowDate] = useState<Date | null>(null);
+  const [disableSubmit, setDisableSubmit] = useState(false);
+  const [inactiveProductsInCart, setInactiveProductsInCart] = useState<CartItem[]>([]);
 
 
 
@@ -265,28 +268,39 @@ interface FreshPlan {
     return [];
   };
 
-  const fetchCart = async () => {
-    try {
-      const token = await window.cookieStore.get('authToken').then((cookie) => cookie?.value);
-      const response = await fetch('/api/cart', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
 
-      const data = await response.json();
-      if (data.success) {
-        setCartItems(data.cart);
-        setProducts(data.cart.map((item: CartItem) => item.product._id));
-        setQuantities(data.cart.map((item: CartItem) => item.quantity));
-        return data.cart;
+const fetchCart = async () => {
+  try {
+    const token = await window.cookieStore.get('authToken').then((cookie) => cookie?.value);
+    const response = await fetch('/api/cart', {
+      headers: {
+        'Authorization': `Bearer ${token}`
       }
-    } catch (error) {
-      console.error('Error fetching cart:', error);
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      // Check for inactive products BEFORE setting cart items
+      const hasInactiveProducts = data.cart.some((item: CartItem) => item.product.isActive === false);
+      
+      if (hasInactiveProducts) {
+        const inactiveProduct = data.cart.find((item: CartItem) => item.product.isActive === false);
+        setInactiveProductsInCart(data.cart.filter((item: CartItem) => item.product.isActive === false));
+        alert(`The product "${inactiveProduct.product.name}" in your cart is no longer available. Please remove it from your cart.`);
+        setDisableSubmit(true);
+      }
+
+      setCartItems(data.cart);
+      setProducts(data.cart.map((item: CartItem) => item.product._id));
+      setQuantities(data.cart.map((item: CartItem) => item.quantity));
+      return data.cart;
     }
-    return [];
-  };
-  
+  } catch (error) {
+    console.error('Error fetching cart:', error);
+  }
+  return [];
+};
+
   const fetchFreshPlan = async () => {
     try {
       console.log("Fetching fresh plan with ID:", planId);
@@ -1287,23 +1301,26 @@ const handleSubmit = async (e: React.FormEvent) => {
   {/* Payment Method Info */}
 </div>
                 
-              <button
-              type="submit"
-              disabled={submitting || locationError !== '' || !customerDetails.address || !customerDetails.name || !customerDetails.phone}
-              className={`w-full py-3 px-4 rounded-lg font-bold text-center ${
-                submitting || locationError !== '' || !customerDetails.address || !customerDetails.name || !customerDetails.phone
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-orange-500 text-white hover:bg-orange-600 shadow-md hover:shadow-lg transition-all'
-              }`}
-            >
-              {submitting 
-                ? 'Processing...'
-                : !customerDetails.address || !customerDetails.name || !customerDetails.phone
-                ? 'Add delivery address to continue'
-                : paymentMethod === 'cod'
-                  ? `Place Order (COD) - ₹${getTotalPrice()}`
-                  : `Proceed to Payment - ₹${getTotalPrice()}`}
-            </button>
+             <button
+  type="submit"
+  disabled={submitting || locationError !== '' || !customerDetails.address || !customerDetails.name || !customerDetails.phone || disableSubmit}
+  className={`w-full py-3 px-4 rounded-lg font-bold text-center ${
+    submitting || locationError !== '' || !customerDetails.address || !customerDetails.name || !customerDetails.phone || disableSubmit
+      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+      : 'bg-orange-500 text-white hover:bg-orange-600 shadow-md hover:shadow-lg transition-all'
+  }`}
+  onClick={() => console.log('Button state:', { submitting, locationError, address: customerDetails.address, name: customerDetails.name, phone: customerDetails.phone, disableSubmit })}
+>
+  {submitting 
+    ? 'Processing...'
+    : !customerDetails.address || !customerDetails.name || !customerDetails.phone
+    ? 'Add delivery address to continue'
+    : disableSubmit
+    ? `Product ${inactiveProductsInCart[0].product.name} is currently unavailable`
+    : paymentMethod === 'cod'
+      ? `Place Order (COD) - ₹${getTotalPrice()}`
+      : `Proceed to Payment - ₹${getTotalPrice()}`}
+</button>
               </form>
             </div>
           </div>
