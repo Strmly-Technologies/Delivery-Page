@@ -30,10 +30,12 @@ export async function GET(request: NextRequest) {
       // User not authenticated, continue without filtering
     }
 
-    // Build product query - exclude JuiceX if user has purchased it
-    let productQuery: any = category && (category === 'juices' || category === 'shakes') 
-      ? { category } 
-      : {};
+    // Build product query - exclude JuiceX if user has purchased it AND only active products
+    let productQuery: any = { isActive: true }; // Only fetch active products
+    
+    if (category && (category === 'juices' || category === 'shakes')) {
+      productQuery.category = category;
+    }
     
     if (hasPurchasedJuiceX) {
       productQuery._id = { $ne: JUICE_X_PRODUCT_ID };

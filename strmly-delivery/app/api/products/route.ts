@@ -9,9 +9,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
     
-    let query = {};
+    let query: any = { isActive: true }; // Only fetch active products
     if (category && (category === 'juices' || category === 'shakes')) {
-      query = { category };
+      query.category = category;
     }
     
     const products = await ProductModel.find(query).sort({ createdAt: -1 });

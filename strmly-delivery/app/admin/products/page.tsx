@@ -14,6 +14,7 @@ interface Product {
   category: 'juices' | 'shakes';
   stock: number;
   image: string;
+  isActive: boolean;
 }
 
 export default function ProductsPage() {
@@ -113,6 +114,39 @@ export default function ProductsPage() {
       alert('Failed to delete product. Please try again.');
     } finally {
       setDeleteLoading(false);
+    }
+  };
+
+  const toggleProductStatus = async (productId: string, currentStatus: boolean) => {
+    try {
+      const token = await window.cookieStore.get('authToken').then((cookie) => cookie?.value);
+      const response = await fetch(`/api/admin/products/${productId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          isActive: !currentStatus
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update product status');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        // Update local state
+        setProducts(products.map(product => 
+          product._id === productId 
+            ? { ...product, isActive: !currentStatus } 
+            : product
+        ));
+      }
+    } catch (error) {
+      console.error('Error updating product status:', error);
+      alert('Failed to update product status');
     }
   };
 
@@ -259,7 +293,9 @@ export default function ProductsPage() {
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Price
                   </th>
-                  
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
                   <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
@@ -301,7 +337,18 @@ export default function ProductsPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">₹{product.price}</div>
                     </td>
-                   
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={() => toggleProductStatus(product._id, product.isActive)}
+                        className={`px-3 py-1 rounded-full text-xs font-semibold transition ${
+                          product.isActive 
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                            : 'bg-red-100 text-red-800 hover:bg-red-200'
+                        }`}
+                      >
+                        {product.isActive ? 'Active' : 'Inactive'}
+                      </button>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <Link href={`/admin/products/edit/${product._id}`} className="text-indigo-600 hover:text-indigo-900 mr-4">
                         <Edit className="h-5 w-5 inline" />

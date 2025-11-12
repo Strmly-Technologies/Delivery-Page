@@ -35,6 +35,7 @@ export interface ProductDocument extends Document {
   updatedAt: Date;
   smallPrice?: number;
   mediumPrice?: number;
+  isActive: boolean;
    regularNutrients?: NutrientInfo[]; 
   largeNutrients?: NutrientInfo[];
 }
@@ -150,6 +151,10 @@ const productSchema = new Schema<ProductDocument>({
   },
   smallPrice: { type: Number },
   mediumPrice: { type: Number },
+  isActive: {
+    type: Boolean,
+    default: true
+  }
 });
 
 const Product: Model<ProductDocument> =

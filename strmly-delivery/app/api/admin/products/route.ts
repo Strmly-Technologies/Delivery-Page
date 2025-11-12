@@ -20,10 +20,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
     
-    // Build query
-    let query = {};
+    // Build query - admin sees all products including inactive
+    let query: any = {};
     if (category && (category === 'juices' || category === 'shakes')) {
-      query = { category };
+      query.category = category;
     }
     
     const products = await ProductModel.find(query).sort({ createdAt: -1 });

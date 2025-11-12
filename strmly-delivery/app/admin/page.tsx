@@ -7,6 +7,7 @@ import { Package2, ShoppingCart, BarChart3, Settings, LogOut, Users, Clock, Truc
 
 interface DashboardStats {
   products: number;
+  activeProducts: number;
   orders: number;
   pendingOrders: number;
   revenue: number;
@@ -19,6 +20,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>({
     products: 0,
+    activeProducts: 0,
     orders: 0,
     pendingOrders: 0,
     revenue: 0,
@@ -182,6 +184,9 @@ export default function AdminDashboard() {
               <div>
                 <p className="text-gray-500 text-sm font-medium">Total Products</p>
                 <h2 className="text-3xl font-bold text-gray-800">{stats.products}</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  {stats.activeProducts} active
+                </p>
               </div>
               <div className="bg-orange-100 p-3 rounded-full">
                 <Package2 className="h-6 w-6 text-orange-600" />

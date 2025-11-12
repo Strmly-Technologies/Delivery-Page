@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
     // Fetch statistics
     const [
       products,
+      activeProducts,
       orders,
       pendingOrders,
       acceptedOrders,
@@ -28,6 +29,7 @@ export async function GET(request: NextRequest) {
       cancelledOrders
     ] = await Promise.all([
       ProductModel.countDocuments(),
+      ProductModel.countDocuments({ isActive: true }),
       OrderModel.countDocuments(),
       OrderModel.countDocuments({ status: 'pending' }),
       OrderModel.countDocuments({ status: 'accepted' }),
@@ -40,6 +42,7 @@ export async function GET(request: NextRequest) {
       success: true,
       stats: {
         products,
+        activeProducts,
         orders,
         pendingOrders,
         acceptedOrders,

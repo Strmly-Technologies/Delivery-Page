@@ -3,7 +3,8 @@ import dbConnect from '@/lib/dbConnect';
 import OrderModel from '@/model/Order';
 import UserModel from '@/model/User';
 import { verifyAuth } from '@/lib/serverAuth';
-import "@/model/Product";
+import ProductModel from '@/model/Product';
+
 
 // Define interfaces for type safety
 interface CartItem {
@@ -80,7 +81,42 @@ export async function POST(request: NextRequest) {
     const planItems = requestBody.planItems || [];
     const customisablePrices = requestBody.customisablePrices || [];
     const planDayId = requestBody.planDayId;
-    const planDays = requestBody.planDays || []; // New field for day-wise data
+    const planDays = requestBody.planDays || [];
+    
+    // Validate all products are active before processing order
+    const productIds: string[] = [];
+    
+    if (checkoutType === 'quicksip') {
+      productIds.push(...cartItems.map((item: CartItem) => item.product._id));
+    } else if (checkoutType === 'freshplan') {
+      if (completeCheckout && planDays.length > 0) {
+        planDays.forEach((day: any) => {
+          productIds.push(...day.items.map((item: PlanItem) => 
+            typeof item.product === 'string' ? item.product : item.product._id
+          ));
+        });
+      } else {
+        productIds.push(...planItems.map((item: PlanItem) => item.product._id));
+      }
+    }
+
+    // Check if all products are active
+    const products = await ProductModel.find({ _id: { $in: productIds } })
+      .select('_id isActive name')
+      .lean();
+    const typedProducts = products as Array<{ _id: any; isActive?: boolean; name?: string }>;
+    const inactiveProducts = typedProducts.filter(p => !p.isActive);
+    
+    if (inactiveProducts.length > 0) {
+      const productNames = inactiveProducts.map(p => p.name).join(', ');
+      return NextResponse.json(
+        { 
+          error: `Cannot place order. The following product(s) are no longer available: ${productNames}`,
+          inactiveProducts: inactiveProducts.map(p => ({ id: p._id, name: p.name }))
+        },
+        { status: 400 }
+      );
+    }
     
     // Check if any item is the one-time free product "Juice X"
     const JUICE_X_PRODUCT_ID = process.env.PRODUCT_ID || '';
@@ -97,7 +133,7 @@ export async function POST(request: NextRequest) {
         hasOrderedJuiceX = planItems.some((item: PlanItem) => item.product._id === JUICE_X_PRODUCT_ID);
       }
     }
-    
+
     // Validate required fields
     if (!customerDetails || 
         (!cartItems.length && !planItems.length && !planDays.length) || 
@@ -127,14 +163,12 @@ export async function POST(request: NextRequest) {
     } else {
       // Process FreshPlan order
       if (completeCheckout && planDays.length > 0) {
-        // Complete plan checkout with day-wise data
-        orderItems = []; // Empty since we're using daySchedule instead
+        orderItems = []; 
         
         // Format the day schedule data for storage
         const daySchedule = planDays.map((day: any) => ({
           date: new Date(day.date),
           items: day.items.map((item: PlanItem) => {
-            // Ensure we have a valid product reference
             let productId;
             
             // Handle different formats of product data that might be passed
@@ -144,11 +178,10 @@ export async function POST(request: NextRequest) {
               productId = item.product._id;
             } else {
               console.error('Invalid product data:', item.product);
-              // If we can't get a valid ID, this will cause validation errors
             }
     
     return {
-      product: productId, // Make sure we're storing the ID, not the whole object
+      product: productId, 
       quantity: item.quantity,
       price: item.customization.finalPrice,
       customization: { ...item.customization },

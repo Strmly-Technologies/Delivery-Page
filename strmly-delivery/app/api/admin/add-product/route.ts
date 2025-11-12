@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
       category,
       image: imageUrl,
       isAvailable: isAvailable !== undefined ? isAvailable : true,
+      isActive: true,
       createdBy: userId,
         smallPrice:Number(smallPrice) || 0,
         mediumPrice:Number(mediumPrice) || 0,
