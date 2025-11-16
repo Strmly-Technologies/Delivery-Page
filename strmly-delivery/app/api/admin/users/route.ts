@@ -18,7 +18,6 @@ export async function GET(request: NextRequest) {
 
     // Fetch all users with selected fields
     const users = await UserModel.find({})
-      .select('username email phone role savedAddresses createdAt')
       .sort({ createdAt: -1 })
       .lean();
 
@@ -31,7 +30,9 @@ export async function GET(request: NextRequest) {
         phone: user.phone || null,
         role: user.role || 'customer',
         savedAddresses: user.savedAddresses || [],
-        createdAt: user.createdAt
+        createdAt: user.createdAt,
+        availableCoupons: user.availableCoupons || [],
+        referralWallet: user.referralWallet || 0
       }))
     });
 

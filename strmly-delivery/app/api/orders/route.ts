@@ -73,8 +73,11 @@ export async function POST(request: NextRequest) {
       deliveryTimeSlot,
       checkoutType = 'quicksip',
       completeCheckout = false,
-      scheduledDeliveryDate
+      scheduledDeliveryDate,
+      couponCode,
+      discountAmount // this will already be half if referral is applied
     } = requestBody;
+
 
     // Extract items based on checkout type
     const cartItems = requestBody.cartItems || [];
@@ -82,6 +85,61 @@ export async function POST(request: NextRequest) {
     const customisablePrices = requestBody.customisablePrices || [];
     const planDayId = requestBody.planDayId;
     const planDays = requestBody.planDays || [];
+    let couponOwner = null;
+    let referralCreditAmount = 0;
+
+    console.log("Discount Amount:", discountAmount);
+
+    if (couponCode && discountAmount) {
+      // Find the user who owns this coupon
+      couponOwner = await UserModel.findOne({
+        'availableCoupons.code': couponCode
+      });
+
+      if (!couponOwner) {
+        return NextResponse.json(
+          { error: 'Invalid coupon code' },
+          { status: 400 }
+        );
+      }
+
+      // Get coupon details
+      const coupon = couponOwner.availableCoupons?.find(
+        c => c.code === couponCode
+      );
+
+      if (!coupon) {
+        return NextResponse.json(
+          { error: 'Coupon not found' },
+          { status: 400 }
+        );
+      }
+
+      // Check if user is using their own coupon (should get full discount)
+      referralCreditAmount = discountAmount;
+
+      // increase number of people used the coupon and credit referral wallet
+     
+        await UserModel.updateOne(
+          { 
+            _id: couponOwner._id,
+            'availableCoupons.code': couponCode 
+          },
+          {
+            $inc: { 'availableCoupons.$.numberOfUses': 1 }
+          }
+        );
+       
+      // Credit referral wallet if this is a friend's purchase
+      if (referralCreditAmount > 0) {
+        await UserModel.findByIdAndUpdate(
+          couponOwner._id,
+          {
+            $inc: { referralWallet: referralCreditAmount }
+          }
+        );
+    }
+  }
     
     // Validate all products are active before processing order
     const productIds: string[] = [];
@@ -283,6 +341,7 @@ export async function POST(request: NextRequest) {
         }
       );
     }
+    
 
     return NextResponse.json({
       success: true,

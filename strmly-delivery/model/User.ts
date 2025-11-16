@@ -60,7 +60,12 @@ export interface User extends Document {
   }>;
   hasPurchasedProductJuiceX?:boolean;
   hasJuiceXInCart?:boolean; // New field to track if JuiceX is in cart
-  
+  availableCoupons?:Array<{
+    code: String;
+    discountPercentage: Number;
+    numberOfUses?: Number;
+  }>;
+  referralWallet?:Number;
 }
 
 const freshPlanItemSchema = new Schema({
@@ -186,6 +191,15 @@ const userSchema = new Schema<User>({
   hasJuiceXInCart:{ // New field
     type:Boolean,
     default:false
+  },
+  availableCoupons:[{
+    code: String,
+    discountPercentage: Number,
+    numberOfUses:{type:Number, default:0}
+  }],
+  referralWallet:{
+    type:Number,
+    default:0
   },
   cart: [cartItemSchema], // now allows full objects
   purchaseHistory: [

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChefHat, Clock, Package, CheckCircle, LogOut, RefreshCw, Calendar } from 'lucide-react';
+import { ChefHat, Clock, Package, CheckCircle, LogOut, RefreshCw, Calendar, XCircle, X } from 'lucide-react';
 import Image from 'next/image';
 import { format, addDays, isSameDay } from 'date-fns';
 
@@ -50,12 +50,23 @@ export default function ChefDashboard() {
     received: 0,
     done: 0
   });
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [selectedOrderForCancel, setSelectedOrderForCancel] = useState<{
+    orderId: string;
+    dayId?: string;
+    orderNumber: string;
+  } | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelling, setCancelling] = useState(false);
+
   const router = useRouter();
 
   const today = new Date();
   const tomorrow = addDays(today, 1);
   const isToday = isSameDay(selectedDate, today);
   const isTomorrow = isSameDay(selectedDate, tomorrow);
+
+
 
   // Fetch orders when date or filter changes
   useEffect(() => {
@@ -77,6 +88,58 @@ export default function ChefDashboard() {
       return () => clearInterval(interval);
     }
   }, [selectedDate, isToday, filter]);
+
+  const openCancelModal = (orderId: string, orderNumber: string, dayId?: string) => {
+    setSelectedOrderForCancel({ orderId, orderNumber, dayId });
+    setCancelReason('');
+    setShowCancelModal(true);
+  };
+
+  const handleCancelOrder = async () => {
+    if (!selectedOrderForCancel) return;
+    
+    if (!cancelReason.trim()) {
+      alert('Please provide a reason for cancellation');
+      return;
+    }
+
+    setCancelling(true);
+
+    try {
+      const response = await fetch('/api/cancel-order', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderId: selectedOrderForCancel.orderId,
+          cancelledBy: 'chef',
+          reason: cancelReason,
+          ...(selectedOrderForCancel.dayId && { dayId: selectedOrderForCancel.dayId })
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('Order cancelled successfully!');
+        setShowCancelModal(false);
+        setSelectedOrderForCancel(null);
+        setCancelReason('');
+        // Refresh orders
+        await fetchOrdersForDate(selectedDate);
+        await fetchChefStats(selectedDate);
+      } else {
+        alert(data.error || 'Failed to cancel order');
+      }
+    } catch (error) {
+      console.error('Error cancelling order:', error);
+      alert('Failed to cancel order');
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   // Fetch chef statistics
   const fetchChefStats = async (date: Date) => {
@@ -467,6 +530,19 @@ const fetchOrdersForDate = async (date: Date) => {
                             {currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1)}
                           </span>
                         </div>
+                         {orderGroup.status === 'pending' && (
+                              <button
+                                onClick={() => openCancelModal(
+                                  orderGroup.orderId, 
+                                  orderGroup.orderNumber,
+                                  orderGroup.dayId
+                                )}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-xs font-medium"
+                              >
+                                <XCircle className="w-3.5 h-3.5" />
+                                Cancel
+                              </button>
+                            )}
 
                         <div className="space-y-3 mb-3">
                           {orderGroup.items.map((item: OrderItem) => (
@@ -539,6 +615,93 @@ const fetchOrdersForDate = async (date: Date) => {
             ))}
           </div>
         )}
+        {showCancelModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-red-50 to-white">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <XCircle className="w-6 h-6 text-red-600" />
+                  <h3 className="text-xl font-bold text-gray-900">Cancel Order</h3>
+                </div>
+                <button
+                  onClick={() => setShowCancelModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {/* Order Info */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
+                <p className="text-sm font-semibold text-gray-900">
+                  Order #{selectedOrderForCancel?.orderNumber}
+                </p>
+              </div>
+
+              {/* Warning Message */}
+              <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
+                <div className="flex items-start">
+                  <XCircle className="w-5 h-5 text-red-500 mt-0.5 mr-3" />
+                  <div>
+                    <p className="text-sm font-semibold text-red-800">
+                      Are you sure you want to cancel this order?
+                    </p>
+                    <p className="text-xs text-red-700 mt-1">
+                      This action cannot be undone.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Reason Input */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Cancellation Reason *
+                </label>
+                <textarea
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder="Please provide a reason (e.g., Out of ingredients, Kitchen issue)..."
+                  rows={4}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-gray-900 resize-none"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-6">
+                <button
+                  onClick={() => setShowCancelModal(false)}
+                  disabled={cancelling}
+                  className="flex-1 py-3 px-4 border-2 border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Keep Order
+                </button>
+                <button
+                  onClick={handleCancelOrder}
+                  disabled={cancelling || !cancelReason.trim()}
+                  className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${
+                    cancelling || !cancelReason.trim()
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-red-500 text-white hover:bg-red-600'
+                  }`}
+                >
+                  {cancelling ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Cancelling...
+                    </span>
+                  ) : (
+                    'Cancel Order'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       </main>
     </div>
   );
