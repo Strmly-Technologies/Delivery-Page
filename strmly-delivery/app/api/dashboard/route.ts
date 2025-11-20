@@ -61,17 +61,29 @@ export async function GET(request: NextRequest) {
             .select('cart')
             .populate({
               path: "cart.product",
-              select: "name price image category stock smallPrice mediumPrice"
             })
             .lean()
             .then(user => user?.cart || [])
+      
         : Promise.resolve([])
     ]);
     // normalize uiHeader in case the query returns an array-like result
     const headerDoc = Array.isArray(uiHeader) ? uiHeader[0] : uiHeader;
 
+    let userReferralWallet;
+
+    if (userId) {
+      const user = await UserModel.findById(userId).select('referralWallet');
+      userReferralWallet = user?.referralWallet || 0;
+    } else {
+      userReferralWallet = 0;
+    }
+
+    // console.log("Referral Wallet:", userReferralWallet);
+
     return NextResponse.json({
       success: true,
+      userReferralWallet,
       products,
       header: headerDoc ? {
         text: headerDoc.dashboard?.text || 'Welcome to STRMLY Delivery',

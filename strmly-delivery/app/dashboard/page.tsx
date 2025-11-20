@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, Search, X, Zap, Info, Plus, Minus, LogOut } from 'lucide-react';
+import { ShoppingBag, Search, X, Zap, Info, Plus, Minus, LogOut, Wallet } from 'lucide-react';
 import ProductCustomization, { ProductCustomization as CustomizationType } from '../components/product/ProductCustomization';
 import Image from 'next/image';
 import { localCart } from '@/lib/cartStorage';
@@ -93,6 +93,7 @@ export default function BesomMobileUI() {
   const [showOneTimeProductAlert, setShowOneTimeProductAlert] = useState(false);
   const [oneTimeProductAlertMessage, setOneTimeProductAlertMessage] = useState('');
   const [hasPurchasedJuiceX, setHasPurchasedJuiceX] = useState(false);
+  const [referralWallet, setReferralWallet] = useState(0);
 
   // Memoized filtered products with debounced search
   const filteredProducts = useMemo(() => {
@@ -269,6 +270,7 @@ export default function BesomMobileUI() {
 
         if (data.success) {
           setProducts(data.products);
+          setReferralWallet(data.userReferralWallet || 0);
           setUIHeader({
             text: data.header.text,
             image: data.header.image
@@ -898,6 +900,19 @@ export default function BesomMobileUI() {
                   My cart
                 </span>
               </div>
+              {referralWallet > 0 && (
+               <div className="group relative">
+                <Link href="/wallet" className="relative text-gray-700">
+                  <button className="text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors">
+                    <Wallet size={20} />
+                    
+                  </button>
+                </Link>
+                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                  My Wallet
+                </span>
+              </div>
+              )}
 
             </div>
           </header>

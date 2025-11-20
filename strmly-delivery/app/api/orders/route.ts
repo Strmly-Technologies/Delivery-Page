@@ -271,6 +271,12 @@ export async function POST(request: NextRequest) {
       orderType = 'freshplan';
     }
 
+    console.log("COupon details:", {
+          code: couponCode,
+          discountAmount: discountAmount,
+          referralCredit: referralCreditAmount,
+          couponOwnerId: couponOwner?._id
+        })
  
 
     // Combine all items (except for complete FreshPlan checkout which uses daySchedule)
@@ -290,10 +296,20 @@ export async function POST(request: NextRequest) {
       customerDetails,
       orderType,
       planRelated,
+       ...(couponCode && couponOwner && {
+        appliedCoupon: {
+          code: couponCode,
+          discountAmount: discountAmount,
+          referralCredit: referralCreditAmount,
+          couponOwnerId: couponOwner._id
+        }
+      }),
       ...(scheduledDeliveryDate && {
           scheduledDeliveryDate: new Date(scheduledDeliveryDate)
         })
     });
+
+    console.log(`Order ${order._id} created for user ${userId}, order : ${order}`);
 
     // Update FreshPlan status if this is a complete checkout
     if (checkoutType === 'freshplan' && completeCheckout) {

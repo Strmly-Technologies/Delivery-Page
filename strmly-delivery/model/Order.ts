@@ -47,7 +47,13 @@ cancellationDetails?:{
   cancelledAt?: Date;
   reason?: string;
   cancelledById?: mongoose.Types.ObjectId;
-}
+};
+  appliedCoupon?: {
+    code: string;
+    discountAmount: number;
+    referralCredit: number;
+    couponOwnerId: mongoose.Types.ObjectId;
+  };
   createdAt: Date;
   updatedAt: Date;
   scheduledDeliveryDate?: Date;
@@ -151,6 +157,15 @@ const orderSchema: Schema<Order> = new Schema({
     cancelledAt: { type: Date },
     reason: { type: String },
     cancelledById: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+  },
+   appliedCoupon: {
+    code: String,
+    discountAmount: Number,
+    referralCredit: Number,
+    couponOwnerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }
   },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
