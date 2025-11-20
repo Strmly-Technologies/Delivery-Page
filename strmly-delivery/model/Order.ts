@@ -42,6 +42,18 @@ export interface Order extends Document {
   notDeliveredTime?: Date;
   notDeliveredReason?: string;
 };
+cancellationDetails?:{
+  cancelledBy?: 'user' | 'chef' | 'admin';
+  cancelledAt?: Date;
+  reason?: string;
+  cancelledById?: mongoose.Types.ObjectId;
+};
+  appliedCoupon?: {
+    code: string;
+    discountAmount: number;
+    referralCredit: number;
+    couponOwnerId: mongoose.Types.ObjectId;
+  };
   createdAt: Date;
   updatedAt: Date;
   scheduledDeliveryDate?: Date;
@@ -64,7 +76,7 @@ export interface Order extends Document {
         customization: ProductCustomization;
         timeSlot: string;
       }[];
-      status?: 'pending' | 'received' | 'done' | 'picked' | 'delivered' | 'not-delivered ' | 'pending';
+      status?: 'pending' | 'received' | 'done' | 'picked' | 'delivered' | 'not-delivered ' | 'pending'|'cancelled';
       statusInfo?: {
         chefId?: mongoose.Types.ObjectId;
         receivedTime?: Date;
@@ -137,6 +149,24 @@ const orderSchema: Schema<Order> = new Schema({
     notDeliveredTime: { type: Date },
     notDeliveredReason: { type: String }
   },
+  cancellationDetails:{
+    cancelledBy: {
+      type: String,
+      enum: ['user', 'chef', 'admin']
+    },
+    cancelledAt: { type: Date },
+    reason: { type: String },
+    cancelledById: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+  },
+   appliedCoupon: {
+    code: String,
+    discountAmount: Number,
+    referralCredit: Number,
+    couponOwnerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }
+  },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
   scheduledDeliveryDate: {
@@ -186,7 +216,7 @@ const orderSchema: Schema<Order> = new Schema({
     }],
     status: {
         type: String,
-        enum: ['pending', 'received', 'done','picked','delivered','not-delivered','not-delivered'],
+        enum: ['pending', 'received', 'done','picked','delivered','not-delivered','not-delivered','cancelled'],
         default: 'pending'
     },
     statusInfo:{

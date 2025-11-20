@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Package2, ShoppingCart, BarChart3, Settings, LogOut, Users, Clock, Truck, CheckCircle, AlertCircle, SlidersHorizontal, Mail, User } from 'lucide-react';
+import { Package2, ShoppingCart, BarChart3, Settings, LogOut, Users, Clock, Truck, CheckCircle, AlertCircle, SlidersHorizontal, Mail, User, IndianRupee } from 'lucide-react';
 
 interface DashboardStats {
   products: number;
@@ -159,6 +159,12 @@ export default function AdminDashboard() {
                    <div className="flex items-center">
                      <SlidersHorizontal className="h-5 w-5 mr-3" />
                      Customisations
+                   </div>
+                 </Link>
+                 <Link href="/admin/withdrawals" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                   <div className="flex items-center">
+                     <IndianRupee className="h-5 w-5 mr-3" />
+                     Withdrawal Requests
                    </div>
                  </Link>
                  <div className="mt-10 px-6">

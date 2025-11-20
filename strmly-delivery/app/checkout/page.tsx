@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { Info, User, Phone, MapPin } from 'lucide-react';
+import { Info, User, Phone, MapPin, Tag } from 'lucide-react';
 import DeliveryInfoModal from '../components/delivery/DeliveryInfoModal';
 import { Home, ShoppingBag, CalendarDays, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
 import Image from 'next/image';
@@ -81,6 +81,11 @@ interface FreshPlan {
   _id: string;
 }
 
+interface Coupon{
+  code: string,
+  discountPercentage: number
+}
+
  function CheckoutPage() {
   const searchParams = useSearchParams();
   const checkoutType = searchParams.get('type') || 'quicksip';
@@ -137,6 +142,90 @@ interface FreshPlan {
   const [tomorrowDate, setTomorrowDate] = useState<Date | null>(null);
   const [disableSubmit, setDisableSubmit] = useState(false);
   const [inactiveProductsInCart, setInactiveProductsInCart] = useState<CartItem[]>([]);
+  const [availableCoupons, setAvailableCoupons] = useState<Coupon[]>([]);
+  const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
+  const [showCouponModal, setShowCouponModal] = useState(false);
+  const [couponSearchInput, setCouponSearchInput] = useState('');
+  const [couponSearchError, setCouponSearchError] = useState('');
+  const [searchingCoupon, setSearchingCoupon] = useState(false);
+
+
+
+
+
+  const getItemsTotal = () => {
+  if (checkoutType === 'quicksip') {
+    console.log("Cart items:", cartItems);
+    // Calculate for cart items
+    let itemsTotal = cartItems.reduce((total, item) => 
+      total + item.price, 0
+    );
+    
+    for(let i=0; i < customisablePrices.length; i++) {
+      const item = customisablePrices[i];
+      itemsTotal += item.price;
+    }
+
+    console.log("Items total calculated:", itemsTotal);
+    
+    return itemsTotal;
+  } else {
+    // Calculate for ALL plan items, not just one day
+    return planItems.reduce((total, item) => 
+      total + item.customization.finalPrice, 0
+    );
+  }
+};
+
+const getDiscountAmount = () => {
+    if (!selectedCoupon) return 0;
+    const itemsTotal = getItemsTotal();
+    const amount= Math.round((itemsTotal *( selectedCoupon.discountPercentage/2)) / 100);
+    // only half the discount is applied here, other half is referral credit
+    return amount;
+  };
+
+
+  const searchAndApplyCoupon = async (couponCode: string) => {
+    if (!couponCode.trim()) {
+      setCouponSearchError('Please enter a coupon code');
+      return;
+    }
+
+    setSearchingCoupon(true);
+    setCouponSearchError('');
+
+    try {
+      const response = await fetch(`/api/coupons/validate?code=${encodeURIComponent(couponCode.trim())}`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.coupon) {
+        // Coupon found and valid
+        setSelectedCoupon(data.coupon);
+        setCouponSearchInput('');
+        setShowCouponModal(false);
+        setCouponSearchError('');
+      } else {
+        setCouponSearchError(data.error || 'Invalid coupon code');
+      }
+    } catch (error) {
+      console.error('Error validating coupon:', error);
+      setCouponSearchError('Failed to validate coupon. Please try again.');
+    } finally {
+      setSearchingCoupon(false);
+    }
+  };
+
+  const handleCouponSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      searchAndApplyCoupon(couponSearchInput);
+    }
+  };
 
 
 
@@ -225,6 +314,7 @@ interface FreshPlan {
         if (addresses.length > 0 && !customerDetails.address) {
           const mostRecentAddress = addresses[addresses.length - 1];
           console.log("Most recent address:", mostRecentAddress);
+          
           setCustomerDetails(prev => ({
             ...prev,
             name: mostRecentAddress.fullName,
@@ -416,16 +506,15 @@ const fetchCart = async () => {
   const initialise = async () => {
   setLoading(true);
   try {
+    // Fetch available coupons first
+    
     if (checkoutType === 'quicksip') {
-      // QuickSip checkout flow - fetch cart items
       const cartData = await fetchCart();
       const pricesData = await fetchCustomisablePrices();
       const settingsData = await fetchDeliverySettings();
       
       await initializeLocationFromStorage(cartData, pricesData, settingsData);
     } else if (checkoutType === 'freshplan') {
-      // FreshPlan checkout flow - fetch plan details
-      console.log("Initialising freshplan checkout for plan ID:", planId);
       const planData = await fetchFreshPlan();
       
       const settingsData = await fetchDeliverySettings();
@@ -434,6 +523,7 @@ const fetchCart = async () => {
         // Get all items from all days in the plan
         if(planData.paymentComplete===true){
           router.push('/my-plans');
+          return;
         }
         const allPlanItems: PlanItem[] = [];
         planData.schedule.forEach((day:any) => {
@@ -449,6 +539,8 @@ const fetchCart = async () => {
         await initializeLocationForPlan(allPlanItems, settingsData);
       }
     }
+  } catch (error) {
+    console.error("Error during initialization:", error);
   } finally {
     setLoading(false);
   }
@@ -457,7 +549,7 @@ const fetchCart = async () => {
   useEffect(() => {
     initialise();
     fetchSavedAddresses();
-  }, [checkoutType, selectedDayId]);
+  }, []);
 
   useEffect(() => {
   // Update available time slots every minute
@@ -754,33 +846,13 @@ const handleGetLocation = async () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const getItemsTotal = () => {
-  if (checkoutType === 'quicksip') {
-    console.log("Cart items:", cartItems);
-    // Calculate for cart items
-    let itemsTotal = cartItems.reduce((total, item) => 
-      total + item.price, 0
-    );
-    
-    for(let i=0; i < customisablePrices.length; i++) {
-      const item = customisablePrices[i];
-      itemsTotal += item.price;
-    }
+  
 
-    console.log("Items total calculated:", itemsTotal);
-    
-    return itemsTotal;
-  } else {
-    // Calculate for ALL plan items, not just one day
-    return planItems.reduce((total, item) => 
-      total + item.customization.finalPrice, 0
-    );
-  }
-};
-
-  const getTotalPrice = () => {
-    return getItemsTotal() + deliveryCharge;
+   const getTotalPrice = () => {
+    return getItemsTotal() + deliveryCharge - getDiscountAmount();
   };
+
+  
 
   // Add this at the top of CheckoutPage function
 const ENABLE_RAZORPAY = process.env.NEXT_PUBLIC_ENABLE_RAZORPAY !== 'false'; // Default to true
@@ -825,6 +897,10 @@ const handleSubmit = async (e: React.FormEvent) => {
           deliveryCharge,
           customisablePrices,
           deliveryTimeSlot: selectedTimeSlot,
+          ...(selectedCoupon && {
+            couponCode: selectedCoupon.code,
+            discountAmount: getDiscountAmount()
+          }),
           ...(isOrderingForTomorrow && tomorrowDate && {
             scheduledDeliveryDate: tomorrowDate.toISOString()
           })
@@ -837,6 +913,10 @@ const handleSubmit = async (e: React.FormEvent) => {
           deliveryCharge,
           checkoutType: 'freshplan',
           completeCheckout: true,
+          ...(selectedCoupon && {
+            couponCode: selectedCoupon.code,
+            discountAmount: getDiscountAmount()
+          }),
           planDays: freshPlan?.schedule.map(day => ({
             date: day.date,
             items: day.items.map(item => ({
@@ -1188,7 +1268,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     {isOrderingForTomorrow && tomorrowDate && (
       <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
         <div className="flex items-start">
-          <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <svg className="w-5 h-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
           </svg>
           <div className="flex-1">
@@ -1227,6 +1307,51 @@ const handleSubmit = async (e: React.FormEvent) => {
     </div>
   </div>
 )}
+
+<div className="border-t border-gray-200 pt-4">
+        <div className="flex justify-between items-center mb-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Have a coupon code?
+          </label>
+        </div>
+        
+        {selectedCoupon ? (
+          <div className="border-2 border-green-200 rounded-xl p-4 bg-green-50">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center">
+                <Tag className="w-5 h-5 text-green-600 mr-2" />
+                <div>
+                  <p className="text-sm font-semibold text-green-900">{selectedCoupon.code}</p>
+                  <p className="text-xs text-green-700">
+                    {selectedCoupon.discountPercentage/2}% discount applied • Saving ₹{getDiscountAmount()}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCoupon(null);
+                  setCouponSearchInput('');
+                  setCouponSearchError('');
+                }}
+                className="text-xs text-red-600 hover:text-red-700 font-medium underline"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowCouponModal(true)}
+            className="w-full px-4 py-3 border-2 border-dashed border-orange-300 rounded-xl text-orange-600 hover:bg-orange-50 transition-all font-medium flex items-center justify-center"
+          >
+            <Tag className="w-4 h-4 mr-2" />
+            Enter Coupon Code
+          </button>
+        )}
+      </div>
+
                 {/* Delivery Fee */}
                {/* Delivery Fee - Remove free delivery conditional */}
 <div className="flex items-center justify-between border-t border-b border-gray-200 py-4 mt-4">
@@ -1490,18 +1615,143 @@ const handleSubmit = async (e: React.FormEvent) => {
                 )
               )
                   }
+           {selectedCoupon && getDiscountAmount() > 0 && (
+              <div className="flex items-center justify-between text-green-700 mb-2">
+                <span className="flex items-center">
+                  <Tag className="w-4 h-4 mr-1" />
+                  Coupon discount ({selectedCoupon.code})
+                </span>
+                <span className="font-semibold">-₹{getDiscountAmount()}</span>
+              </div>
+            )}
               
               {/* Total */}
               <div className="border-t border-gray-200 pt-4 mt-4">
-  <div className="flex justify-between text-lg font-bold text-gray-900">
-    <span>Total</span>
-    <span>₹{getTotalPrice()}</span>
-  </div>
+              <div className="flex justify-between text-lg font-bold text-gray-900">
+                <span>Total</span>
+                <span>₹{getTotalPrice()}</span>
+              </div>
+              {selectedCoupon && (
+                <p className="text-xs text-green-600 mt-1">
+                  You saved ₹{getDiscountAmount()} with {selectedCoupon.code}!
+                </p>
+              )}
 </div>
             </div>
           </div>
         </div>
       </div>
+     {showCouponModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+            <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-orange-50 to-white">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-bold text-gray-900">Enter Coupon Code</h3>
+                <button
+                  onClick={() => {
+                    setShowCouponModal(false);
+                    setCouponSearchInput('');
+                    setCouponSearchError('');
+                  }}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {/* Coupon Search Input */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Coupon Code
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={couponSearchInput}
+                      onChange={(e) => {
+                        setCouponSearchInput(e.target.value.toUpperCase());
+                        setCouponSearchError('');
+                      }}
+                      onKeyPress={handleCouponSearchKeyPress}
+                      placeholder="Enter code and press Enter"
+                      className="w-full px-4 py-3 pr-12 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900 font-mono uppercase"
+                      disabled={searchingCoupon}
+                      autoFocus
+                    />
+                    {searchingCoupon && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500"></div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {couponSearchError && (
+                    <p className="mt-2 text-sm text-red-600 flex items-center">
+                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                      {couponSearchError}
+                    </p>
+                  )}
+
+                  <p className="mt-2 text-xs text-gray-500">
+                     Press Enter to apply the coupon code
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => searchAndApplyCoupon(couponSearchInput)}
+                  disabled={searchingCoupon || !couponSearchInput.trim()}
+                  className={`w-full py-3 px-4 rounded-xl font-medium transition-all ${
+                    searchingCoupon || !couponSearchInput.trim()
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-orange-500 text-white hover:bg-orange-600 shadow-md hover:shadow-lg'
+                  }`}
+                >
+                  {searchingCoupon ? 'Validating...' : 'Apply Coupon'}
+                </button>
+              </div>
+
+              {/* Optional: Show example coupon codes if available */}
+              {availableCoupons.length > 0 && (
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <p className="text-sm font-medium text-gray-700 mb-3">Available Coupons:</p>
+                  <div className="space-y-2">
+                    {availableCoupons.map((coupon) => (
+                      <button
+                        key={coupon.code}
+                        type="button"
+                        onClick={() => {
+                          setCouponSearchInput(coupon.code);
+                          searchAndApplyCoupon(coupon.code);
+                        }}
+                        className="w-full text-left p-3 border border-gray-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-all"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Tag className="w-4 h-4 text-orange-600 mr-2" />
+                            <span className="font-mono font-semibold text-gray-900">{coupon.code}</span>
+                          </div>
+                          <span className="text-sm text-green-600 font-medium">
+                            {coupon.discountPercentage/2}% OFF
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Address Modal */}
       {showAddressModal && (
 <div className="fixed inset-0  bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] overflow-hidden">
