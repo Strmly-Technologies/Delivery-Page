@@ -129,6 +129,7 @@ export default function BesomMobileUI() {
         }
       } else {
         const localItems = localCart.getItems();
+        console.log('Local cart items for slider:', localItems);
         // Fetch product details for local cart items
         const productIds = [...new Set(localItems.map((item:any) => item.productId))];
         const productsData = await Promise.all(

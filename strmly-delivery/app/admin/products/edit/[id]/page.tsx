@@ -171,51 +171,51 @@ const EditProductPage = () => {
   };
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
-      return;
-    }
+  if (!file.type.startsWith('image/')) {
+    alert('Please select an image file');
+    return;
+  }
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Image size should be less than 5MB');
-      return;
-    }
+  if (file.size > 5 * 1024 * 1024) {
+    alert('Image size should be less than 5MB');
+    return;
+  }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-
-    setIsUploading(true);
-    const formDataToSend = new FormData();
-    formDataToSend.append('file', file);
-
-    try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formDataToSend,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Upload failed');
-      }
-
-      const data = await response.json();
-      setFormData(prev => ({ ...prev, imageUrl: data.url }));
-      if (errors.imageUrl) setErrors(prev => ({ ...prev, imageUrl: '' }));
-      toast.success('Image uploaded successfully');
-    } catch (error: any) {
-      console.error('Error uploading image:', error);
-      alert(error.message || 'Failed to upload image');
-    } finally {
-      setIsUploading(false);
-    }
+  const reader = new FileReader();
+  reader.onloadend = () => {
+    setImagePreview(reader.result as string);
   };
+  reader.readAsDataURL(file);
+
+  setIsUploading(true);
+  const formDataToSend = new FormData();
+  formDataToSend.append('image', file); // Changed from 'file' to 'image'
+
+  try {
+    const response = await fetch('/api/s3/upload', {
+      method: 'POST',
+      body: formDataToSend,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Upload failed');
+    }
+
+    const data = await response.json();
+    setFormData(prev => ({ ...prev, imageUrl: data.url }));
+    if (errors.imageUrl) setErrors(prev => ({ ...prev, imageUrl: '' }));
+    toast.success('Image uploaded successfully');
+  } catch (error: any) {
+    console.error('Error uploading image:', error);
+    alert(error.message || 'Failed to upload image');
+  } finally {
+    setIsUploading(false);
+  }
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

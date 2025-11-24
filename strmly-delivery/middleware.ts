@@ -12,6 +12,14 @@ const protectedRoutes = [
   '/my-plans',
 ];
 
+const freshPlanRoutes = [
+  '/freshplan',
+  '/create-plan',
+  '/my-plans',
+  '/freshplan/edit',
+  '/freshplan/orders'
+];
+
 // Define admin routes
 const adminRoutes = [
   '/admin/dashboard',
@@ -28,9 +36,15 @@ const authRoutes = ['/login', '/signup', '/admin/login'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if(freshPlanRoutes.some(route => pathname.startsWith(route))){
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
   if(pathname==='/signup' || pathname==='/login'){
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
+
+
   
   // Get auth token from cookies
   const authToken = request.cookies.get('authToken')?.value;
