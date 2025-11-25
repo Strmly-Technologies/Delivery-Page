@@ -86,7 +86,7 @@ export default function Home() {
         </button>
 
         {/* FreshPlan Card */}
-        <button
+        {/* <button
           onClick={handleFreshPlanClick}
           className={`w-full p-6 rounded-2xl transition-all duration-300 ${
             selectedOption === 'scheduled'
@@ -114,8 +114,8 @@ export default function Home() {
               selectedOption === 'scheduled' ? 'text-orange-200' : 'text-orange-500'
             }`} />
           </div>
-        </button>
-      </div>
+        </button> */}
+      </div> 
               <OtpModal
                     isOpen={showOtpModal}
                     onClose={() => setShowOtpModal(false)}

@@ -139,6 +139,7 @@ interface Coupon{
   });
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'razorpay'>('razorpay');
   const [isOrderingForTomorrow, setIsOrderingForTomorrow] = useState(false);
+  const [showBottleInfo, setShowBottleInfo] = useState(false);
   const [tomorrowDate, setTomorrowDate] = useState<Date | null>(null);
   const [disableSubmit, setDisableSubmit] = useState(false);
   const [inactiveProductsInCart, setInactiveProductsInCart] = useState<CartItem[]>([]);
@@ -846,10 +847,21 @@ const handleGetLocation = async () => {
     return Object.keys(newErrors).length === 0;
   };
 
+
+  const getBottleCharges=()=>{
+    let totalBottles;
+    if(checkoutType==='quicksip'){
+      totalBottles=cartItems.reduce((total, item) => 
+        total + (item.quantity|| 0), 0
+      );
+    }
+    let bottleChargePerBottle=10;
+    return totalBottles!>0 ? totalBottles! * bottleChargePerBottle : 0; 
+  }
   
 
    const getTotalPrice = () => {
-    return getItemsTotal() + deliveryCharge - getDiscountAmount();
+    return getItemsTotal() + deliveryCharge - getDiscountAmount() + getBottleCharges();
   };
 
   
@@ -1624,6 +1636,38 @@ const handleSubmit = async (e: React.FormEvent) => {
                 <span className="font-semibold">-₹{getDiscountAmount()}</span>
               </div>
             )}
+            {getBottleCharges() > 0 && (
+  <div className="flex items-center justify-between text-gray-700 mb-2">
+    <div className="flex items-center gap-1">
+      <span>Bottle Charges</span>
+      <div className="relative">
+        <button
+          type="button"
+          onMouseEnter={() => setShowBottleInfo(true)}
+          onMouseLeave={() => setShowBottleInfo(false)}
+          onClick={() => setShowBottleInfo(!showBottleInfo)}
+          className="text-gray-500 hover:text-gray-700 focus:outline-none transition-colors"
+        >
+          <Info className="w-4 h-4 mt-2" />
+        </button>
+        
+        {/* Tooltip */}
+        {showBottleInfo && (
+          <div className="absolute left-0 bottom-full mb-2 w-48 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-lg z-10 animate-fadeIn">
+            <div className="relative">
+                    <p className="leading-relaxed">
+                      <strong className="text-orange-300">Refundable Deposit:</strong> This amount will be refunded when you return the empty bottles.
+                    </p>
+                    {/* Arrow pointing down */}
+                    <div className="absolute -bottom-4 left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          <span className="font-semibold text-gray-900">₹{getBottleCharges()}</span>
+        </div>
+      )}
               
               {/* Total */}
               <div className="border-t border-gray-200 pt-4 mt-4">
