@@ -128,6 +128,12 @@ function OrdersList() {
     setShowCancelModal(true);
   };
 
+   const getGoogleMapsLink = (address: string) => {
+    const encodedAddress = encodeURIComponent(address);
+    return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+  };
+
+
 
   const handleCancelOrder = async () => {
     if (!selectedOrderForCancel) return;
@@ -1008,6 +1014,17 @@ function OrdersList() {
                                   <p className="mt-1">{order.customerDetails.address}</p>
                                   {order.customerDetails.additionalAddressInfo && (
                                     <p className="mt-1 text-gray-500">{order.customerDetails.additionalAddressInfo}</p>
+                                  )}
+                                  {getGoogleMapsLink(order.customerDetails.address) && (
+                                    <a 
+                                      href={getGoogleMapsLink(order.customerDetails.address) 
+                                      }
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sm text-blue-600 hover:underline mt-1 inline-block"
+                                    >
+                                      View on Google Maps
+                                    </a>
                                   )}
                                 </div>
                                 

@@ -11,9 +11,14 @@ export async function POST(request: NextRequest){
         const decodedToken = await verifyAuth(request);
         const userId = decodedToken.userId;
 
-        const { amount } = await request.json();
+        const { amount, upiId } = await request.json();
+        console.log('Received withdrawal request data:', { amount, upiId });
         if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
             return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
+        }
+
+        if (!upiId || !upiId.trim()) {
+            return NextResponse.json({ error: 'UPI ID is required' }, { status: 400 });
         }
 
         // Check if amount is greater than user referral wallet
@@ -26,6 +31,7 @@ export async function POST(request: NextRequest){
         }
 
         user.referralWallet = Number(user.referralWallet) - Number(amount);
+        
         await user.save();
 
         const userName = user.username || 'Valued Customer';
@@ -41,6 +47,7 @@ export async function POST(request: NextRequest){
         const withdraw=await new WithdrawalModel({
             userId: user._id,
             amount: Number(amount),
+            upi_id: upiId.trim(),
             requestedAt: new Date(),
             status: 'pending'
         }).save();
@@ -90,6 +97,12 @@ export async function POST(request: NextRequest){
                                 <td style="padding: 8px 0; color: #78350f; font-weight: 500;">Current Balance:</td>
                                 <td style="padding: 8px 0; text-align: right; color: #92400e; font-weight: 600;">
                                     ₹${user.referralWallet}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px 0; color: #78350f; font-weight: 500;">UPI ID:</td>
+                                <td style="padding: 8px 0; text-align: right; color: #92400e; font-weight: 600; font-family: monospace;">
+                                    ${upiId}
                                 </td>
                             </tr>
                         </table>
@@ -181,6 +194,12 @@ export async function POST(request: NextRequest){
                                     <td style="padding: 8px 0; color: #78350f; font-weight: 500;">Email:</td>
                                     <td style="padding: 8px 0; color: #92400e;">
                                         <a href="mailto:${user.email}" style="color: #f97316; text-decoration: none;">${user.email}</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; color: #78350f; font-weight: 500;">UPI ID:</td>
+                                    <td style="padding: 8px 0; color: #92400e; font-family: monospace; font-weight: 600;">
+                                        ${upiId}
                                     </td>
                                 </tr>
                             </table>

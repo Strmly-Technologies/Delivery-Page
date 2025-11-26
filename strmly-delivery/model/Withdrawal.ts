@@ -7,6 +7,7 @@ interface Withdrawal extends Document{
     status: 'pending' | 'approved' | 'rejected';
     processedAt?: Date;
     transferNote?: string;
+    upi_id: string;
 }
 
 const withdrawalSchema = new Schema<Withdrawal>({
@@ -33,6 +34,10 @@ const withdrawalSchema = new Schema<Withdrawal>({
     },
     transferNote: {
         type: String
+    },
+    upi_id:{
+        type: String,
+        required: true
     }
 });
 

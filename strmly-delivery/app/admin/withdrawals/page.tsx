@@ -15,7 +15,8 @@ import {
   Send,
   AlertCircle,
   IndianRupee,
-  Timer
+  Timer,
+  Copy
 } from 'lucide-react';
 
 interface WithdrawalRequest {
@@ -30,6 +31,7 @@ interface WithdrawalRequest {
   requestedAt: string;
   processedAt?: string;
   transferNote?: string;
+  upi_id?: string;
 }
 
 export default function WithdrawalRequestsPage() {
@@ -299,7 +301,7 @@ export default function WithdrawalRequestsPage() {
         {/* Requests List */}
         {filteredRequests.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-            <DollarSign className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <IndianRupee className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-gray-900 mb-2">No withdrawal requests found</h3>
             <p className="text-gray-600">
               {searchTerm || statusFilter !== 'all' 
@@ -339,6 +341,26 @@ export default function WithdrawalRequestsPage() {
                         </div>
 
                         <p className="text-sm text-gray-600 mb-3">{request.userId.email}</p>
+
+                        {request.upi_id && (
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg">
+                              <IndianRupee className="w-4 h-4 text-blue-600" />
+                              <span className="text-sm text-blue-900 font-mono font-semibold">
+                                {request.upi_id}
+                              </span>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(request.upi_id!);
+                                  alert('UPI ID copied!');
+                                }}
+                                className="ml-1 p-1 hover:bg-blue-100 rounded"
+                              >
+                                <Copy className="w-3 h-3 text-blue-600" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                           <div className="flex items-center gap-2 text-gray-600">
@@ -437,6 +459,12 @@ export default function WithdrawalRequestsPage() {
                   <span className="text-sm text-gray-600">Email:</span>
                   <span className="text-sm text-gray-900">{selectedRequest.userId.email}</span>
                 </div>
+                {selectedRequest.upi_id && (
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="text-sm text-gray-600">UPI ID:</span>
+                    <span className="text-sm text-gray-900 font-mono font-semibold">{selectedRequest.upi_id}</span>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2 mb-6">

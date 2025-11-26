@@ -57,6 +57,7 @@ export default function WalletPage() {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [requesting, setRequesting] = useState(false);
   const router = useRouter();
+  const [upiId, setUpiId] = useState('');
 
   useEffect(() => {
     // Check authentication
@@ -116,6 +117,7 @@ export default function WalletPage() {
 
   const openWithdrawModal = () => {
     setWithdrawAmount('');
+    setUpiId('');
     setShowWithdrawModal(true);
   };
 
@@ -138,9 +140,13 @@ export default function WalletPage() {
       return;
     }
 
-   
+    if(!upiId || upiId.trim() === ''){
+      alert('Please enter your UPI ID');
+      return;
+    }
 
     setRequesting(true);
+    console.log('Submitting withdrawal request:', { amount, upiId: upiId.trim() });
 
     try {
       const response = await fetch('/api/wallet/email', {
@@ -149,7 +155,7 @@ export default function WalletPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ amount })
+        body: JSON.stringify({ amount, upiId: upiId.trim() })
       });
 
       const data = await response.json();
@@ -229,15 +235,13 @@ export default function WalletPage() {
             </div>
 
             {/* Withdraw Button */}
-            {walletData.currentBalance >= 50 && (
-              <button
-                onClick={openWithdrawModal}
-                className="w-full mt-4 bg-white text-orange-600 py-3 px-4 rounded-xl font-semibold hover:bg-white/90 transition-all flex items-center justify-center gap-2 shadow-lg"
-              >
-                <Send className="w-5 h-5" />
-                Request Withdrawal
-              </button>
-            )}
+            <button
+              onClick={openWithdrawModal}
+              className="w-full mt-4 bg-white text-orange-600 py-3 px-4 rounded-xl font-semibold hover:bg-white/90 transition-all flex items-center justify-center gap-2 shadow-lg"
+            >
+              <Send className="w-5 h-5" />
+              Request Withdrawal
+            </button>
 
             
 
@@ -432,52 +436,48 @@ export default function WalletPage() {
                     value={withdrawAmount}
                     onChange={(e) => setWithdrawAmount(e.target.value)}
                     placeholder="0"
-                    min="100"
+                    min="50"
                     max={walletData.currentBalance}
                     className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900 text-lg font-semibold"
                   />
                 </div>
                 <p className="text-xs text-gray-500">
-                  Minimum: ₹5 | Maximum: ₹{walletData.currentBalance}
+                  Minimum: ₹50 | Maximum: ₹{walletData.currentBalance}
                 </p>
               </div>
 
-              {/* Quick Amount Buttons */}
-              <div className="mb-6">
-                <p className="text-sm font-medium text-gray-700 mb-3">Quick Select</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {[100, 500, 1000].map((amount) => (
-                    walletData.currentBalance >= amount && (
-                      <button
-                        key={amount}
-                        onClick={() => handleQuickAmount(amount)}
-                        className={`py-2 px-3 rounded-lg border-2 transition-all font-medium ${
-                          Number(withdrawAmount) === amount
-                            ? 'border-orange-500 bg-orange-50 text-orange-600'
-                            : 'border-gray-300 text-gray-700 hover:border-orange-300'
-                        }`}
-                      >
-                        ₹{amount}
-                      </button>
-                    )
-                  ))}
-                  <button
-                    onClick={() => handleQuickAmount(walletData.currentBalance)}
-                    className={`py-2 px-3 rounded-lg border-2 transition-all font-medium ${
-                      Number(withdrawAmount) === walletData.currentBalance
-                        ? 'border-orange-500 bg-orange-50 text-orange-600'
-                        : 'border-gray-300 text-gray-700 hover:border-orange-300'
-                    }`}
-                  >
-                    Max
-                  </button>
+              {/* UPI ID Input */}
+              <div className="space-y-2 mb-6">
+                <label className="block text-sm font-medium text-gray-700">
+                  UPI ID *
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={upiId}
+                    onChange={(e) => setUpiId(e.target.value)}
+                    placeholder="yourname@paytm"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900"
+                  />
                 </div>
+                <p className="text-xs text-gray-500">
+                  Enter your UPI ID (e.g., 9876543210@paytm, name@oksbi)
+                </p>
               </div>
+
+              {/* Balance Warning */}
+              {walletData.currentBalance < 50 && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                  <p className="text-sm text-yellow-900">
+                    <strong>⚠️ Insufficient Balance:</strong> You need at least ₹50 to request a withdrawal. Current balance: ₹{walletData.currentBalance}
+                  </p>
+                </div>
+              )}
 
               {/* Info Box */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                 <p className="text-sm text-blue-900 leading-relaxed">
-                  <strong>📝 Processing Time:</strong> Your withdrawal request will be reviewed within 24 hours and processed within 3-5 business days.
+                  <strong> Processing Time:</strong> Your withdrawal request will be reviewed within 24 hours and processed within 3-5 business days. Amount will be transferred to your UPI ID.
                 </p>
               </div>
 
@@ -492,9 +492,9 @@ export default function WalletPage() {
                 </button>
                 <button
                   onClick={handleWithdrawRequest}
-                  disabled={requesting || !withdrawAmount || Number(withdrawAmount) < 50 || Number(withdrawAmount) > walletData.currentBalance}
+                  disabled={requesting || !withdrawAmount || !upiId.trim() || Number(withdrawAmount) < 50 || Number(withdrawAmount) > walletData.currentBalance}
                   className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
-                    requesting || !withdrawAmount || Number(withdrawAmount) < 50 || Number(withdrawAmount) > walletData.currentBalance
+                    requesting || !withdrawAmount || !upiId.trim() || Number(withdrawAmount) < 50 || Number(withdrawAmount) > walletData.currentBalance
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       : 'bg-orange-500 text-white hover:bg-orange-600'
                   }`}

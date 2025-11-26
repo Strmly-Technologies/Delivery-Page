@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
         }
 
         const requests = await WithdrawalModel.find()
-            .populate('userId', 'username email')
+            .populate('userId', 'username email upiId')
             .sort({ requestedAt: -1 });
 
         return NextResponse.json({

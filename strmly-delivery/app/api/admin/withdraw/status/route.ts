@@ -47,6 +47,7 @@ export async function POST(request: NextRequest){
 
         const userName = updatedWithdrawal.userId?.username || 'Valued Customer';
         const userEmail = updatedWithdrawal.userId?.email;
+        const upiId = updatedWithdrawal.upiId || 'Not provided';
         const processedDate = new Date().toLocaleDateString('en-IN', {
             day: 'numeric',
             month: 'long',
@@ -140,7 +141,7 @@ export async function POST(request: NextRequest){
                         <p style="margin: 5px 0;">Fresh Juices, Delivered Daily</p>
                         <p style="margin: 15px 0 5px 0;">
                             <a href="${process.env.NEXT_PUBLIC_APP_URL}" style="color: #059669; text-decoration: none; margin: 0 10px;">Visit Website</a> | 
-                            <a href="${process.env.NEXT_PUBLIC_APP_URL}/support" style="color: #059669; text-decoration: none; margin: 0 10px;">Contact Support</a>
+                            <a href="${process.env.NEXT_PUBLIC_APP_URL}/support" style="color: #059669; text-decoration: none, margin: 0 10px;">Contact Support</a>
                         </p>
                         <p style="margin: 15px 0 5px 0; color: #9ca3af; font-size: 11px;">
                             This is an automated email. Please do not reply directly to this message.
