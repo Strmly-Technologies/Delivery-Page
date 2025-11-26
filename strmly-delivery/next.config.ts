@@ -14,16 +14,23 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-   images: {
-    domains: [
-      'strmly-videos-dev-mumbai-2.s3.ap-south-1.amazonaws.com',
-      'images.unsplash.com',
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'strmly-videos-dev-mumbai-2.s3.ap-south-1.amazonaws.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        pathname: '/**',
+      },
     ],
   },
   typescript: {
     ignoreBuildErrors: true,
   },
-  
 };
 
 export default nextConfig;

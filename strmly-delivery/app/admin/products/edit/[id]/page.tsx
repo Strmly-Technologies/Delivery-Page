@@ -23,11 +23,13 @@ const EditProductPage = () => {
     smallPrice: '',
     mediumPrice: '',
     regularNutrients: [{ name: '', amount: '', unit: 'g' }],
-    largeNutrients: [{ name: '', amount: '', unit: 'g' }]
+    largeNutrients: [{ name: '', amount: '', unit: 'g' }],
+    additionalFiles: [] as Array<{ url: string; type: 'image' | 'video' }>
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingAdditionalFile, setUploadingAdditionalFile] = useState(false);
 
   // Add nutrient management functions
   const addNutrient = (size: 'regular' | 'large') => {
@@ -102,7 +104,8 @@ const EditProductPage = () => {
             : [{ name: '', amount: '', unit: 'g' }],
           largeNutrients: data.product.largeNutrients && data.product.largeNutrients.length > 0 
             ? data.product.largeNutrients 
-            : [{ name: '', amount: '', unit: 'g' }]
+            : [{ name: '', amount: '', unit: 'g' }],
+          additionalFiles: data.product.additionalFiles || []
         });
         
         if (data.product.image) {
@@ -217,6 +220,65 @@ const EditProductPage = () => {
   }
 };
 
+  const handleAdditionalFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+
+    if (!isImage && !isVideo) {
+      alert('Please select an image or video file');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size must be less than 10MB');
+      return;
+    }
+
+    setUploadingAdditionalFile(true);
+
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append('image', file);
+
+      const uploadResponse = await fetch('/api/s3/upload', {
+        method: 'POST',
+        body: uploadFormData
+      });
+
+      if (!uploadResponse.ok) {
+        const error = await uploadResponse.json();
+        throw new Error(error.error || 'Failed to upload file');
+      }
+
+      const { url } = await uploadResponse.json();
+
+      setFormData(prev => ({
+        ...prev,
+        additionalFiles: [...prev.additionalFiles, {
+          url,
+          type: isImage ? 'image' : 'video'
+        }]
+      }));
+
+      toast.success('File uploaded successfully');
+    } catch (error: any) {
+      console.error('Error uploading additional file:', error);
+      alert(error.message || 'Failed to upload file');
+    } finally {
+      setUploadingAdditionalFile(false);
+    }
+  };
+
+  const removeAdditionalFile = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      additionalFiles: prev.additionalFiles.filter((_, i) => i !== index)
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -251,6 +313,7 @@ const EditProductPage = () => {
           mediumPrice: parseFloat(formData.mediumPrice),
           regularNutrients: filteredRegularNutrients,
           largeNutrients: filteredLargeNutrients,
+          additionalFiles: formData.additionalFiles
         }),
       });
 
@@ -443,6 +506,63 @@ const EditProductPage = () => {
                       )}
                     </div>
                     {errors.imageUrl && <p className="mt-1 text-sm text-orange-600">{errors.imageUrl}</p>}
+                  </div>
+
+                  {/* Additional Files Section */}
+                  <div>
+                    <label className="block text-sm font-semibold text-black mb-2">
+                      Additional Images/Videos
+                      <span className="text-gray-500 font-normal ml-2">(Optional)</span>
+                    </label>
+                    
+                    <div className="mb-4">
+                      <label className="cursor-pointer inline-flex items-center px-4 py-2 bg-orange-100 text-orange-600 rounded-lg hover:bg-orange-200 transition-colors">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Upload File
+                        <input
+                          type="file"
+                          accept="image/*,video/*"
+                          onChange={handleAdditionalFileUpload}
+                          className="hidden"
+                          disabled={uploadingAdditionalFile}
+                        />
+                      </label>
+                      {uploadingAdditionalFile && (
+                        <span className="ml-3 text-sm text-orange-600">Uploading...</span>
+                      )}
+                    </div>
+
+                    {formData.additionalFiles.length > 0 && (
+                      <div className="grid grid-cols-2 gap-3">
+                        {formData.additionalFiles.map((file, index) => (
+                          <div key={index} className="relative group rounded-lg overflow-hidden border border-gray-200">
+                            {file.type === 'image' ? (
+                              <img
+                                src={file.url}
+                                alt={`Additional ${index + 1}`}
+                                className="w-full h-32 object-cover"
+                              />
+                            ) : (
+                              <video
+                                src={file.url}
+                                className="w-full h-32 object-cover"
+                                controls
+                              />
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => removeAdditionalFile(index)}
+                              className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                            <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/50 text-white text-xs rounded">
+                              {file.type}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

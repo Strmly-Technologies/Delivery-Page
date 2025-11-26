@@ -10,9 +10,13 @@ const s3Client = new S3Client({
 });
 
 export async function uploadFileToS3(file: Buffer, fileName: string, mimeType: string): Promise<string> {
+  // Determine folder based on file type
+  const isVideo = mimeType.startsWith('video/');
+  const folder = isVideo ? 'videos' : 'products';
+  
   const params = {
     Bucket: process.env.AWS_S3_BUCKET_NAME || '',
-    Key: `products/${Date.now()}-${fileName}`,
+    Key: `${folder}/${Date.now()}-${fileName}`,
     Body: file,
     ContentType: mimeType,
   };

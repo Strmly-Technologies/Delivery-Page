@@ -17,9 +17,33 @@ export async function POST(request: NextRequest) {
     }
     
     const userId = decodedToken.userId;
-    const { name, description, price, category, imageUrl, isAvailable, smallPrice,mediumPrice,regularNutrients,largeNutrients } = await request.json();
+    const { 
+      name, 
+      description, 
+      price, 
+      category, 
+      imageUrl, 
+      isAvailable, 
+      smallPrice,
+      mediumPrice,
+      regularNutrients,
+      largeNutrients,
+      additionalFiles
+    } = await request.json();
     
-    console.log('Product data:', { name, description, price, category, imageUrl, isAvailable , smallPrice, mediumPrice,regularNutrients,largeNutrients});
+    console.log('Product data:', { 
+      name, 
+      description, 
+      price, 
+      category, 
+      imageUrl, 
+      isAvailable, 
+      smallPrice, 
+      mediumPrice,
+      regularNutrients,
+      largeNutrients,
+      additionalFiles
+    });
     
     // Validation
     if (!name || !description || !price || !category || !imageUrl ) {
@@ -37,8 +61,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-  
-
     // Create new product
     const newProduct = new ProductModel({
       name,
@@ -49,10 +71,11 @@ export async function POST(request: NextRequest) {
       isAvailable: isAvailable !== undefined ? isAvailable : true,
       isActive: true,
       createdBy: userId,
-        smallPrice:Number(smallPrice) || 0,
-        mediumPrice:Number(mediumPrice) || 0,
-        regularNutrients: regularNutrients || [],
-        largeNutrients: largeNutrients || []
+      smallPrice: Number(smallPrice) || 0,
+      mediumPrice: Number(mediumPrice) || 0,
+      regularNutrients: regularNutrients || [],
+      largeNutrients: largeNutrients || [],
+      additionalFiles: additionalFiles || []
     });
     
     await newProduct.save();

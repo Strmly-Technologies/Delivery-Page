@@ -31,6 +31,10 @@ interface Product {
     amount: string;
     unit: string;
   }>;
+  additionalFiles?: Array<{
+    url: string;
+    type: 'image' | 'video';
+  }>;
 }
 
 interface UIHeader {
@@ -94,6 +98,23 @@ export default function BesomMobileUI() {
   const [oneTimeProductAlertMessage, setOneTimeProductAlertMessage] = useState('');
   const [hasPurchasedJuiceX, setHasPurchasedJuiceX] = useState(false);
   const [referralWallet, setReferralWallet] = useState(0);
+  const [additionalFilesSliderIndex, setAdditionalFilesSliderIndex] = useState(0);
+
+  const prevSlide = useCallback(() => {
+    setAdditionalFilesSliderIndex((idx) => {
+      if (!selectedProduct || !selectedProduct.additionalFiles || selectedProduct.additionalFiles.length === 0) return 0;
+      const len = selectedProduct.additionalFiles.length;
+      return (idx - 1 + len) % len;
+    });
+  }, [selectedProduct]);
+
+  const nextSlide = useCallback(() => {
+    setAdditionalFilesSliderIndex((idx) => {
+      if (!selectedProduct || !selectedProduct.additionalFiles || selectedProduct.additionalFiles.length === 0) return 0;
+      const len = selectedProduct.additionalFiles.length;
+      return (idx + 1) % len;
+    });
+  }, [selectedProduct]);
 
   // Memoized filtered products with debounced search
   const filteredProducts = useMemo(() => {
@@ -710,6 +731,7 @@ export default function BesomMobileUI() {
       setShowCartSlider(true)
       setSelectedProduct(null);
       setCustomization(null);
+      setAdditionalFilesSliderIndex(0); // Reset slider
     }, 300);
   };
 
@@ -1092,6 +1114,122 @@ export default function BesomMobileUI() {
                   {selectedProduct.description}
                 </p>
               </div>
+
+              {/* Additional Files Slider */}
+              {selectedProduct.additionalFiles && selectedProduct.additionalFiles.length > 0 && (
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Product Gallery</h4>
+                  
+                  <div className="relative rounded-xl overflow-hidden bg-gray-100">
+                    {/* Slider Container */}
+                    <div 
+                      className="relative h-64 w-full overflow-hidden"
+                      onTouchStart={(e) => {
+                        const touchStart = e.touches[0].clientX;
+                        const handleTouchMove = (e: TouchEvent) => {
+                          const touchEnd = e.touches[0].clientX;
+                          const diff = touchStart - touchEnd;
+                          
+                          if (Math.abs(diff) > 50) {
+                            if (diff > 0) {
+                              nextSlide();
+                            } else {
+                              prevSlide();
+                            }
+                            document.removeEventListener('touchmove', handleTouchMove);
+                          }
+                        };
+                        document.addEventListener('touchmove', handleTouchMove);
+                        document.addEventListener('touchend', () => {
+                          document.removeEventListener('touchmove', handleTouchMove);
+                        }, { once: true });
+                      }}
+                    >
+                      {selectedProduct.additionalFiles.map((file, index) => (
+                        <div
+                          key={index}
+                          className={`absolute inset-0 transition-all duration-500 ease-in-out ${
+                            index === additionalFilesSliderIndex 
+                              ? 'opacity-100 translate-x-0' 
+                              : index < additionalFilesSliderIndex
+                                ? 'opacity-0 -translate-x-full'
+                                : 'opacity-0 translate-x-full'
+                          }`}
+                        >
+                          {file.type === 'image' ? (
+                            <img
+                              src={file.url}
+                              alt={`${selectedProduct.name} ${index + 1}`}
+                              className="w-full h-full object-cover cursor-pointer"
+                              onClick={() => window.open(file.url, '_blank')}
+                            />
+                          ) : (
+                            <video
+                              src={file.url}
+                              className="w-full h-full object-cover"
+                              controls
+                              playsInline
+                              preload="metadata"
+                            >
+                              Your browser does not support the video tag.
+                            </video>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Navigation Arrows */}
+                    {selectedProduct.additionalFiles.length > 1 && (
+                      <>
+                        <button
+                          onClick={prevSlide}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 hover:bg-white rounded-full shadow-lg flex items-center justify-center transition-all z-10"
+                        >
+                          <svg className="w-5 h-5 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                          </svg>
+                        </button>
+                        
+                        <button
+                          onClick={nextSlide}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 hover:bg-white rounded-full shadow-lg flex items-center justify-center transition-all z-10"
+                        >
+                          <svg className="w-5 h-5 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      </>
+                    )}
+
+                    {/* Type Badge */}
+                    <div className="absolute top-3 left-3 px-2 py-1 bg-black/60 text-white text-xs rounded capitalize z-10">
+                      {selectedProduct.additionalFiles[additionalFilesSliderIndex].type}
+                    </div>
+
+                    {/* Counter */}
+                    <div className="absolute top-3 right-3 px-2 py-1 bg-black/60 text-white text-xs rounded z-10">
+                      {additionalFilesSliderIndex + 1} / {selectedProduct.additionalFiles.length}
+                    </div>
+
+                    {/* Dots Indicator */}
+                    {selectedProduct.additionalFiles.length > 1 && (
+                      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
+                        {selectedProduct.additionalFiles.map((_, index) => (
+                          <button
+                            key={index}
+                            onClick={() => setAdditionalFilesSliderIndex(index)}
+                            className={`transition-all ${
+                              index === additionalFilesSliderIndex
+                                ? 'w-6 h-2 bg-white'
+                                : 'w-2 h-2 bg-white/50 hover:bg-white/75'
+                            } rounded-full`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Nutrients Button */}
               {((selectedProduct.regularNutrients && selectedProduct.regularNutrients.length > 0) ||

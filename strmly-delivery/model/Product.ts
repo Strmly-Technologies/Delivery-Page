@@ -36,8 +36,12 @@ export interface ProductDocument extends Document {
   smallPrice?: number;
   mediumPrice?: number;
   isActive: boolean;
-   regularNutrients?: NutrientInfo[]; 
+  regularNutrients?: NutrientInfo[]; 
   largeNutrients?: NutrientInfo[];
+  additionalFiles: {
+    url: string;
+    type: 'image' | 'video';
+  }[];
 }
 
 const customizationSchema = new Schema<Customization>({
@@ -154,8 +158,19 @@ const productSchema = new Schema<ProductDocument>({
   isActive: {
     type: Boolean,
     default: true
-  }
-});
+  },
+  additionalFiles: [{
+    url: {
+      type: String,
+      required: true
+    },
+    type: {
+      type: String,
+      enum: ['image', 'video'],
+      required: true
+    }
+  }]
+}, { timestamps: true });
 
 const Product: Model<ProductDocument> =
   mongoose.models.Product || mongoose.model<ProductDocument>('Product', productSchema);

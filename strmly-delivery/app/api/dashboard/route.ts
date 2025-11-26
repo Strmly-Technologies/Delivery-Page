@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     const [products, uiHeader, cart] = await Promise.all([
       // Products query with exclusion for purchased JuiceX
       ProductModel.find(productQuery)
-        .select('name price smallPrice mediumPrice image category stock description regularNutrients largeNutrients')
+        .select('name price smallPrice mediumPrice image category stock description regularNutrients largeNutrients additionalFiles')
         .lean()
         .sort({ createdAt: -1 }),
       

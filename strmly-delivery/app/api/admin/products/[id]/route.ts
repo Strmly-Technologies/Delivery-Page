@@ -44,8 +44,6 @@ export async function GET(
 }
 
 // Update a product
-// ...existing code...
-
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -81,6 +79,7 @@ export async function PUT(
     if (body.mediumPrice !== undefined) updateData.mediumPrice = body.mediumPrice;
     if (body.regularNutrients !== undefined) updateData.regularNutrients = body.regularNutrients;
     if (body.largeNutrients !== undefined) updateData.largeNutrients = body.largeNutrients;
+    if (body.additionalFiles !== undefined) updateData.additionalFiles = body.additionalFiles;
     if (typeof body.isActive === 'boolean') updateData.isActive = body.isActive;
 
     console.log('Update data:', updateData);
