@@ -1055,7 +1055,7 @@ export default function BesomMobileUI() {
                           src={product.image}
                           alt={product.name}
                           fill
-                          className="object-contain rounded-lg hover:scale-105 transition-transform duration-300 drop-shadow-xl"
+                          className="object-cover rounded-[8%] hover:scale-105 transition-transform duration-300 drop-shadow-xl"
                           sizes="(max-width: 640px) 80px, (max-width: 768px) 96px, (max-width: 1024px) 112px, 128px"
                           loading="lazy"
                           quality={75}

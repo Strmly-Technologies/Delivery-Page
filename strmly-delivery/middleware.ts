@@ -17,7 +17,7 @@ const freshPlanRoutes = [
   '/create-plan',
   '/my-plans',
   '/freshplan/edit',
-  '/freshplan/orders'
+  '/freshplan/orders',
 ];
 
 // Define admin routes
@@ -36,6 +36,10 @@ const authRoutes = ['/login', '/signup', '/admin/login'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if(pathname === '/') {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
 
   if(freshPlanRoutes.some(route => pathname.startsWith(route))){
     return NextResponse.redirect(new URL('/dashboard', request.url));
