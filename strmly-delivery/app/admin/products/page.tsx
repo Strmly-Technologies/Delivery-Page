@@ -24,8 +24,7 @@ export default function ProductsPage() {
   const [filter, setFilter] = useState<'all' | 'juices' | 'shakes'>('all');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  
+  const [deleteLoading, setDeleteLoading] = useState(false);  
   const router = useRouter();
 
   useEffect(() => {

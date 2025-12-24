@@ -10,6 +10,7 @@ const protectedRoutes = [
   '/freshplan',
   '/create-plan',
   '/my-plans',
+  '/cart'
 ];
 
 const freshPlanRoutes = [

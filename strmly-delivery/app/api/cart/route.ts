@@ -83,6 +83,56 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('Product max count:', product.maxOrderCount);
+    console.log('Product max cart quantity:', product.maxCartQuantity);
+    
+    // check if user has already reached max purchase limit for this product
+    if (product.maxOrderCount !== null && product.maxOrderCount !== undefined) {
+      // Get the order count - handle both Map and plain object
+      let totalPurchased = 0;
+      if (user.productOrderCounts) {
+        if (user.productOrderCounts instanceof Map) {
+          totalPurchased = user.productOrderCounts.get(productId.toString()) || 0;
+        } else {
+          // If it's stored as plain object
+          totalPurchased = (user.productOrderCounts as any)[productId.toString()] || 0;
+        }
+      }
+      
+      console.log("User total purchased for this product:", totalPurchased);
+
+      if (totalPurchased >= product.maxOrderCount) {
+        return NextResponse.json(
+          { 
+            error: `You have reached the maximum order limit for ${product.name}. Maximum ${product.maxOrderCount} orders allowed.`,
+            maxOrderCount: product.maxOrderCount,
+            totalPurchased
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Check max cart quantity limit
+    if (product.maxCartQuantity !== null && product.maxCartQuantity !== undefined) {
+      const currentCartQuantity = user.cart
+        .filter((item: any) => item.product.toString() === productId)
+        .reduce((sum, item: any) => sum + item.quantity, 0);
+      
+      const newQuantity = customization.orderQuantity || 1;
+      
+      if (currentCartQuantity + newQuantity > product.maxCartQuantity) {
+        return NextResponse.json(
+          { 
+            error: `Maximum ${product.maxCartQuantity} units of ${product.name} allowed in cart. You currently have ${currentCartQuantity}.`,
+            maxCartQuantity: product.maxCartQuantity,
+            currentQuantity: currentCartQuantity
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     console.log('Current cart items:', user.cart);
     console.log(":product ID", productId);
     console.log(":hasJuiceXInCart", user.hasJuiceXInCart);
@@ -132,9 +182,6 @@ export async function POST(request: NextRequest) {
     const updateData: any = { $push: { cart: cartItem } };
     
     // If adding JuiceX, mark it as in cart
-    console.log("Current product ID:", productId);
-    console.log("JUICE_X_PRODUCT_ID:", JUICE_X_PRODUCT_ID);
-    console.log("Comparing:", productId.toString() === JUICE_X_PRODUCT_ID.toString());
     if (productId.toString() === JUICE_X_PRODUCT_ID.toString()) {
       console.log("Setting hasJuiceXInCart to true");
       updateData.$set = { hasJuiceXInCart: true };
@@ -145,7 +192,6 @@ export async function POST(request: NextRequest) {
       updateData,
       { new: true, runValidators: true }
     );
-
 
     if (!updatedUser) {
       return NextResponse.json(

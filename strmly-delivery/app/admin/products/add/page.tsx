@@ -21,7 +21,9 @@ const AddProductPage = () => {
   mediumPrice: '',
   regularNutrients: [{ name: '', amount: '', unit: 'g' }],
   largeNutrients: [{ name: '', amount: '', unit: 'g' }],
-  additionalFiles: [] as Array<{ url: string; type: 'image' | 'video' }>
+  additionalFiles: [] as Array<{ url: string; type: 'image' | 'video' }>,
+  maxCartQuantity: '',
+  maxOrderCount: ''
 });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -74,7 +76,13 @@ const updateNutrient = (size: 'regular' | 'large', index: number, field: string,
       newErrors.mediumPrice = 'Medium price must be greater than 0';
     }
 
-   
+    if (formData.maxCartQuantity && parseInt(formData.maxCartQuantity) < 0) {
+      newErrors.maxCartQuantity = 'Max cart quantity cannot be negative';
+    }
+
+    if (formData.maxOrderCount && parseInt(formData.maxOrderCount) < 0) {
+      newErrors.maxOrderCount = 'Max order count cannot be negative';
+    }
 
     if (!formData.imageUrl) {
       newErrors.imageUrl = 'Please upload a product image';
@@ -95,7 +103,7 @@ const updateNutrient = (size: 'regular' | 'large', index: number, field: string,
         setFormData(prev => ({ ...prev, [name]: value }));
         if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
       }
-    } else if (name === 'stock') {
+    } else if (name === 'stock' || name === 'maxCartQuantity' || name === 'maxOrderCount') {
       if (value === '' || /^\d+$/.test(value)) {
         setFormData(prev => ({ ...prev, [name]: value }));
         if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
@@ -175,7 +183,9 @@ const updateNutrient = (size: 'regular' | 'large', index: number, field: string,
         ...formData,
         price: parseFloat(formData.smallPrice),
         stock: parseInt(formData.stock, 10),
-        additionalFiles: formData.additionalFiles
+        additionalFiles: formData.additionalFiles,
+        maxCartQuantity: formData.maxCartQuantity ? parseInt(formData.maxCartQuantity) : null,
+        maxOrderCount: formData.maxOrderCount ? parseInt(formData.maxOrderCount) : null
       };
 
       const response = await fetch('/api/admin/add-product', {
@@ -397,8 +407,48 @@ const updateNutrient = (size: 'regular' | 'large', index: number, field: string,
                       />
                       {errors.mediumPrice && <p className="mt-1 text-sm text-orange-600">{errors.mediumPrice}</p>}
                     </div>
+                  </div>
 
-                    <div className="col-span-2 space-y-6 border-t border-gray-200 pt-6">
+                  {/* Quantity Limits */}
+                  <div className="space-y-4 pt-4 border-t border-gray-200">
+                    <h3 className="text-sm font-semibold text-black">Purchase Limits</h3>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-black mb-2">
+                        Max Cart Quantity
+                        <span className="text-gray-500 font-normal ml-2">(Optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="maxCartQuantity"
+                        value={formData.maxCartQuantity}
+                        onChange={handleChange}
+                        className={`w-full text-black px-4 py-3 border ${errors.maxCartQuantity ? 'border-orange-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition bg-white`}
+                        placeholder="e.g., 6"
+                      />
+                      {errors.maxCartQuantity && <p className="mt-1 text-sm text-orange-600">{errors.maxCartQuantity}</p>}
+                      <p className="text-xs text-gray-500 mt-1">Maximum units a customer can add to cart (leave empty for unlimited)</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-black mb-2">
+                        Max Order Count
+                        <span className="text-gray-500 font-normal ml-2">(Optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="maxOrderCount"
+                        value={formData.maxOrderCount}
+                        onChange={handleChange}
+                        className={`w-full text-black px-4 py-3 border ${errors.maxOrderCount ? 'border-orange-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition bg-white`}
+                        placeholder="e.g., 2"
+                      />
+                      {errors.maxOrderCount && <p className="mt-1 text-sm text-orange-600">{errors.maxOrderCount}</p>}
+                      <p className="text-xs text-gray-500 mt-1">Maximum times a customer can order this product (leave empty for unlimited)</p>
+                    </div>
+                  </div>
+
+                  <div className="col-span-2 space-y-6 border-t border-gray-200 pt-6">
   <h3 className="text-lg font-bold text-gray-900 flex items-center">
     <Apple className="w-5 h-5 mr-2 text-orange-600" />
     Nutritional Information
@@ -716,8 +766,7 @@ const updateNutrient = (size: 'regular' | 'large', index: number, field: string,
                   </div>
                 </div>
               </div>
-            </div>
-            
+\            
             {/* Footer Actions */}
             <div className="bg-orange-50 px-8 py-6 flex justify-end space-x-3 border-t-2 border-orange-100">
               <button

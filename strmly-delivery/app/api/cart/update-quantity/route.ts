@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import UserModel from '@/model/User';
+import ProductModel from '@/model/Product';
 import { verifyAuth } from '@/lib/serverAuth';
 
 export async function POST(request: NextRequest) {
@@ -48,8 +49,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update quantity based on action
+    // Check max cart quantity limit for increment
     if (action === 'increment') {
+      const product = await ProductModel.findById(productId);
+      
+      if (product && product.maxCartQuantity !== null && product.maxCartQuantity !== undefined) {
+        const currentCartQuantity = user.cart
+          .filter((item: any) => item.product.toString() === productId)
+          .reduce((sum, item: any) => sum + item.quantity, 0);
+        
+        if (currentCartQuantity >= product.maxCartQuantity) {
+          return NextResponse.json(
+            { 
+              success: false,
+              error: `Maximum ${product.maxCartQuantity} units of ${product.name} allowed in cart.`,
+              maxCartQuantity: product.maxCartQuantity,
+              currentQuantity: currentCartQuantity
+            },
+            { status: 400 }
+          );
+        }
+      }
+      
       user.cart[cartItemIndex].quantity += 1;
       user.cart[cartItemIndex].price += user.cart[cartItemIndex].customization.finalPrice;
     } else if (action === 'decrement') {

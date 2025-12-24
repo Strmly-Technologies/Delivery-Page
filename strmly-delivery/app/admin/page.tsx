@@ -143,10 +143,10 @@ export default function AdminDashboard() {
                      Email
                    </div>
                  </Link>
-                 <Link href="/admin/settings" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                 <Link href="/admin/delivery" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">
                    <div className="flex items-center">
                      <Settings className="h-5 w-5 mr-3" />
-                     Settings
+                     Delivery Settings
                    </div>
                  </Link>
                  <Link href="/admin/staff" className="block py-3 px-6 text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium">

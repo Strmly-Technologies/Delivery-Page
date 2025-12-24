@@ -10,6 +10,7 @@ import NutrientsModal from '../components/nutrients/NutrientModal';
 import { logout } from '@/lib/auth';
 import { useSound } from '@/hooks/useSound';
 import ViewCartSlider from '../components/dashboard/ViewCartSlider';
+import OtpModal from '../components/login/otpModal';
 
 interface Product {
   _id: string;
@@ -99,6 +100,7 @@ export default function BesomMobileUI() {
   const [hasPurchasedJuiceX, setHasPurchasedJuiceX] = useState(false);
   const [referralWallet, setReferralWallet] = useState(0);
   const [additionalFilesSliderIndex, setAdditionalFilesSliderIndex] = useState(0);
+  const [ showOtpModal, setShowOtpModal ] = useState(false);
 
   const prevSlide = useCallback(() => {
     setAdditionalFilesSliderIndex((idx) => {
@@ -275,6 +277,9 @@ export default function BesomMobileUI() {
         if (currentUser) {
           setUser(JSON.parse(currentUser));
           setIsAuthenticated(true);
+        }else{
+          setIsAuthenticated(false);
+          setShowOtpModal(true);
         }
 
         const url = filter === 'all'
@@ -377,6 +382,12 @@ export default function BesomMobileUI() {
 
     initializeDashboard();
   }, [filter]);
+
+   const handleVerificationComplete = () => {
+      setIsAuthenticated(true);
+      setShowOtpModal(false);
+      window.location.reload();
+    };
 
   const updateProductQuantities = useCallback(async () => {
     try {
@@ -1348,6 +1359,11 @@ export default function BesomMobileUI() {
     </div>
   </>
 )}
+ <OtpModal
+                    isOpen={showOtpModal}
+                    onClose={() => setShowOtpModal(false)}
+                    onVerificationComplete={handleVerificationComplete}
+                  />
     </>
   );
 }

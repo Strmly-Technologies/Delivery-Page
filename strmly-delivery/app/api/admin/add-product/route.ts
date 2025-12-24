@@ -28,7 +28,9 @@ export async function POST(request: NextRequest) {
       mediumPrice,
       regularNutrients,
       largeNutrients,
-      additionalFiles
+      additionalFiles,
+      maxCartQuantity,
+      maxOrderCount
     } = await request.json();
     
     console.log('Product data:', { 
@@ -42,7 +44,9 @@ export async function POST(request: NextRequest) {
       mediumPrice,
       regularNutrients,
       largeNutrients,
-      additionalFiles
+      additionalFiles,
+      maxCartQuantity,
+      maxOrderCount
     });
     
     // Validation
@@ -75,7 +79,9 @@ export async function POST(request: NextRequest) {
       mediumPrice: Number(mediumPrice) || 0,
       regularNutrients: regularNutrients || [],
       largeNutrients: largeNutrients || [],
-      additionalFiles: additionalFiles || []
+      additionalFiles: additionalFiles || [],
+      maxCartQuantity: maxCartQuantity !== undefined ? Number(maxCartQuantity) : null,
+      maxOrderCount: maxOrderCount !== undefined ? Number(maxOrderCount) : null
     });
     
     await newProduct.save();

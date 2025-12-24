@@ -75,9 +75,8 @@ export async function POST(request: NextRequest) {
       completeCheckout = false,
       scheduledDeliveryDate,
       couponCode,
-      discountAmount // this will already be half if referral is applied
+      discountAmount
     } = requestBody;
-
 
     // Extract items based on checkout type
     const cartItems = requestBody.cartItems || [];
@@ -88,8 +87,96 @@ export async function POST(request: NextRequest) {
     let couponOwner = null;
     let referralCreditAmount = 0;
 
-    console.log("Discount Amount:", discountAmount);
+    // Get unique product IDs from order
+    const productIds: string[] = [];
+    
+    if (checkoutType === 'quicksip') {
+      productIds.push(...cartItems.map((item: CartItem) => item.product._id));
+    } else if (checkoutType === 'freshplan') {
+      if (completeCheckout && planDays.length > 0) {
+        planDays.forEach((day: any) => {
+          productIds.push(...day.items.map((item: PlanItem) => 
+            typeof item.product === 'string' ? item.product : item.product._id
+          ));
+        });
+      } else {
+        productIds.push(...planItems.map((item: PlanItem) => item.product._id));
+      }
+    }
 
+    const uniqueProductIds = [...new Set(productIds)];
+
+    // Check if all products are active
+    const products = await ProductModel.find({ _id: { $in: uniqueProductIds } })
+      .select('_id isActive name maxOrderCount')
+      .lean();
+    const typedProducts = products as Array<{ _id: any; isActive?: boolean; name?: string; maxOrderCount?: number | null }>;
+    const inactiveProducts = typedProducts.filter(p => !p.isActive);
+    
+    if (inactiveProducts.length > 0) {
+      const productNames = inactiveProducts.map(p => p.name).join(', ');
+      return NextResponse.json(
+        { 
+          error: `Cannot place order. The following product(s) are no longer available: ${productNames}`,
+          inactiveProducts: inactiveProducts.map(p => ({ id: p._id, name: p.name }))
+        },
+        { status: 400 }
+      );
+    }
+
+    // Check max order count limits
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    const productOrderCounts = user.productOrderCounts || new Map();
+    
+    for (const product of typedProducts) {
+      if (product.maxOrderCount !== null && product.maxOrderCount !== undefined) {
+        const currentOrderCount = productOrderCounts.get(product._id.toString()) || 0;
+        
+        if (currentOrderCount >= product.maxOrderCount) {
+          return NextResponse.json(
+            { 
+              error: `You have reached the maximum order limit for ${product.name}. Maximum ${product.maxOrderCount} orders allowed.`,
+              productName: product.name,
+              maxOrderCount: product.maxOrderCount,
+              currentOrderCount
+            },
+            { status: 400 }
+          );
+        }
+      }
+    }
+    
+    // Check if any item is the one-time free product "Juice X"
+    const JUICE_X_PRODUCT_ID = process.env.PRODUCT_ID || '';
+    let hasOrderedJuiceX = false;
+    
+    if (checkoutType === 'quicksip') {
+      hasOrderedJuiceX = cartItems.some((item: CartItem) => item.product._id === JUICE_X_PRODUCT_ID);
+    } else if (checkoutType === 'freshplan') {
+      if (completeCheckout) {
+        hasOrderedJuiceX = planDays.some((day: any) => 
+          day.items.some((item: PlanItem) => item.product._id === JUICE_X_PRODUCT_ID)
+        );
+      } else {
+        hasOrderedJuiceX = planItems.some((item: PlanItem) => item.product._id === JUICE_X_PRODUCT_ID);
+      }
+    }
+
+    // Validate required fields
+    if (!customerDetails || 
+        (!cartItems.length && !planItems.length && !planDays.length) || 
+        !totalAmount) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    // Handle coupon logic
     if (couponCode && discountAmount) {
       // Find the user who owns this coupon
       couponOwner = await UserModel.findOne({
@@ -141,69 +228,6 @@ export async function POST(request: NextRequest) {
     }
   }
     
-    // Validate all products are active before processing order
-    const productIds: string[] = [];
-    
-    if (checkoutType === 'quicksip') {
-      productIds.push(...cartItems.map((item: CartItem) => item.product._id));
-    } else if (checkoutType === 'freshplan') {
-      if (completeCheckout && planDays.length > 0) {
-        planDays.forEach((day: any) => {
-          productIds.push(...day.items.map((item: PlanItem) => 
-            typeof item.product === 'string' ? item.product : item.product._id
-          ));
-        });
-      } else {
-        productIds.push(...planItems.map((item: PlanItem) => item.product._id));
-      }
-    }
-
-    // Check if all products are active
-    const products = await ProductModel.find({ _id: { $in: productIds } })
-      .select('_id isActive name')
-      .lean();
-    const typedProducts = products as Array<{ _id: any; isActive?: boolean; name?: string }>;
-    const inactiveProducts = typedProducts.filter(p => !p.isActive);
-    
-    if (inactiveProducts.length > 0) {
-      const productNames = inactiveProducts.map(p => p.name).join(', ');
-      return NextResponse.json(
-        { 
-          error: `Cannot place order. The following product(s) are no longer available: ${productNames}`,
-          inactiveProducts: inactiveProducts.map(p => ({ id: p._id, name: p.name }))
-        },
-        { status: 400 }
-      );
-    }
-    
-    // Check if any item is the one-time free product "Juice X"
-    const JUICE_X_PRODUCT_ID = process.env.PRODUCT_ID || '';
-    let hasOrderedJuiceX = false;
-    
-    if (checkoutType === 'quicksip') {
-      hasOrderedJuiceX = cartItems.some((item: CartItem) => item.product._id === JUICE_X_PRODUCT_ID);
-    } else if (checkoutType === 'freshplan') {
-      if (completeCheckout) {
-        hasOrderedJuiceX = planDays.some((day: any) => 
-          day.items.some((item: PlanItem) => item.product._id === JUICE_X_PRODUCT_ID)
-        );
-      } else {
-        hasOrderedJuiceX = planItems.some((item: PlanItem) => item.product._id === JUICE_X_PRODUCT_ID);
-      }
-    }
-
-    // Validate required fields
-    if (!customerDetails || 
-        (!cartItems.length && !planItems.length && !planDays.length) || 
-        !totalAmount) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
-
-    console.log(`Processing ${checkoutType} order with ${cartItems.length || planItems.length} items`);
-
     // Create order items based on checkout type
     let orderItems;
     let orderType;
@@ -271,14 +295,6 @@ export async function POST(request: NextRequest) {
       orderType = 'freshplan';
     }
 
-    console.log("COupon details:", {
-          code: couponCode,
-          discountAmount: discountAmount,
-          referralCredit: referralCreditAmount,
-          couponOwnerId: couponOwner?._id
-        })
- 
-
     // Combine all items (except for complete FreshPlan checkout which uses daySchedule)
     const finalOrderItems = orderType === 'freshplan' 
       ? []
@@ -309,7 +325,18 @@ export async function POST(request: NextRequest) {
         })
     });
 
-    console.log(`Order ${order._id} created for user ${userId}, order : ${order}`);
+    // Update product order counts for user
+    const updateData: any = {};
+    
+    // Increment order counts for each unique product
+    for (const productId of uniqueProductIds) {
+      const productIdStr = productId.toString();
+      const currentCount = productOrderCounts.get(productIdStr) || 0;
+      productOrderCounts.set(productIdStr, currentCount + 1);
+    }
+    
+    // Convert Map to plain object for MongoDB
+    updateData.productOrderCounts = Object.fromEntries(productOrderCounts);
 
     // Update FreshPlan status if this is a complete checkout
     if (checkoutType === 'freshplan' && completeCheckout) {
@@ -337,6 +364,7 @@ export async function POST(request: NextRequest) {
           {
             $set: {
               freshPlans:freshplans,
+              productOrderCounts: updateData.productOrderCounts,
               ...(hasOrderedJuiceX && { 
                 hasPurchasedProductJuiceX: true,
                 hasJuiceXInCart: false 
@@ -345,14 +373,26 @@ export async function POST(request: NextRequest) {
           }
         );  
       }
-    } else if (checkoutType === 'quicksip' && hasOrderedJuiceX) {
-      // Mark JuiceX as purchased for QuickSip orders
+    } else if (checkoutType === 'quicksip') {
       await UserModel.findByIdAndUpdate(
         userId,
         {
           $set: {
-            hasPurchasedProductJuiceX: true,
-            hasJuiceXInCart: false
+            productOrderCounts: updateData.productOrderCounts,
+            ...(hasOrderedJuiceX && {
+              hasPurchasedProductJuiceX: true,
+              hasJuiceXInCart: false
+            })
+          }
+        }
+      );
+    } else {
+      // For other cases, still update product order counts
+      await UserModel.findByIdAndUpdate(
+        userId,
+        {
+          $set: {
+            productOrderCounts: updateData.productOrderCounts
           }
         }
       );

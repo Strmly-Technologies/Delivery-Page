@@ -26,7 +26,7 @@ export const localCart = {
     }
   },
 
-  addItem(item: any) {
+  async addItem(item: any) {
     try {
       const items = this.getItems();
       console.log('Current items before adding:', items);
@@ -37,6 +37,27 @@ export const localCart = {
         if (hasJuiceX) {
           throw new Error('This special product is already in your cart. You can only add it once.');
         }
+      }
+
+      // Fetch product to check max cart quantity (for local cart)
+      try {
+        const response = await fetch(`/api/products/${item.productId}`);
+        const data = await response.json();
+        
+        if (data.success && data.product.maxCartQuantity !== null && data.product.maxCartQuantity !== undefined) {
+          const currentCartQuantity = items
+            .filter((i: any) => i.productId === item.productId)
+            .reduce((sum:any, i: any) => sum + i.quantity, 0);
+          
+          const newQuantity = item.quantity || 1;
+          
+          if (currentCartQuantity + newQuantity > data.product.maxCartQuantity) {
+            throw new Error(`Maximum ${data.product.maxCartQuantity} units of this product allowed in cart. You currently have ${currentCartQuantity}.`);
+          }
+        }
+      } catch (fetchError) {
+        console.warn('Could not check cart limits:', fetchError);
+        // Continue anyway for offline functionality
       }
 
       // Check if product already exists with same customization

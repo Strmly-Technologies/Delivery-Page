@@ -42,6 +42,8 @@ export interface ProductDocument extends Document {
     url: string;
     type: 'image' | 'video';
   }[];
+  maxCartQuantity?: number;
+  maxOrderCount?: number;
 }
 
 const customizationSchema = new Schema<Customization>({
@@ -169,7 +171,17 @@ const productSchema = new Schema<ProductDocument>({
       enum: ['image', 'video'],
       required: true
     }
-  }]
+  }],
+  maxCartQuantity: {
+    type: Number,
+    default: null, // null means unlimited
+    min: 0
+  },
+  maxOrderCount: {
+    type: Number,
+    default: null, // null means unlimited
+    min: 0
+  }
 }, { timestamps: true });
 
 const Product: Model<ProductDocument> =

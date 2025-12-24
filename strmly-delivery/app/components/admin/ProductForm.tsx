@@ -18,6 +18,8 @@ const ProductForm = ({ onSubmit, categories, initialData = {}, isLoading = false
       category: initialData.category || '',
       imageUrl: initialData.imageUrl || '',
       isAvailable: initialData.isAvailable ?? true,
+      maxCartQuantity: initialData.maxCartQuantity ?? '',
+      maxOrderCount: initialData.maxOrderCount ?? '',
     }
   });
 
@@ -117,6 +119,44 @@ const ProductForm = ({ onSubmit, categories, initialData = {}, isLoading = false
           className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
         />
         {errors.price && <p className="text-red-500 text-xs mt-1">{errors.price.message?.toString()}</p>}
+      </div>
+
+      <div>
+        <label htmlFor="maxCartQuantity" className="block text-sm font-medium text-gray-700">
+          Max Cart Quantity
+          <span className="text-gray-500 text-xs ml-2">(Leave empty for unlimited)</span>
+        </label>
+        <input
+          type="number"
+          id="maxCartQuantity"
+          min="0"
+          {...register('maxCartQuantity', {
+            min: { value: 0, message: 'Cannot be negative' }
+          })}
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          placeholder="e.g., 6"
+        />
+        {errors.maxCartQuantity && <p className="text-red-500 text-xs mt-1">{errors.maxCartQuantity.message?.toString()}</p>}
+        <p className="text-xs text-gray-500 mt-1">Maximum number of this product a user can add to their cart</p>
+      </div>
+
+      <div>
+        <label htmlFor="maxOrderCount" className="block text-sm font-medium text-gray-700">
+          Max Order Count
+          <span className="text-gray-500 text-xs ml-2">(Leave empty for unlimited)</span>
+        </label>
+        <input
+          type="number"
+          id="maxOrderCount"
+          min="0"
+          {...register('maxOrderCount', {
+            min: { value: 0, message: 'Cannot be negative' }
+          })}
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          placeholder="e.g., 2"
+        />
+        {errors.maxOrderCount && <p className="text-red-500 text-xs mt-1">{errors.maxOrderCount.message?.toString()}</p>}
+        <p className="text-xs text-gray-500 mt-1">Maximum number of times a user can order this product</p>
       </div>
 
       <div>

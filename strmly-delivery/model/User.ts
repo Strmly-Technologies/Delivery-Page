@@ -66,6 +66,7 @@ export interface User extends Document {
     numberOfUses?: Number;
   }>;
   referralWallet?:Number;
+  productOrderCounts?: Map<string, number>; // productId -> order count
 }
 
 const freshPlanItemSchema = new Schema({
@@ -223,8 +224,11 @@ const userSchema = new Schema<User>({
       phoneNumber: { type: String }
     }
   ],
-
- 
+  productOrderCounts: {
+    type: Map,
+    of: Number,
+    default: new Map()
+  },
 });
 
 // Update `updatedAt` before save

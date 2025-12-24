@@ -81,16 +81,16 @@ export async function PUT(
     if (body.largeNutrients !== undefined) updateData.largeNutrients = body.largeNutrients;
     if (body.additionalFiles !== undefined) updateData.additionalFiles = body.additionalFiles;
     if (typeof body.isActive === 'boolean') updateData.isActive = body.isActive;
+    if (body.maxCartQuantity !== undefined) updateData.maxCartQuantity = body.maxCartQuantity !== null ? Number(body.maxCartQuantity) : null;
+    if (body.maxOrderCount !== undefined) updateData.maxOrderCount = body.maxOrderCount !== null ? Number(body.maxOrderCount) : null;
 
     console.log('Update data:', updateData);
 
     const updatedProduct = await ProductModel.findByIdAndUpdate(
       id,
-      { $set: updateData }, // Use $set explicitly
+      { $set: updateData },
       { new: true, runValidators: true }
     );
-
-    console.log('Updated product after save:', updatedProduct);
 
     if (!updatedProduct) {
       return NextResponse.json(
@@ -98,10 +98,6 @@ export async function PUT(
         { status: 404 }
       );
     }
-
-    // Verify the update actually worked
-    const verifyProduct = await ProductModel.findById(id);
-    console.log('Verified product from DB:', verifyProduct);
 
     return NextResponse.json({
       success: true,
